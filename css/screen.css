@@ -1,0 +1,41 @@
+body {
+    padding-top: 90px;
+}
+.header {
+    text-align: center;
+}
+.header h1 {
+    font-size: 100px;
+}
+.header h3 {
+    font-size: 30px;
+    font-weight: normal;
+}
+.download-info {
+    margin-top: 10px;
+}
+.btn-large {
+    font-size: 20px;
+    font-weight: normal;
+    padding: 14px 24px;
+    margin-right: 10px;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+}
+#outputArea textarea {
+    height: 450px;
+    width: 100%;
+}
+#insert {
+    margin-top: 20px;
+}
+#query textarea, #insert textarea {
+    height: 125px;
+    width: 100%;
+}
+.footer {
+    margin-top: 45px;
+    padding: 35px 0 36px;
+    border-top: 1px solid #E5E5E5;
+}

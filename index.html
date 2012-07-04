@@ -1,66 +1,137 @@
-<!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Nanodb by iwillwen</title>
-
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<head>
+    <title>NanoDB Test</title>
+    <script src="/js/raw.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/js/nanodb.js" type="text/javascript" charset="utf-8"></script>
+    <link rel="stylesheet" href="/css/bootstrap.css" />
+    <link rel="stylesheet" href="/css/screen.css" />
+    <!--[if lt IE 8]>
+    <script src="https://raw.github.com/douglascrockford/JSON-js/master/json.js" type="text/javascript" charset="utf-8"></script>
     <![endif]-->
-  </head>
-  <body>
-    <div class="wrapper">
-      <header>
-        <h1>Nanodb</h1>
-        <p>Cross Database on browsers.</p>
-
-        <p class="view"><a href="https://github.com/iwillwen/NanoDB">View the Project on GitHub <small>iwillwen/NanoDB</small></a></p>
-
-
-        <ul>
-          <li><a href="https://github.com/iwillwen/NanoDB/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/iwillwen/NanoDB/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/iwillwen/NanoDB">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
-        <h3>Welcome to GitHub Pages.</h3>
-
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
-
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
-
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
-
-<h3>Designer Templates</h3>
-
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
-
-<h3>Rather Drive Stick?</h3>
-
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
-
-<h3>Authors and Contributors</h3>
-
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
-
-<h3>Support or Contact</h3>
-
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
-      </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/iwillwen">iwillwen</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
+</head>
+<body data-offset="50">
+    <div class="navbar navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container">
+                <a class="brand" href="index.html">NanoDB</a>
+                <div class="nav-collapse">
+                    <ul class="nav">
+                        <li class="">
+                            <a href="index.html">Intro</a>
+                        </li>
+                        <li class="">
+                            <a href="#example">example</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
-    <script src="javascripts/scale.fix.js"></script>
-    
-  </body>
+
+    <div class="container">
+        <div class="hero-unit header">
+            <h1>NanoDB</h1>
+            <h3>Cross-Browsers Local Database Library</h3>
+            <p class="download-info">
+                <a href="https://github.com/iwillwen/NanoDB/" class="btn btn-primary btn-large">View on Github</a>
+                <a href="###" class="btn btn-large">Download NanoDB <small>(v0.0.1)</small></a>
+            </p>
+            <span>By Will Wen Gunn and Jason Gui</span>
+        </div>
+        <h1 style="text-align:center;" id="example">Example</h1>
+        <div class="row">
+            <div class="span8" id="outputArea">
+                <h2>Output:</h2>
+                <textarea id="output" readonly></textarea>
+            </div>
+            <div class="row">
+                <div class="span4" id="query">
+                    <h2>Query:</h2>
+                    <textarea id="queryJSON" ></textarea>
+                    <a href="javascript:;" id="queryBtn" class="btn btn-primary btn-large">Query</a>
+                    <a href="javascript:;" id="removeBtn" class="btn btn-primary btn-large">Remove</a>
+                </div>
+                <div class="span4" id="insert">
+                    <h2>Insert:</h2>
+                    <textarea id="insertJSON" ></textarea>
+                    <a href="javascript:;" id="insertBtn" class="btn btn-primary btn-large">Insert</a>
+                </div>
+            </div>
+        </div>
+        <footer class="footer">
+            <p class="pull-right"><a href="#">Top</a></p>
+            <p>Created by <a href="http://iwwen.me" title="i-W-Wen" target="_blank">Will Wen Gunn</a> and Jason Gui</p>
+            <p>Code licensed under the MIT License. Documentation licensed under CC BY 3.0.</p>
+        </footer>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            var output = document.getElementById('output');
+
+            var test = nano.db('test', { store: new nano.memStore() });
+            var items = test.collection('items');
+
+            items.insert({
+                name1: "Will Wen Gunn",
+                name2: "Jason Gui"
+            }, function (err) {
+                output.innerHTML += 'Insert successed!\n';
+            });
+
+            items.find(function (err, res) {
+                output.innerHTML += 'Now in the collection:\n';
+                output.innerHTML += JSON.stringify(res).replace(/},/g, '},\n') + '\n';
+            });
+
+            items.on('insert', function (data) {
+                output.innerHTML += 'A item has been inserted:' + JSON.stringify(data) + '\n';
+            });
+
+            var queryBtn = document.getElementById('queryBtn');
+            var removeBtn = document.getElementById('removeBtn');
+            var insertBtn = document.getElementById('insertBtn');
+            var queryJSON = document.getElementById('queryJSON');
+            var insertJSON = document.getElementById('insertJSON');
+
+            queryBtn.addEventListener('click', function () {
+                var query = queryJSON.value == '' ? '{}' : queryJSON.value;
+                var json = JSON.parse(query);
+                items.find(json, function (err, res) {
+                    if (err) return output.innerHTML += err.message + '\n';
+                    output.innerHTML += 'Query Successed!\n';
+                    output.innerHTML += 'Result:\n';
+                    output.innerHTML += JSON.stringify(res) + '\n';
+                    queryJSON.value = '';
+                });
+            }, false);
+            removeBtn.addEventListener('click', function () {
+                var query = queryJSON.value == '' ? '{}' : queryJSON.value;
+                var json = JSON.parse(query);
+                items.remove(json, function (err, res) {
+                    if (err) return output.innerHTML += err.message + '\n';
+                    output.innerHTML += 'Remove Successed!\n';
+                    output.innerHTML += 'These have been removed:\n';
+                    output.innerHTML += JSON.stringify(res) + '\n';
+                    queryJSON.value = '';
+                });
+            }, false);
+
+            insertBtn.addEventListener('click', function () {
+                var json = JSON.parse(insertJSON.value);
+                items.insert(json, function (err) {
+                    if (err) return output.innerHTML += err.message + '\n';
+                    output.innerHTML += 'Insert Successed!\n';
+                    insertJSON.value = '';
+                    items.find({}, function (err1, res1) {
+                        if (err) return output.innerHTML += err1.message + '\n';
+                        output.innerHTML += 'Query Successed!\n';
+                        output.innerHTML += 'Result:\n';
+                        output.innerHTML += JSON.stringify(res1) + '\n';
+                    });
+                });
+            }, false);
+        })();
+    </script>
+</body>
 </html>
