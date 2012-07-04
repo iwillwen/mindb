@@ -58,6 +58,48 @@
                 </div>
             </div>
         </div>
+        <hr>
+        <h1 style="text-align:center;" id="Usage">Usage</h1>
+        <div class="row">
+            <h1>Database</h1>
+            <pre><code>var mydb = nano.db('mydb');</code></pre>
+            <h2>Store Interface</h2>
+            <p>NanoDB support a store interface for you to store the data in some other place.</p>
+            <p>NanoDB provides two store interfaces to store in memory and local.(nano.memStore, nano.localStore), (Deafult use the localStore interface.)</p>
+            <pre><code>var mydb = nano.db('mydb', { store: new nano.memStore() });</code></pre>
+            <p>You can use your store container to develop your store interface.</p>
+            <pre><code>// For Adobe AIR EncryptedLocalStore
+function EncryptedLocalStore () {}
+EncryptedLocalStore.prototype.get = function (key) {
+    return air.EncryptedLocalStore.getItem(key);
+};
+EncryptedLocalStore.prototype.set = function (key, value) {
+    return air.EncryptedLocalStore.setItem(key, value);
+};
+EncryptedLocalStore.prototype.remove = function (key) {
+    return air.EncryptedLocalStore.removeItem(key);
+};
+
+var mydb = nano.db('mydb', { store: EncryptedLocalStore() });</code></pre>
+            <h1>Collection</h1>
+            <pre><code>var items = mydb.collection('items');</code></pre>
+            <h2>Query</h2>
+            <h3>find</h3>
+            <pre><code>items.find({name: 'Will'}, function (err, row) {
+    if (err) return;
+    console.log(row);
+});</code></pre>
+            <h3>insert</h3>
+            <pre><code>items.insert({ foo: 'bar' }, function (err) {
+    if (err) return;
+    console.log('Insert successed');
+});</code></pre>
+            <h3>remove</h3>
+            <pre><code>items.remove({ needToRemove: 1 }, function (err, res) {
+    if (err) return;
+    console.log(res);
+});</code></pre>
+        </div>
         <footer class="footer">
             <p class="pull-right"><a href="#">Top</a></p>
             <p>Created by <a href="http://iwwen.me" title="i-W-Wen" target="_blank">Will Wen Gunn</a> and Jason Gui</p>
