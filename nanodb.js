@@ -82,6 +82,10 @@
     function nanoCollection (collName, dbName) {
         this.name = collName;
         this.parent = dbName;
+        if (!lS.getItem('nano-' + dbName + '-' + collName)) {
+            lS.setItem('nano-' + dbName + '-' + collName, '{}');
+            lS.setItem('nano-' + dbName + '-' + collName + '-indexs', '[]');
+        }
         this.collection = jP(uCP(atob(lS.getItem('nano-' + dbName + '-' + collName))));
         this.indexs = jP(uCP(atob(lS.getItem('nano-' + dbName + '-' + collName + '-indexs'))));
     }
@@ -119,9 +123,9 @@
             return true;
         }
 
-        for (var i = 0; i < this.collection.length; i++) {
-            if (check(this.collection[i])) {
-                results.push(this.collection[i]);
+        for (var i = 0; i < this.index.length; i++) {
+            if (check(this.collection[this.index[i]])) {
+                results.push(this.collection[this.index[i]]);
                 resultIndexs.push(this.indexs[i]);
             }
         }
