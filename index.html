@@ -1,181 +1,177 @@
 <html>
-<head>
+  <head>
     <title>NanoDB Test</title>
     <script src="//iwillwen.github.com/NanoDB/javascripts/zpipe.js" type="text/javascript" charset="utf-8"></script>
-    <script src="//iwillwen.github.com/NanoDB/javascripts/nanodb.js" type="text/javascript" charset="utf-8"></script>
-    <link rel="stylesheet" href="//iwillwen.github.com/stylesheets/bootstrap.css" />
-    <link rel="stylesheet" href="//iwillwen.github.com/stylesheets/nano.css" />
+    <script src="//iwillwen.github.com/NanoDB/javascripts/nanodb.min.js" type="text/javascript" charset="utf-8"></script>
+    <link rel="stylesheet" href="//iwillwen.github.com/stylesheets/bootstrap.css"/>
+    <link rel="stylesheet" href="//iwillwen.github.com/stylesheets/nano.css"/>
     <!--[if lt IE 8]>
-    <script src="https://raw.github.com/douglascrockford/JSON-js/master/json.js" type="text/javascript" charset="utf-8"></script>
+      <script src="https://raw.github.com/douglascrockford/JSON-js/master/json.js" type="text/javascript" charset="utf-8"></script>
     <![endif]-->
-</head>
-<body data-offset="50">
+  </head>
+  <body data-offset="50">
     <div class="navbar navbar-fixed-top">
-        <div class="navbar-inner">
-            <div class="container">
-                <a class="brand" href="index.html">NanoDB</a>
-                <div class="nav-collapse">
-                    <ul class="nav">
-                        <li class="">
-                            <a href="index.html">Intro</a>
-                        </li>
-                        <li class="">
-                            <a href="#example">Example</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="brand" href="index.html">NanoDB</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li class=""><a href="index.html">Intro</a></li>
+              <li class=""><a href="#example">Example</a></li>
+            </ul>
+          </div>
         </div>
+      </div>
     </div>
-
-    <div class="container">
+      <div class="container">
         <div class="hero-unit header">
-            <h1>NanoDB</h1>
-            <h3>Cross-Browsers Local Database Library</h3>
-            <p class="download-info">
-                <a href="//github.com/iwillwen/NanoDB/" class="btn btn-primary btn-large">View on Github</a>
-                <a href="//github.com/iwillwen/NanoDB/zipball/master" class="btn btn-large">Download NanoDB <small>(v0.0.1)</small></a>
-            </p>
-            <span>By Will Wen Gunn and Wiky Chen</span>
+          <h1>NanoDB</h1>
+          <h3>Cross-Browsers Local Database Library</h3>
+          <p class="download-info">
+            <a href="//github.com/iwillwen/NanoDB/" class="btn btn-primary btn-large">View on Github</a>
+            <a href="//github.com/iwillwen/NanoDB/zipball/master" class="btn btn-large">Download NanoDB <small>(v0.0.1)</small></a>
+          </p>
+          <span>By Will Wen Gunn and Wiky Chen</span>
         </div>
-        <h1 style="text-align:center;" id="example">Example</h1>
-        <div class="row">
+          <h1 style="text-align:center;" id="example">Example</h1>
+          <div class="row">
             <div class="span8" id="outputArea">
-                <h2>Output:</h2>
-                <textarea id="output" readonly></textarea>
+              <h2>Output:</h2>
+              <textarea id="output" readonly></textarea>
             </div>
             <div class="row">
-                <div class="span4" id="query">
-                    <h2>Query:(JSON)</h2>
-                    <textarea id="queryJSON" ></textarea>
-                    <a href="javascript:;" id="queryBtn" class="btn btn-primary btn-large">Query</a>
-                    <a href="javascript:;" id="removeBtn" class="btn btn-primary btn-large">Remove</a>
-                </div>
+              <div class="span4" id="query">
+                <h2>Query:(JSON)</h2>
+                <textarea id="queryJSON"></textarea>
+                <a href="javascript:;" id="queryBtn" class="btn btn-primary btn-large">Query</a>
+                <a href="javascript:;" id="removeBtn" class="btn btn-primary btn-large">Remove</a>
+              </div>
                 <div class="span4" id="insert">
-                    <h2>Insert:(JSON)</h2>
-                    <textarea id="insertJSON" ></textarea>
-                    <a href="javascript:;" id="insertBtn" class="btn btn-primary btn-large">Insert</a>
+                  <h2>Insert:(JSON)</h2>
+                  <textarea id="insertJSON"></textarea>
+                  <a href="javascript:;" id="insertBtn" class="btn btn-primary btn-large">Insert</a>
                 </div>
             </div>
-        </div>
-        <hr>
-        <h1 style="text-align:center;" id="Usage">Usage</h1>
-        <div class="row">
-            <div class="span12">
-                <h1>Database</h1>
-                <pre><code>var mydb = nano.db('mydb');</code></pre>
-                <h2>Store Interface</h2>
-                <p>NanoDB support a store interface for you to store the data in some other place.</p>
-                <p>NanoDB provides two store interfaces to store in memory and local.(nano.memStore, nano.localStore), (Deafult use the localStore interface.)</p>
-                <pre><code>var mydb = nano.db('mydb', { store: new nano.memStore() });</code></pre>
-                <p>You can use your store container to develop your store interface.</p>
-                <pre><code>// For Adobe AIR EncryptedLocalStore
+          </div>
+          <hr>
+          <h1 style="text-align:center;" id="Usage">
+              Usage
+          </h1>
+          <div class="row">
+              <div class="span12">
+                  <h1>Database</h1>
+                  <pre><code>var mydb = nano.db('mydb');</code></pre>
+                  <h2>Store Interface</h2>
+                  <p>NanoDB support a store interface for you to store the data in some other platforms.</p>
+                  <p>NanoDB provides two store interfaces to store in memory and local.(nano.memStore, nano.localStore), (Deafult use the localStore interface.)</p>
+                  <pre><code>var mydb = nano.db('mydb', { store: new nano.memStore() });</code></pre>
+                  <p>You can use your store container to develop your store interface.</p>
+                  <pre><code>// For Adobe AIR EncryptedLocalStore
 function EncryptedLocalStore () {}
 EncryptedLocalStore.prototype.get = function (key) {
-    return air.EncryptedLocalStore.getItem(key);
+  return air.EncryptedLocalStore.getItem(key);
 };
 EncryptedLocalStore.prototype.set = function (key, value) {
-    return air.EncryptedLocalStore.setItem(key, value);
+  return air.EncryptedLocalStore.setItem(key, value);
 };
 EncryptedLocalStore.prototype.remove = function (key) {
-    return air.EncryptedLocalStore.removeItem(key);
+  return air.EncryptedLocalStore.removeItem(key);
 };
-
 var mydb = nano.db('mydb', { store: EncryptedLocalStore() });</code></pre>
-                <h1>Collection</h1>
-                <pre><code>var items = mydb.collection('items');</code></pre>
-                <h2>Query</h2>
-                <h3>find</h3>
-                <pre><code>items.find({name: 'Will'}, function (err, row) {
-        if (err) return;
-        console.log(row);
-    });</code></pre>
-                <h3>insert</h3>
-                <pre><code>items.insert({ foo: 'bar' }, function (err) {
-        if (err) return;
-        console.log('Insert successed');
-    });</code></pre>
-                <h3>remove</h3>
-                <pre><code>items.remove({ needToRemove: 1 }, function (err, res) {
-        if (err) return;
-        console.log(res);
-    });</code></pre>
+                  <h1>Collection</h1>
+                  <pre><code>var items = mydb.collection('items');</code></pre>
+                  <h2>Query</h2>
+                  <h3>find</h3>
+                  <pre><code>items.find({name: 'Will'}, function (err, row) {
+  if (err) return; console.log(row);
+});</code></pre>
+                  <h3>insert</h3>
+                  <pre><code>items.insert({ foo: 'bar' }, function (err) { if (err) return; console.log('Insert successed'); }); </code></pre>
+                  <h3>remove</h3>
+                  <pre><code>items.remove({ needToRemove: 1 }, function (err, res) {
+  if (err) return; console.log(res);
+});</code></pre>
             </div>
-        </div>
-        <footer class="footer">
-            <p class="pull-right"><a href="#">Top</a></p>
-            <p>Created by <a href="http://iwwen.me" title="i-W-Wen" target="_blank">Will Wen Gunn</a> and Jason Gui</p>
+          </div>
+          <footer class="footer">
+            <p class="pull-right">
+              <a href="#">Top</a>
+            </p>
+            <p>
+              Created by <a href="http://iwwen.me" title="i-W-Wen" target="_blank">Will Wen Gunn</a> and Wiky Chen
+            </p>
             <p>Code licensed under the MIT License. Documentation licensed under CC BY 3.0.</p>
-        </footer>
-    </div>
+          </footer>
+      </div>
+      <script type="text/javascript">
+        (function() {
+          var output = document.getElementById('output');
 
-    <script type="text/javascript">
-        (function () {
-            var output = document.getElementById('output');
+          var test = nano.db('test', {
+            store: new nano.memStore()
+          });
+          var items = test.collection('items');
 
-            var test = nano.db('test', { store: new nano.memStore() });
-            var items = test.collection('items');
+          items.insert({
+            name1: "Will Wen Gunn",
+            name2: "Wiky Chen"
+          }, function(err) {
+            output.innerHTML += 'Insert successed!\n';
+          });
 
-            items.insert({
-                name1: "Will Wen Gunn",
-                name2: "Wiky Chen"
-            }, function (err) {
-                output.innerHTML += 'Insert successed!\n';
+          items.find(function(err, res) {
+            output.innerHTML += 'Now in the collection:\n';
+            output.innerHTML += JSON.stringify(res).replace(/},/g, '},\n') + '\n';
+          });
+
+          items.on('insert', function(data) {
+            output.innerHTML += 'A item has been inserted:' + JSON.stringify(data) + '\n';
+          });
+
+          var queryBtn = document.getElementById('queryBtn');
+          var removeBtn = document.getElementById('removeBtn');
+          var insertBtn = document.getElementById('insertBtn');
+          var queryJSON = document.getElementById('queryJSON');
+          var insertJSON = document.getElementById('insertJSON');
+
+          queryBtn.addEventListener('click', function() {
+            var query = queryJSON.value == '' ? '{}' : queryJSON.value;
+            var json = JSON.parse(query);
+            items.find(json, function(err, res) {
+              if (err) return output.innerHTML += err.message + '\n';
+              output.innerHTML += 'Query Successed!\n';
+              output.innerHTML += 'Result:\n';
+              output.innerHTML += JSON.stringify(res) + '\n';
+              queryJSON.value = '';
             });
-
-            items.find(function (err, res) {
-                output.innerHTML += 'Now in the collection:\n';
-                output.innerHTML += JSON.stringify(res).replace(/},/g, '},\n') + '\n';
+          }, false);
+          removeBtn.addEventListener('click', function() {
+            var query = queryJSON.value == '' ? '{}' : queryJSON.value;
+            var json = JSON.parse(query);
+            items.remove(json, function(err, res) {
+              if (err) return output.innerHTML += err.message + '\n';
+              output.innerHTML += 'Remove Successed!\n';
+              output.innerHTML += 'These have been removed:\n';
+              output.innerHTML += JSON.stringify(res) + '\n';
+              queryJSON.value = '';
             });
+          }, false);
 
-            items.on('insert', function (data) {
-                output.innerHTML += 'A item has been inserted:' + JSON.stringify(data) + '\n';
+          insertBtn.addEventListener('click', function() {
+            var json = JSON.parse(insertJSON.value);
+            items.insert(json, function(err) {
+              if (err) return output.innerHTML += err.message + '\n';
+              output.innerHTML += 'Insert Successed!\n';
+              insertJSON.value = '';
+              items.find({}, function(err1, res1) {
+                if (err) return output.innerHTML += err1.message + '\n';
+                output.innerHTML += 'Query Successed!\n';
+                output.innerHTML += 'Result:\n';
+                output.innerHTML += JSON.stringify(res1) + '\n';
+              });
             });
-
-            var queryBtn = document.getElementById('queryBtn');
-            var removeBtn = document.getElementById('removeBtn');
-            var insertBtn = document.getElementById('insertBtn');
-            var queryJSON = document.getElementById('queryJSON');
-            var insertJSON = document.getElementById('insertJSON');
-
-            queryBtn.addEventListener('click', function () {
-                var query = queryJSON.value == '' ? '{}' : queryJSON.value;
-                var json = JSON.parse(query);
-                items.find(json, function (err, res) {
-                    if (err) return output.innerHTML += err.message + '\n';
-                    output.innerHTML += 'Query Successed!\n';
-                    output.innerHTML += 'Result:\n';
-                    output.innerHTML += JSON.stringify(res) + '\n';
-                    queryJSON.value = '';
-                });
-            }, false);
-            removeBtn.addEventListener('click', function () {
-                var query = queryJSON.value == '' ? '{}' : queryJSON.value;
-                var json = JSON.parse(query);
-                items.remove(json, function (err, res) {
-                    if (err) return output.innerHTML += err.message + '\n';
-                    output.innerHTML += 'Remove Successed!\n';
-                    output.innerHTML += 'These have been removed:\n';
-                    output.innerHTML += JSON.stringify(res) + '\n';
-                    queryJSON.value = '';
-                });
-            }, false);
-
-            insertBtn.addEventListener('click', function () {
-                var json = JSON.parse(insertJSON.value);
-                items.insert(json, function (err) {
-                    if (err) return output.innerHTML += err.message + '\n';
-                    output.innerHTML += 'Insert Successed!\n';
-                    insertJSON.value = '';
-                    items.find({}, function (err1, res1) {
-                        if (err) return output.innerHTML += err1.message + '\n';
-                        output.innerHTML += 'Query Successed!\n';
-                        output.innerHTML += 'Result:\n';
-                        output.innerHTML += JSON.stringify(res1) + '\n';
-                    });
-                });
-            }, false);
-        })();
-    </script>
-</body>
+        }, false);
+      })();
+      </script>
+  </body>
 </html>
