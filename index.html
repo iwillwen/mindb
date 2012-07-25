@@ -1,8 +1,8 @@
 <html>
 <head>
     <title>NanoDB Test</title>
-    <script src="/javascripts/raw.js" type="text/javascript" charset="utf-8"></script>
-    <script src="/javascripts/nanodb.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/javascripts/zpipe.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/javascripts/nanodb.min.js" type="text/javascript" charset="utf-8"></script>
     <link rel="stylesheet" href="/stylesheets/bootstrap.css" />
     <link rel="stylesheet" href="/stylesheets/nano.css" />
     <!--[if lt IE 8]>
@@ -36,7 +36,7 @@
                 <a href="https://github.com/iwillwen/NanoDB/" class="btn btn-primary btn-large">View on Github</a>
                 <a href="https://github.com/iwillwen/NanoDB/zipball/master" class="btn btn-large">Download NanoDB <small>(v0.0.1)</small></a>
             </p>
-            <span>By Will Wen Gunn and Jason Gui</span>
+            <span>By Will Wen Gunn and Wiky Chen</span>
         </div>
         <h1 style="text-align:center;" id="example">Example</h1>
         <div class="row">
@@ -70,18 +70,18 @@
                 <pre><code>var mydb = nano.db('mydb', { store: new nano.memStore() });</code></pre>
                 <p>You can use your store container to develop your store interface.</p>
                 <pre><code>// For Adobe AIR EncryptedLocalStore
-    function EncryptedLocalStore () {}
-    EncryptedLocalStore.prototype.get = function (key) {
-        return air.EncryptedLocalStore.getItem(key);
-    };
-    EncryptedLocalStore.prototype.set = function (key, value) {
-        return air.EncryptedLocalStore.setItem(key, value);
-    };
-    EncryptedLocalStore.prototype.remove = function (key) {
-        return air.EncryptedLocalStore.removeItem(key);
-    };
+function EncryptedLocalStore () {}
+EncryptedLocalStore.prototype.get = function (key) {
+    return air.EncryptedLocalStore.getItem(key);
+};
+EncryptedLocalStore.prototype.set = function (key, value) {
+    return air.EncryptedLocalStore.setItem(key, value);
+};
+EncryptedLocalStore.prototype.remove = function (key) {
+    return air.EncryptedLocalStore.removeItem(key);
+};
 
-    var mydb = nano.db('mydb', { store: EncryptedLocalStore() });</code></pre>
+var mydb = nano.db('mydb', { store: EncryptedLocalStore() });</code></pre>
                 <h1>Collection</h1>
                 <pre><code>var items = mydb.collection('items');</code></pre>
                 <h2>Query</h2>
@@ -118,7 +118,7 @@
 
             items.insert({
                 name1: "Will Wen Gunn",
-                name2: "Jason Gui"
+                name2: "Wiky Chen"
             }, function (err) {
                 output.innerHTML += 'Insert successed!\n';
             });
