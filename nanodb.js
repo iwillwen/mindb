@@ -66,8 +66,8 @@ var nano = (function(w, d) {
 
   var lS = localStorage;
   var sS = sessionStorage;
-  var cP = zpipe.deflate;
-  var uCP = zpipe.inflate;
+  var cP = zpipe.deflate || function(c){return c};
+  var uCP = zpipe.inflate || function(c){return c};
 
   nano.memStore = memStore;
   nano.localStore = localStore;
