@@ -1,0 +1,170 @@
+# NanoDB
+Cross-Platforms Local Database Library
+
+When you need to store some data for you web app, but it need to store on the clients(browsers, Adobe AIR, Phonegap, etc.).
+You can choose NanoDB to achieve it.
+
+---
+
+## Feture
+
+- Cross platforms, NanoDB provides a store interface to store in diffences data containers. NanoDB deafult provides two store interface to store in the browsers.
+- Light, the core file of NanoDB is only less than 10KBit. If you enable the gzip compression, it will even less than 3KBit.
+- Simple, the usage of NanoDB is MongoDB like. (The Redis style API is in todo list)
+
+---
+
+### Installation
+
+include zpipe.js and nanodb.js(or nanodb.min.js), and zpipe.js must be included before nanodb.js.
+
+    <script src="/path-to-your-scripts/zpipe.js" type="text/javascript"></script>
+    <script src="/path-to-your-scripts/nanodb.js" type="text/javascript"></script>
+
+---
+
+## Usage
+
+### Database
+
+Fetch or create a database, default use nano.localStore interface.
+
+    var mydb = nano.db('mydb');
+
+You can use the nano.memStore interface or others store interfaces.
+
+    var mydb = nano.db('mydb', { store: new nano.memStore() });
+
+For Adobe AIR platform.
+
+    // For Adobe AIR EncryptedLocalStore
+    function EncryptedLocalStore () {}
+    EncryptedLocalStore.prototype.get = function (key) {
+      return air.EncryptedLocalStore.getItem(key);
+    };
+    EncryptedLocalStore.prototype.set = function (key, value) {
+      return air.EncryptedLocalStore.setItem(key, value);
+    };
+    EncryptedLocalStore.prototype.remove = function (key) {
+      return air.EncryptedLocalStore.removeItem(key);
+    };
+
+    var myair = nano.db('myair', { store: EncryptedLocalStore() });
+
+### Collection
+
+#### Get the collection
+
+Fetch or create a collection in the database.
+
+    var repos = mydb.collection('repos');
+
+Do something with the collection.
+
+    // Insert
+    repos.insert({
+      'name': 'NanoDB',
+      'description': 'Cross-Platforms Local Database Library',
+      'language': 'JavaScript',
+      'gatekeepers': ['Will Wen Gunn', 'Wiky Chen']
+    }, function(err) {
+      if (err) return console.log(err.stack);
+      console.log('Insert succeed!');
+    });
+
+    // Query
+    repos.find({
+      'language': 'JavaScript'
+    }).toArray(function(err, currentRepos) {
+      if (err) return console.log(err.message);
+      console.log(JSON.stringify(currentRepos));
+    });
+
+#### Additional
+
+Insert method
+
+    repos.insert({
+      'name': 'NanoDB',
+      'description': 'Cross-Platforms Local Database Library',
+      'language': 'JavaScript',
+      'gatekeepers': ['Will Wen Gunn', 'Wiky Chen']
+    }, function(err) {
+      if (err) return console.log(err.stack);
+      console.log('Insert succeed!');
+    });
+
+
+#### Querying
+
+##### find(..., callback)
+
+    repos.find({ name: 'NanoDB' }, function(err, currentRepos) {
+      if (err) return console.log(err.message);
+      console.log(JSON.stringify(currentRepos));
+    });
+
+`find` method also return a nanoCursor object, so you can do it in this way too.
+
+    repos.find({ name: 'NanoDB' }).toArray(function(err, currentRepos) {
+      if (err) return console.log(err.message);
+      console.log(JSON.stringify(currentRepos));
+    });
+
+##### findOne(..., callback)
+
+    repos.findOne({ name: 'NanoDB' }, function(err, currentRepo) {
+      if (err) return console.log(err.message);
+      console.log(JSON.stringify(currentRepo));
+    });
+
+#### Updating
+
+##### update(..., callback)
+
+    repo.update({ name: 'NanoDB' }, { tags: ['HTML5', 'Web App', 'JavaScript', 'REST'] }, function(err, record) {
+      if (err) return console.log(err.stack);
+      console.log('Update succeed!');
+    });
+
+##### findAndModify method is in todo
+
+#### Removing
+
+##### remove(..., callback)
+
+    repos.remove({ language: 'PHP' }, function(err) {
+      if (err) return console.log(err.stack);
+      console.log('All the PHP repos were removed!');  
+    });
+
+##### removeById method is in todo
+
+### Cursor
+
+TODO
+
+## License 
+
+(The MIT License)
+
+Copyright (c) 2010-2012 Will Wen Gunn (甘超阳) &lt;willwengunn@gmail.com&gt;
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
