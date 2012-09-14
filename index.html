@@ -139,7 +139,7 @@ var mydb = nano.db('mydb', { store: EncryptedLocalStore() });</code></pre>
             var json = JSON.parse(query);
             items.find(json, function(err, res) {
               if (err) return output.innerHTML += err.message + '\n';
-              output.innerHTML += 'Query Successed!\n';
+              output.innerHTML += 'Query Succeed!\n';
               output.innerHTML += 'Result:\n';
               output.innerHTML += JSON.stringify(res) + '\n';
               queryJSON.value = '';
@@ -150,7 +150,7 @@ var mydb = nano.db('mydb', { store: EncryptedLocalStore() });</code></pre>
             var json = JSON.parse(query);
             items.remove(json, function(err, res) {
               if (err) return output.innerHTML += err.message + '\n';
-              output.innerHTML += 'Remove Successed!\n';
+              output.innerHTML += 'Remove Succeed!\n';
               output.innerHTML += 'These have been removed:\n';
               output.innerHTML += JSON.stringify(res) + '\n';
               queryJSON.value = '';
@@ -161,11 +161,11 @@ var mydb = nano.db('mydb', { store: EncryptedLocalStore() });</code></pre>
             var json = JSON.parse(insertJSON.value);
             items.insert(json, function(err) {
               if (err) return output.innerHTML += err.message + '\n';
-              output.innerHTML += 'Insert Successed!\n';
+              output.innerHTML += 'Insert Succeed!\n';
               insertJSON.value = '';
               items.find({}, function(err1, res1) {
                 if (err) return output.innerHTML += err1.message + '\n';
-                output.innerHTML += 'Query Successed!\n';
+                output.innerHTML += 'Query Succeed!\n';
                 output.innerHTML += 'Result:\n';
                 output.innerHTML += JSON.stringify(res1) + '\n';
               });
