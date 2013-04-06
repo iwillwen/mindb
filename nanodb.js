@@ -2,7 +2,7 @@
  * NanoDB
  * Cross-Platforms Local Database Library
  *
- * Copyright 2012
+ * Copyright 2012 - 2013
  *
  * Gatekeeper:
  *   Will Wen Gunn (C61 Labs)
@@ -19,21 +19,25 @@
  * MIT Licensed
  * 
  */
-var nano = (function(w, d) {
+(function(name, def) {
+  var hasDefine  = 'undefined' !== typeof define;
+  var hasExports = 'undefined' !== typeof exports;
+
+  if (hasDefine) {
+    // CommonJS: SeaJS, RequireJS etc.
+    define(name, def);
+  } else if (hasExports) {
+    // Node.js Module
+    exports = def();
+  } else {
+    // Normal
+    this[key] = def();
+  }
+})('nano', function(require, exports, module) {
   'use strict';
 
-  var nano = {};
+  var nano = exports;
 
-  if (w.define) w.define('zpipe', function (zpipe) {
-    w.zpipe = zpipe;
-    return nano;
-  });
-
-  // base64
-  (function(){var a=typeof w!="undefined"?w:exports,b="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",c=function(){try{d.createElement("$")}catch(a){return a}}();a.btoa||(a.btoa=function(a){for(var d,e,f=0,g=b,h="";a.charAt(f|0)||(g="=",f%1);h+=g.charAt(63&d>>8-f%1*8)){e=a.charCodeAt(f+=.75);if(e>255)throw c;d=d<<8|e}return h}),a.atob||(a.atob=function(a){a=a.replace(/=+$/,"");if(a.length%4==1)throw c;for(var d=0,e,f,g=0,h="";f=a.charAt(g++);~f&&(e=d%4?e*64+f:f,d++%4)?h+=String.fromCharCode(255&e>>(-2*d&6)):0)f=b.indexOf(f);return h})})();
-
-  // json
-  if(!w.JSON)(function(){w.JSON={};(function(){'use strict';function f(n){return n<10?'0'+n:n}if(typeof Date.prototype.toJSON!=='function'){Date.prototype.toJSON=function(key){return isFinite(this.valueOf())?this.getUTCFullYear()+'-'+f(this.getUTCMonth()+1)+'-'+f(this.getUTCDate())+'T'+f(this.getUTCHours())+':'+f(this.getUTCMinutes())+':'+f(this.getUTCSeconds())+'Z':null};String.prototype.toJSON=Number.prototype.toJSON=Boolean.prototype.toJSON=function(key){return this.valueOf()}}var cx=/[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,escapable=/[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,gap,indent,meta={'\b':'\\b','\t':'\\t','\n':'\\n','\f':'\\f','\r':'\\r','"':'\\"','\\':'\\\\'},rep;function quote(string){escapable.lastIndex=0;return escapable.test(string)?'"'+string.replace(escapable,function(a){var c=meta[a];return typeof c==='string'?c:'\\u'+('0000'+a.charCodeAt(0).toString(16)).slice(-4)})+'"':'"'+string+'"'}function str(key,holder){var i,k,v,length,mind=gap,partial,value=holder[key];if(value&&typeof value==='object'&&typeof value.toJSON==='function'){value=value.toJSON(key)}if(typeof rep==='function'){value=rep.call(holder,key,value)}switch(typeof value){case'string':return quote(value);case'number':return isFinite(value)?String(value):'null';case'boolean':case'null':return String(value);case'object':if(!value){return'null'}gap+=indent;partial=[];if(Object.prototype.toString.apply(value)==='[object Array]'){length=value.length;for(i=0;i<length;i+=1){partial[i]=str(i,value)||'null'}v=partial.length===0?'[]':gap?'[\n'+gap+partial.join(',\n'+gap)+'\n'+mind+']':'['+partial.join(',')+']';gap=mind;return v}if(rep&&typeof rep==='object'){length=rep.length;for(i=0;i<length;i+=1){k=rep[i];if(typeof k==='string'){v=str(k,value);if(v){partial.push(quote(k)+(gap?': ':':')+v)}}}}else{for(k in value){if(Object.prototype.hasOwnProperty.call(value,k)){v=str(k,value);if(v){partial.push(quote(k)+(gap?': ':':')+v)}}}}v=partial.length===0?'{}':gap?'{\n'+gap+partial.join(',\n'+gap)+'\n'+mind+'}':'{'+partial.join(',')+'}';gap=mind;return v}}if(typeof w.JSON.stringify!=='function'){w.JSON.stringify=function(value,replacer,space){var i;gap='';indent='';if(typeof space==='number'){for(i=0;i<space;i+=1){indent+=' '}}else if(typeof space==='string'){indent=space}rep=replacer;if(replacer&&typeof replacer!=='function'&&(typeof replacer!=='object'||typeof replacer.length!=='number')){throw new Error('JSON.stringify');}return str('',{'':value})}}if(typeof w.JSON.parse!=='function'){w.JSON.parse=function(text,reviver){var j;function walk(holder,key){var k,v,value=holder[key];if(value&&typeof value==='object'){for(k in value){if(Object.prototype.hasOwnProperty.call(value,k)){v=walk(value,k);if(v!==undefined){value[k]=v}else{delete value[k]}}}}return reviver.call(holder,key,value)}text=String(text);cx.lastIndex=0;if(cx.test(text)){text=text.replace(cx,function(a){return'\\u'+('0000'+a.charCodeAt(0).toString(16)).slice(-4)})}if(/^[\],:{}\s]*$/.test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g,'@').replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g,']').replace(/(?:^|:|,)(?:\s*\[)+/g,''))){j=eval('('+text+')');return typeof reviver==='function'?walk({'':j},''):j}throw new SyntaxError('JSON.parse');}}if(!Object.prototype.toJSONString){Object.prototype.toJSONString=function(filter){return w.JSON.stringify(this,filter)};Object.prototype.parseJSON=function(filter){return w.JSON.parse(this,filter)}}}())})();
   var jP = JSON.parse;
   var jS = JSON.stringify;
 
@@ -66,12 +70,13 @@ var nano = (function(w, d) {
 
   var lS = localStorage;
   var sS = sessionStorage;
-  var cP = zpipe.deflate || function(c){return c};
-  var uCP = zpipe.inflate || function(c){return c};
+  var cP = escape;
+  var uCP = unescape;
 
   nano.memStore = memStore;
   nano.localStore = localStore;
   nano.dbs = {};
+
   /**
    * Fetch a new or existing nano database
    * @param  {String} dbName the name of the database you wanted to fetch
@@ -83,7 +88,7 @@ var nano = (function(w, d) {
   nano.db = function(dbName, option) {
     option = option || { store: new localStore };
     var db = new nanoDB(dbName, option);
-    this.dbs[dbName] = db;
+    nano.dbs[dbName] = db;
     return db;
   };
 
@@ -126,11 +131,11 @@ var nano = (function(w, d) {
     this.parent = dbName;
     var store = nano.dbs[dbName].option.store;
     if (!store.get('nano-' + dbName + '-' + collName)) {
-      store.set('nano-' + dbName + '-' + collName, btoa(cP('{}')));
-      store.set('nano-' + dbName + '-' + collName + '-indexes', btoa(cP('[]')));
+      store.set('nano-' + dbName + '-' + collName, cP(btoa('{}')));
+      store.set('nano-' + dbName + '-' + collName + '-indexes', cP(btoa('[]')));
     }
-    this.collection = jP(uCP(atob(store.get('nano-' + dbName + '-' + collName)))) || collection;
-    this.indexes = jP(uCP(atob(store.get('nano-' + dbName + '-' + collName + '-indexes')))) || inedxes;
+    this.collection = jP(atob(uCP(store.get('nano-' + dbName + '-' + collName)))) || collection;
+    this.indexes = jP(atob(uCP(store.get('nano-' + dbName + '-' + collName + '-indexes')))) || inedxes;
   }
 
   /**
@@ -254,8 +259,8 @@ var nano = (function(w, d) {
     this.indexes.push(theNew);
     this.collection[theNew] = doc;
 
-    store.set('nano-' + this.parent + '-' + this.name, btoa(cP(jS(this.collection))));
-    store.set('nano-' + this.parent + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))));
+    store.set('nano-' + this.parent + '-' + this.name, cP(btoa(jS(this.collection))));
+    store.set('nano-' + this.parent + '-' + this.name + '-indexes', cP(btoa(jS(this.indexes))));
     this.emit('insert', doc);
     callback();
 
@@ -275,8 +280,8 @@ var nano = (function(w, d) {
         item[key] = doc[key];
       }
       this.collection[item._id] = item;
-      store.set('nano-' + this.parent + '-' + this.name, btoa(cP(jS(this.collection))));
-      store.set('nano-' + this.parent + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))));
+      store.set('nano-' + this.parent + '-' + this.name, cP(btoa(jS(this.collection))));
+      store.set('nano-' + this.parent + '-' + this.name + '-indexes', cP(btoa(jS(this.indexes))));
       this.emit('update', item);
       callback(null, item);
     });
@@ -342,8 +347,8 @@ var nano = (function(w, d) {
     }
     if (i == 0) return callback(new Error('Not items matched'));
 
-    store.set('nano-' + this.parent + '-' + this.name, btoa(cP(jS(this.collection))));
-    store.set('nano-' + this.parent + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))));
+    store.set('nano-' + this.parent + '-' + this.name, cP(btoa(jS(this.collection))));
+    store.set('nano-' + this.parent + '-' + this.name + '-indexes', cP(btoa(jS(this.indexes))));
     this.emit('remove', res);
 
     if (callback) callback(null, res);
@@ -381,15 +386,48 @@ var nano = (function(w, d) {
     }
   };
 
-  addEvent(w, 'storage', function(evt) {
+  nanoCollection.prototype.emit = function() {
+    var event = arguments[0];
+    if (!this._events) return false;
+    var handler = this._events[event];
+    if (!handler) return false;
+
+    if (isArray(handler)) {
+      var l = arguments.length;
+      var args = new Array(l - 1);
+      for (var i = 1; i < l; i++) {
+        args[i - 1] = arguments[i];
+      }
+      var listeners = handler.slice();
+      for (var i = 0, l = listeners.length; i < l; i++) {
+        listeners[i].apply(this, args);
+      }
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+
+  nanoCollection.prototype.toJSON = function() {
+    var json = [];
+    for (var i = 0; i < this.indexes.length; i++) {
+      var tmp = this.collection(this.indexes[i]);
+      tmp.id = this.indexes[i];
+      json.push(tmp);
+    }
+    return json;
+  };
+
+  addEvent(window, 'storage', function(evt) {
     if (!/^nano/.test(evt.key)) {
       return;
     } else if (/^nano-([\w]+)-([\w]+)-indexes$/.test(evt.key)) {
       var foo = evt.key.match(/nano-([\w]+)-([\w]+)/);
       var dbName = foo[1];
       var collname = foo[2];
-      var collection = jP(uCP(atob(store.get('nano-' + dbName + '-' + collName))));
-      var indexes = jP(uCP(atob(store.get('nano-' + dbName + '-' + collName + '-indexes'))));
+      var collection = jP(atob(uCP(store.get('nano-' + dbName + '-' + collName))));
+      var indexes = jP(atob(uCP(store.get('nano-' + dbName + '-' + collName + '-indexes'))));
       var theNew = collection[indexes[indexes.length - 1]];
       theNew._id = indexes[indexes.length - 1];
       nano.dbs[dbName].collections[collname].emit('storage', theNew);
@@ -442,5 +480,121 @@ var nano = (function(w, d) {
     return this;
   };
 
+  nano.on = function(event, fn) {
+    if (!this._events) this._events = {};
+    if (!this._events[event]) return this._events[event] = [fn];
+    this._events[event].push(event);
+
+    return this;
+  };
+
+  nano.emit = function() {
+    var event = arguments[0];
+    if (!this._events) return false;
+    var handler = this._events[event];
+    if (!handler) return false;
+
+    if (isArray(handler)) {
+      var l = arguments.length;
+      var args = new Array(l - 1);
+      for (var i = 1; i < l; i++) {
+        args[i - 1] = arguments[i];
+      }
+      var listeners = handler.slice();
+      for (var i = 0, l = listeners.length; i < l; i++) {
+        listeners[i].apply(this, args);
+      }
+      return true;
+    } else {
+      return false;
+    }
+  };
+
+
+  nano.store = new nano.localStore();
+
+  nano.set = function(key, value, callback) {
+    if ('undefined' == typeof callback) {
+      callback = noop;
+    }
+
+    try {
+      this.store.set(key, btoa(cP(jS(value))));
+      callback(null, key, value);
+    } catch(err) {
+      return callback(err);
+    }
+
+    return this.emit('set', key, value);
+  };
+
+  nano.get = function(key, callback) {
+    try {
+      var value = jP(uCP(atob(this.store.get(key))));
+      callback(null, value);
+    } catch(err) {
+      return callback(err);
+    }
+  };
+
+  nano.del = function(key, callback) {
+    try {
+      this.store.remove(key);
+      callback(null key);
+    } catch(err) {
+      return callback(err);
+    }
+
+    return this.emit('del', key);
+  };
+
+  nano.exists = function(key, callback) {
+    try {
+      this.get(key, function(err, value) {
+        if (err || 'undefined' == typeof value) {
+          err = err || new Error('This key is not exists.');
+
+          return callback(err, false);
+        } else {
+          return callback(null, true);
+        }
+      });
+    } catch(err) {
+      return callback(err);
+    }
+  };
+
+  nano.rename = function(key, newKey, callback) {
+    try {
+      this.exists(key, function(err, exists) {
+        if (err || !exists) {
+          err = err || new Error('This key is not exists.');
+
+          return callback(err);
+        } else {
+          this.get(key, function(err, value) {
+            if (err)
+              return callback(err);
+
+            this.del(key, function(err) {
+              if (err)
+                return callback(err);
+
+              this.set(newKey, value, callback);
+            });
+          });
+        }
+      });
+    } catch(err) {
+      return callback(err);
+    }
+
+    return this.emit('rename', key, newKey);
+  };
+
+  function noop() {
+    return false;
+  }
+
   return nano;
-})(window, document);
+});
