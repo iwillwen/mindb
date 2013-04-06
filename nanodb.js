@@ -2,7 +2,7 @@
  * NanoDB
  * Cross-Platforms Local Database Library
  *
- * Copyright 2012
+ * Copyright 2012 - 2013
  *
  * Gatekeeper:
  *   Will Wen Gunn (Koicos)
@@ -131,11 +131,11 @@
     this.parent = dbName;
     var store = nano.dbs[dbName].option.store;
     if (!store.get('nano-' + dbName + '-' + collName)) {
-      store.set('nano-' + dbName + '-' + collName, cP(btoa('{}')));
-      store.set('nano-' + dbName + '-' + collName + '-indexes', cP(btoa('[]')));
+      store.set('nano-' + dbName + '-' + collName, btoa(cP('{}')));
+      store.set('nano-' + dbName + '-' + collName + '-indexes', btoa(cP('[]')));
     }
-    this.collection = jP(atob(uCP(store.get('nano-' + dbName + '-' + collName)))) || collection;
-    this.indexes = jP(atob(uCP(store.get('nano-' + dbName + '-' + collName + '-indexes')))) || inedxes;
+    this.collection = jP(uCP(atob(store.get('nano-' + dbName + '-' + collName)))) || collection;
+    this.indexes = jP(uCP(atob(store.get('nano-' + dbName + '-' + collName + '-indexes')))) || inedxes;
   }
 
   /**
@@ -259,8 +259,8 @@
     this.indexes.push(theNew);
     this.collection[theNew] = doc;
 
-    store.set('nano-' + this.parent + '-' + this.name, cP(btoa(jS(this.collection))));
-    store.set('nano-' + this.parent + '-' + this.name + '-indexes', cP(btoa(jS(this.indexes))));
+    store.set('nano-' + this.parent + '-' + this.name, btoa(cP(jS(this.collection))));
+    store.set('nano-' + this.parent + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))));
     this.emit('insert', doc);
     callback();
 
@@ -280,8 +280,8 @@
         item[key] = doc[key];
       }
       this.collection[item._id] = item;
-      store.set('nano-' + this.parent + '-' + this.name, cP(btoa(jS(this.collection))));
-      store.set('nano-' + this.parent + '-' + this.name + '-indexes', cP(btoa(jS(this.indexes))));
+      store.set('nano-' + this.parent + '-' + this.name, btoa(cP(jS(this.collection))));
+      store.set('nano-' + this.parent + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))));
       this.emit('update', item);
       callback(null, item);
     });
@@ -347,8 +347,8 @@
     }
     if (i == 0) return callback(new Error('Not items matched'));
 
-    store.set('nano-' + this.parent + '-' + this.name, cP(btoa(jS(this.collection))));
-    store.set('nano-' + this.parent + '-' + this.name + '-indexes', cP(btoa(jS(this.indexes))));
+    store.set('nano-' + this.parent + '-' + this.name, btoa(cP(jS(this.collection))));
+    store.set('nano-' + this.parent + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))));
     this.emit('remove', res);
 
     if (callback) callback(null, res);
@@ -426,8 +426,8 @@
       var foo = evt.key.match(/nano-([\w]+)-([\w]+)/);
       var dbName = foo[1];
       var collname = foo[2];
-      var collection = jP(atob(uCP(store.get('nano-' + dbName + '-' + collName))));
-      var indexes = jP(atob(uCP(store.get('nano-' + dbName + '-' + collName + '-indexes'))));
+      var collection = jP(uCP(atob(store.get('nano-' + dbName + '-' + collName))));
+      var indexes = jP(uCP(atob(store.get('nano-' + dbName + '-' + collName + '-indexes'))));
       var theNew = collection[indexes[indexes.length - 1]];
       theNew._id = indexes[indexes.length - 1];
       nano.dbs[dbName].collections[collname].emit('storage', theNew);
