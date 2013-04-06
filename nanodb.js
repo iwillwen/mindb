@@ -2,10 +2,10 @@
  * NanoDB
  * Cross-Platforms Local Database Library
  *
- * Copyright 2012 - 2013
+ * Copyright 2012
  *
  * Gatekeeper:
- *   Will Wen Gunn (C61 Labs)
+ *   Will Wen Gunn (Koicos)
  *   Wiky Chen (Alibaba)
  *
  * Browsers Support:
@@ -36,7 +36,7 @@
 })('nano', function(require, exports, module) {
   'use strict';
 
-  var nano = exports;
+  var nano = exports || {};
 
   var jP = JSON.parse;
   var jS = JSON.stringify;
