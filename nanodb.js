@@ -208,20 +208,18 @@
     if (store.async) {
       store.get('nano-' + dbName + '-' + collName, function(err, value) {
         if (err || !value) {
-          var readystate = 2;
           store.set('nano-' + dbName + '-' + collName, btoa(cP('{}')), function(err) {
             if (err)
               return;
 
             self.collection = {};
-            --readystate || self.emit('ready');
-          });
-          store.set('nano-' + dbName + '-' + collName + '-indexes', btoa(cP('[]')), function(err) {
-            if (err)
-              return;
+            store.set('nano-' + dbName + '-' + collName + '-indexes', btoa(cP('[]')), function(err) {
+              if (err)
+                return;
 
-            self.indexes = [];
-            --readystate || self.emit('ready');
+              self.indexes = [];
+              self.emit('ready');
+            });
           });
         } else {
           self.collection = JSON.parse(uCP(atob(value)));
@@ -366,30 +364,28 @@
       var theNew = btoa('nano' + this.name) + Math.random().toString().substr(2) + '0';
     }
 
-    this.indexes.push(theNew);
-    this.collection[theNew] = doc;
+    self.indexes.push(theNew);
+    self.collection[theNew] = doc;
 
     if (store.async) {
-      var readystate = 2;
-      store.set('nano-' + this.parent + '-' + this.name, btoa(cP(jS(this.collection))), function(err) {
+      store.set('nano-' + self.parent + '-' + self.name, btoa(cP(jS(self.collection))), function(err) {
         if (err)
           return self.emit('error', err);
 
-        --readystate || callback();
-      });
-      store.set('nano-' + this.parent + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))), function(err) {
-        if (err)
-          return self.emit('error', err);
+        store.set('nano-' + self.parent + '-' + self.name + '-indexes', btoa(cP(jS(self.indexes))), function(err) {
+          if (err)
+            return self.emit('error', err);
 
-        --readystate || callback();
+          callback();
+        });
       });
     } else {
-      store.set('nano-' + this.parent + '-' + this.name, btoa(cP(jS(this.collection))));
-      store.set('nano-' + this.parent + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))));
+      store.set('nano-' + self.parent + '-' + self.name, btoa(cP(jS(self.collection))));
+      store.set('nano-' + self.parent + '-' + self.name + '-indexes', btoa(cP(jS(self.indexes))));
       callback();
     }
-    this.emit('insert', doc);
-    return this;
+    self.emit('insert', doc);
+    return self;
   };
 
   nanoCollection.prototype.update = function() {
@@ -408,18 +404,16 @@
       self.collection[item._id] = item;
 
       if (store.async) {
-        var readystate = 2;
         store.set('nano-' + self.parent + '-' + self.name, btoa(cP(jS(self.collection))), function(err) {
           if (err)
             return self.emit('error', err);
 
-          --readystate || callback(null, item);
-        });
-        store.set('nano-' + self.parent + '-' + self.name + '-indexes', btoa(cP(jS(self.indexes))), function(err) {
-          if (err)
-            return self.emit('error', err);
+          store.set('nano-' + self.parent + '-' + self.name + '-indexes', btoa(cP(jS(self.indexes))), function(err) {
+            if (err)
+              return self.emit('error', err);
 
-          --readystate || callback(null, item);
+            callback(null, item);
+          });
         });
       } else {
         store.set('nano-' + self.parent + '-' + self.name, btoa(cP(jS(self.collection))));
@@ -491,18 +485,16 @@
     if (i == 0) return callback(new Error('Not items matched'));
 
     if (store.async) {
-      var readystate = 2;
       store.set('nano-' + this.parent + '-' + this.name, btoa(cP(jS(this.collection))), function(err) {
         if (err)
           return self.emit('error', err);
 
-        --readystate || callback(null, item);
-      });
-      store.set('nano-' + this.parent + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))), function(err) {
-        if (err)
-          return self.emit('error', err);
+        store.set('nano-' + this.parent + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))), function(err) {
+          if (err)
+            return self.emit('error', err);
 
-        --readystate || callback(null, item);
+          callback(null, item);
+        });
       });
     } else {
       store.set('nano-' + this.parent + '-' + this.name, btoa(cP(jS(this.collection))));
