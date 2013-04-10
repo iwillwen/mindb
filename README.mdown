@@ -26,9 +26,9 @@ include nanodb.js(or nanodb.min.js) must be included before nanodb.js.
 Also you can use NanoDB with RequireJS or SeaJS etc.
 
 ```js
-    seajs.use('nano', function(nano) {
-      var mydb = nano.db('mydb');
-    });
+seajs.use('nano', function(nano) {
+  var mydb = nano.db('mydb');
+});
 ```
 ---
 
