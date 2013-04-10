@@ -1,4 +1,4 @@
-/**
+/**!
  * NanoDB
  * Cross-Platforms Local Database Library
  *
@@ -25,13 +25,13 @@
 
   if (hasDefine) {
     // CommonJS: SeaJS, RequireJS etc.
-    define(name, def);
+    define(def);
   } else if (hasExports) {
     // Node.js Module
     exports = def(require, exports, module);
   } else {
     // Normal
-    this[key] = def();
+    this[name] = def();
   }
 })('nano', function(require, exports, module) {
   'use strict';
@@ -41,11 +41,40 @@
   var jP = JSON.parse;
   var jS = JSON.stringify;
 
+
   // Util
+  var utils = {
+    noop: function() {
+      return false;
+    },
+    inherits: function (ctor, superCtor) {
+      ctor.super_ = superCtor;
+      ctor.prototype = Object.create(superCtor.prototype, {
+        constructor: {
+          value: ctor,
+          enumerable: false,
+          writable: true,
+          configurable: true
+        }
+      });
+    },
+    extend: function() {
+      var target = arguments[0];
+
+      var objs = [].slice.apply(arguments).slice(1);
+
+      for (var i = 0, l = objs.length; i < l; i++) {
+        for (var key in objs[i]) {
+          target[key] = objs[i][key];
+        }
+      }
+
+      return target;
+    }
+  };
   if ('undefined' !== typeof window && 'undefined' !== typeof document) {
     var addEvent = (function(){if(document.addEventListener){return function(el,type,fn){if(el&&el.nodeName||el===window){el.addEventListener(type,fn,false)}else if(el&&el.length){for(var i=0;i<el.length;i++){addEvent(el[i],type,fn)}}}}else{return function(el,type,fn){if(el&&el.nodeName||el===window){el.attachEvent('on'+type,function(){return fn.call(el,window.event)})}else if(el&&el.length){for(var i=0;i<el.length;i++){addEvent(el[i],type,fn)}}}}})();
   }
-  function isArray(ar){return Array.isArray(ar)||(typeof ar==='object'&&ar.toLocalString()==='[object Array]');}
 
   // Navite Store Interface
   function memStore () {}
@@ -141,39 +170,13 @@
    * 
    */
   function nanoDB(dbName, option) {
+    EventEmitter.call(this);
+
     this.name = dbName;
     this.option = option;
   }
 
-  nanoDB.prototype.on = function(event, fn) {
-    if (!this._events) this._events = {};
-    if (!this._events[event]) return this._events[event] = [fn];
-    this._events[event].push(event);
-
-    return this;
-  };
-
-  nanoDB.prototype.emit = function() {
-    var event = arguments[0];
-    if (!this._events) return false;
-    var handler = this._events[event];
-    if (!handler) return false;
-
-    if (isArray(handler)) {
-      var l = arguments.length;
-      var args = new Array(l - 1);
-      for (var i = 1; i < l; i++) {
-        args[i - 1] = arguments[i];
-      }
-      var listeners = handler.slice();
-      for (var i = 0, l = listeners.length; i < l; i++) {
-        listeners[i].apply(this, args);
-      }
-      return true;
-    } else {
-      return false;
-    }
-  };
+  utils.inherits(nanoDB, EventEmitter);
 
   /**
    * Fetch a new or existing nano collection of the database.
@@ -199,6 +202,8 @@
    * 
    */
   function nanoCollection (collName, dbName) {
+    EventEmitter.call(this);
+
     var self = this;
 
     self.name = collName;
@@ -455,7 +460,7 @@
   // };
 
   nanoCollection.prototype.remove = function(selector) {
-    var callback = typeof arguments[arguments.length - 1] == 'function' ? arguments[arguments.length - 1] : noop;
+    var callback = typeof arguments[arguments.length - 1] == 'function' ? arguments[arguments.length - 1] : utils.noop;
     selector = selector || {};
 
     var store = nano.dbs[this.parent].option.store;
@@ -506,35 +511,7 @@
     return this;
   };
 
-  nanoCollection.prototype.on = function(event, fn) {
-    if (!this._events) this._events = {};
-    if (!this._events[event]) return this._events[event] = [fn];
-    this._events[event].push(event);
-
-    return this;
-  };
-
-  nanoCollection.prototype.emit = function() {
-    var event = arguments[0];
-    if (!this._events) return false;
-    var handler = this._events[event];
-    if (!handler) return false;
-
-    if (isArray(handler)) {
-      var l = arguments.length;
-      var args = new Array(l - 1);
-      for (var i = 1; i < l; i++) {
-        args[i - 1] = arguments[i];
-      }
-      var listeners = handler.slice();
-      for (var i = 0, l = listeners.length; i < l; i++) {
-        listeners[i].apply(this, args);
-      }
-      return true;
-    } else {
-      return false;
-    }
-  };
+  utils.inherits(nanoCollection, EventEmitter);
 
 
   nanoCollection.prototype.toJSON = function() {
@@ -568,6 +545,8 @@
 
 
   function nanoCursor (collection, collName) {
+    EventEmitter.call(this);
+
     this.collection = collection;
     this.parent = collName;
   }
@@ -610,42 +589,15 @@
     return this;
   };
 
-  nano.on = function(event, fn) {
-    if (!this._events) this._events = {};
-    if (!this._events[event]) return this._events[event] = [fn];
-    this._events[event].push(event);
+  utils.inherits(nanoCursor, EventEmitter);
 
-    return this;
-  };
-
-  nano.emit = function() {
-    var event = arguments[0];
-    if (!this._events) return false;
-    var handler = this._events[event];
-    if (!handler) return false;
-
-    if (isArray(handler)) {
-      var l = arguments.length;
-      var args = new Array(l - 1);
-      for (var i = 1; i < l; i++) {
-        args[i - 1] = arguments[i];
-      }
-      var listeners = handler.slice();
-      for (var i = 0, l = listeners.length; i < l; i++) {
-        listeners[i].apply(this, args);
-      }
-      return true;
-    } else {
-      return false;
-    }
-  };
-
+  utils.extend(nano, new EventEmitter());
 
   nano.store = new nano.localStore();
 
   nano.set = function(key, value, callback) {
     if ('undefined' == typeof callback) {
-      callback = noop;
+      callback = utils.noop;
     }
     var store = this.store;
 
@@ -742,9 +694,279 @@
     return this.emit('rename', key, newKey);
   };
 
-  function noop() {
-    return false;
+  nano.renamenx = function(key, newKey, callback) {
+    var self = this;
+    try {
+      self.exists(newKey, function(err, exists) {
+        if (err || !exists) {
+          self.rename(key, newKey, callback);
+        } else {
+          callback(new Error('The new key is exists.'));
+        }
+      });
+    } catch(err) {
+      callback(err);
+    }
+
+    return this.emit('renamenx', key, newKey);
+  };
+
+  nano.setnx = function(key, value, callback) {
+    var self = this;
+
+    self.exists(key, function(err, exists) {
+      if (err || !exists) {
+        self.set(key, value, callback);
+      } else {
+        callback(new Error('The new key is exists.'));
+      }
+    });
+
+    return this.emit('setnx', key, value);
+  };
+
+
+  // EventEmitter(without `domain` module) From Node.js
+  function EventEmitter() {
+    this._events = this._events || {};
+    this._maxListeners = this._maxListeners || defaultMaxListeners;
   }
+
+  var defaultMaxListeners = 10;
+  EventEmitter.prototype.setMaxListeners = function(n) {
+    if (typeof n !== 'number' || n < 0)
+      throw TypeError('n must be a positive number');
+    this._maxListeners = n;
+  };
+
+  EventEmitter.prototype.emit = function(type) {
+    var er, handler, len, args, i, listeners;
+
+    if (!this._events)
+      this._events = {};
+
+    // If there is no 'error' event listener then throw.
+    if (type === 'error') {
+      if (!this._events.error ||
+          (typeof this._events.error === 'object' &&
+           !this._events.error.length)) {
+        er = arguments[1];
+        if (this.domain) {
+          if (!er) er = new TypeError('Uncaught, unspecified "error" event.');
+        } else if (er instanceof Error) {
+          throw er; // Unhandled 'error' event
+        } else {
+          throw TypeError('Uncaught, unspecified "error" event.');
+        }
+        return false;
+      }
+    }
+
+    handler = this._events[type];
+
+    if (typeof handler === 'undefined')
+      return false;
+
+    if (typeof handler === 'function') {
+      switch (arguments.length) {
+        // fast cases
+        case 1:
+          handler.call(this);
+          break;
+        case 2:
+          handler.call(this, arguments[1]);
+          break;
+        case 3:
+          handler.call(this, arguments[1], arguments[2]);
+          break;
+        // slower
+        default:
+          len = arguments.length;
+          args = new Array(len - 1);
+          for (i = 1; i < len; i++)
+            args[i - 1] = arguments[i];
+          handler.apply(this, args);
+      }
+    } else if (typeof handler === 'object') {
+      len = arguments.length;
+      args = new Array(len - 1);
+      for (i = 1; i < len; i++)
+        args[i - 1] = arguments[i];
+
+      listeners = handler.slice();
+      len = listeners.length;
+      for (i = 0; i < len; i++)
+        listeners[i].apply(this, args);
+    }
+
+    return true;
+  };
+
+  EventEmitter.prototype.addListener = function(type, listener) {
+    var m;
+
+    if (typeof listener !== 'function')
+      throw TypeError('listener must be a function');
+
+    if (!this._events)
+      this._events = {};
+
+    // To avoid recursion in the case that type === "newListener"! Before
+    // adding it to the listeners, first emit "newListener".
+    if (this._events.newListener)
+      this.emit('newListener', type, typeof listener.listener === 'function' ?
+                listener.listener : listener);
+
+    if (!this._events[type])
+      // Optimize the case of one listener. Don't need the extra array object.
+      this._events[type] = listener;
+    else if (typeof this._events[type] === 'object')
+      // If we've already got an array, just append.
+      this._events[type].push(listener);
+    else
+      // Adding the second element, need to change to array.
+      this._events[type] = [this._events[type], listener];
+
+    // Check for listener leak
+    if (typeof this._events[type] === 'object' && !this._events[type].warned) {
+      m = this._maxListeners;
+      if (m && m > 0 && this._events[type].length > m) {
+        this._events[type].warned = true;
+        console.error('(node) warning: possible EventEmitter memory ' +
+                      'leak detected. %d listeners added. ' +
+                      'Use emitter.setMaxListeners() to increase limit.',
+                      this._events[type].length);
+        console.trace();
+      }
+    }
+
+    return this;
+  };
+
+  EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+  EventEmitter.prototype.once = function(type, listener) {
+    if (typeof listener !== 'function')
+      throw TypeError('listener must be a function');
+
+    function g() {
+      this.removeListener(type, g);
+      listener.apply(this, arguments);
+    }
+
+    g.listener = listener;
+    this.on(type, g);
+
+    return this;
+  };
+
+  // emits a 'removeListener' event iff the listener was removed
+  EventEmitter.prototype.removeListener = function(type, listener) {
+    var list, position, length, i;
+
+    if (typeof listener !== 'function')
+      throw TypeError('listener must be a function');
+
+    if (!this._events || !this._events[type])
+      return this;
+
+    list = this._events[type];
+    length = list.length;
+    position = -1;
+
+    if (list === listener ||
+        (typeof list.listener === 'function' && list.listener === listener)) {
+      this._events[type] = undefined;
+      if (this._events.removeListener)
+        this.emit('removeListener', type, listener);
+
+    } else if (typeof list === 'object') {
+      for (i = length; i-- > 0;) {
+        if (list[i] === listener ||
+            (list[i].listener && list[i].listener === listener)) {
+          position = i;
+          break;
+        }
+      }
+
+      if (position < 0)
+        return this;
+
+      if (list.length === 1) {
+        list.length = 0;
+        this._events[type] = undefined;
+      } else {
+        list.splice(position, 1);
+      }
+
+      if (this._events.removeListener)
+        this.emit('removeListener', type, listener);
+    }
+
+    return this;
+  };
+
+  EventEmitter.prototype.removeAllListeners = function(type) {
+    var key, listeners;
+
+    if (!this._events)
+      return this;
+
+    // not listening for removeListener, no need to emit
+    if (!this._events.removeListener) {
+      if (arguments.length === 0)
+        this._events = {};
+      else if (this._events[type])
+        this._events[type] = undefined;
+      return this;
+    }
+
+    // emit removeListener for all listeners on all events
+    if (arguments.length === 0) {
+      for (key in this._events) {
+        if (key === 'removeListener') continue;
+        this.removeAllListeners(key);
+      }
+      this.removeAllListeners('removeListener');
+      this._events = {};
+      return this;
+    }
+
+    listeners = this._events[type];
+
+    if (typeof listeners === 'function') {
+      this.removeListener(type, listeners);
+    } else {
+      // LIFO order
+      while (listeners.length)
+        this.removeListener(type, listeners[listeners.length - 1]);
+    }
+    this._events[type] = undefined;
+
+    return this;
+  };
+
+  EventEmitter.prototype.listeners = function(type) {
+    var ret;
+    if (!this._events || !this._events[type])
+      ret = [];
+    else if (typeof this._events[type] === 'function')
+      ret = [this._events[type]];
+    else
+      ret = this._events[type].slice();
+    return ret;
+  };
+
+  EventEmitter.listenerCount = function(emitter, type) {
+    var ret;
+    if (!emitter._events || !emitter._events[type])
+      ret = 0;
+    else if (typeof emitter._events[type] === 'function')
+      ret = 1;
+    else
+      ret = emitter._events[type].length;
+    return ret;
+  };
 
   return nano;
 });
