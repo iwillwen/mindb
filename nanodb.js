@@ -246,6 +246,7 @@
 
             self.indexes = JSON.parse(uCP(atob(value)));
             self.emit('ready');
+            --db.readystate || db.emit('ready');
           });
         }
       });
@@ -261,6 +262,7 @@
       }
     }
   }
+  utils.inherits(nanoCollection, EventEmitter);
 
   /**
    * Find items in the collection
@@ -373,7 +375,7 @@
 
   nanoCollection.prototype.insert = function(doc, callback) {
     var self = this;
-    var store = self.parent.option.store;
+    var store = self.parent.options.store;
     var last = this.indexes[this.indexes.length - 1];
     if (last) {
       var theNew = last.substr(0, last.length - 1) + (Number(last.substr(last.length - 1)) + 1);
@@ -407,7 +409,7 @@
 
   nanoCollection.prototype.update = function() {
     var self = this;
-    var store = self.parent.option.store;
+    var store = self.parent.options.store;
     var spec = arguments[0];
     var doc = arguments[1];
     var callback = arguments[arguments.length - 1];
@@ -476,7 +478,7 @@
     var callback = typeof arguments[arguments.length - 1] == 'function' ? arguments[arguments.length - 1] : utils.noop;
     selector = selector || {};
 
-    var store = this.parent.option.store;
+    var store = this.parent.options.store;
 
     function check (item) {
       if (jS(selector) === '{}') return true;
@@ -528,7 +530,7 @@
     var callback = typeof arguments[arguments.length - 1] == 'function' ? arguments[arguments.length - 1] : utils.noop;
     id = id || {};
 
-    var store = this.parent.option.store;
+    var store = this.parent.options.store;
 
     function check (item) {
       if (item._id === id)
@@ -574,13 +576,12 @@
 
     return this;
   };
-  utils.inherits(nanoCollection, EventEmitter);
 
 
   nanoCollection.prototype.toJSON = function() {
     var json = [];
     for (var i = 0; i < this.indexes.length; i++) {
-      var tmp = this.collection(this.indexes[i]);
+      var tmp = this.collection[this.indexes[i]];
       tmp.id = this.indexes[i];
       json.push(tmp);
     }

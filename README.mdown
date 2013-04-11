@@ -47,8 +47,15 @@ FileStore.prototype.set = function(key, value, callback) {
 
   if (!self.buffer) {
     fs.readFile(self.filename, function(err, data) {
-      if (err)
-        return callback(err);
+      if (err) {
+        fs.writeFile(self.filename, '{}', function(err) {
+          if (err)
+            return callback(err);
+
+          self.set(key, value, callback);
+        });
+        return;
+      }
 
       self.buffer = JSON.parse(data.toString());
       self.buffer[key] = value;
@@ -78,7 +85,7 @@ FileStore.prototype.get = function(key, callback) {
       if (err)
         return callback(err);
 
-      self.buffer = JSON.parse(data);
+      self.buffer = JSON.parse(data.toString());
 
       callback(null, self.buffer[key]);
     });
@@ -97,6 +104,8 @@ FileStore.prototype.remove = function(key, callback) {
     fs.readFile(self.filename, function(err, data) {
       if (err)
         return callback(err);
+
+      self.buffer = JSON.parse(data.toString());
 
       delete self.buffer[key];
 
