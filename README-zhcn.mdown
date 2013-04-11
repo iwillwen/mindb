@@ -1,0 +1,435 @@
+# NanoDB
+跨平臺前端數據庫
+
+若你想在你的網站或是 Web App 中，進行一些數據的本地存儲(如瀏覽器，Adobe Air, PhoneGap 等)，你可以選擇 NanoDB 以快速優雅地解決。
+
+---
+
+## 特色
+- 跨平臺，NanoDB 提供一個開放的 Store Interface，以使數據可以存儲在不同的數據容器中，你也可以根據你的實際需求，自主開發 Store Interface。NanoDB 默認提供兩個用於現代瀏覽器的 Store Interface(分別用於持久化存儲和內存存儲)。
+- 輕量化，NanoDB 的核心部件只有不到 20K (包括註釋)。如果你的服務器開啓了 gzip 壓縮，經過最小化後的文件(nanodb.min.js)只有不到 5K！
+- 簡潔優雅，NanoDB 提供兩套 API 供開發者使用，分別爲 MongoDB 風格和 Redis 風格。
+
+---
+
+### 安裝
+
+若你想在頁面中使用 NanoDB，你需要引入 nanodb.js (或是 nanodb.min.js)。
+
+```html
+<script src="/path-to-your-scripts/nanodb.js" type="text/javascript"></script>
+<script type="text/javascript">
+  var mydb = nano.db('mydb');
+</script>
+```
+
+你也可以在有 SeaJS 或 RequireJS 等 CommonJS 環境中使用。
+
+```js
+seajs.use('/path-to-your-scripts/nanodb', function(nano) {
+  var mydb = nano.db('mydb');
+});
+```
+
+NanoDB 也可以在 Node.js 環境中運行。
+
+```js
+var nano = require('nano');
+var fs   = require('fs');
+
+function FileStore(filename) {
+  this.filename = filename;
+  this.buffer = null;
+  this.async = true;
+}
+FileStore.prototype.set = function(key, value, callback) {
+  var self = this;
+
+  if (!self.buffer) {
+    fs.readFile(self.filename, function(err, data) {
+      if (err)
+        return callback(err);
+
+      self.buffer = JSON.parse(data.toString());
+      self.buffer[key] = value;
+      fs.writeFile(self.filename, JSON.stringify(self.buffer), function(err) {
+        if (err)
+          return callback(err);
+
+        callback();
+      });
+    });
+  } else {
+    self.buffer[key] = value;
+
+    fs.writeFile(self.filename, JSON.stringify(self.buffer), function(err) {
+      if (err)
+        return callback(err);
+
+      callback();
+    });
+  }
+};
+FileStore.prototype.get = function(key, callback) {
+  var self = this;
+
+  if (!self.buffer) {
+    fs.readFile(self.filename, function(err, data) {
+      if (err)
+        return callback(err);
+
+      self.buffer = JSON.parse(data);
+
+      callback(null, self.buffer[key]);
+    });
+  } else {
+    if (self.buffer[key]) {
+      return callback(null, self.buffer[key]);
+    } else {
+      return callback(new Error('This key is not exists.'));
+    }
+  }
+};
+FileStore.prototype.remove = function(key, callback) {
+  var self = this;
+
+  if (!self.buffer) {
+    fs.readFile(self.filename, function(err, data) {
+      if (err)
+        return callback(err);
+
+      delete self.buffer[key];
+
+      fs.writeFile(self.filename, JSON.stringify(self.buffer), callback);
+    });
+  } else {
+    delete self.buffer[key];
+
+    fs.writeFile(self.filename, JSON.stringify(self.buffer), callback);
+  }
+};
+
+var mydb = nano.db('mydb', {
+  store: new FileStore(__dirname + '/mydb.json');
+});
+var myColl = mydb.collection('myColl');
+
+mydb.on('ready', function() {
+  // Do something with `myColl`
+});
+```
+
+如果你所用的 JavaScript 環境並非瀏覽器，並提供專有的數據存儲接口(如Adobe AIR)，你也可以通過它來使用 NanoDB。
+
+```js
+// For Adobe AIR EncryptedLocalStore
+function EncryptedLocalStore() {}
+EncryptedLocalStore.prototype.get = function (key) {
+  return air.EncryptedLocalStore.getItem(key);
+};
+EncryptedLocalStore.prototype.set = function (key, value) {
+  return air.EncryptedLocalStore.setItem(key, value);
+};
+EncryptedLocalStore.prototype.remove = function (key) {
+  return air.EncryptedLocalStore.removeItem(key);
+};
+
+var myair = nano.db('myair', {
+  store: new EncryptedLocalStore()
+});
+```
+
+### MongoAPI - nanoCollection 集合
+
+#### nano.collection(collectionName) - 獲取數據庫中的集合
+
+```js
+var repos = mydb.collection('repos');
+```
+
+如果你所用的 Store Interface 是同步的(默認提供的兩個 Store Interface 皆爲同步的)，你就可以直接對其進行操作了。
+
+```js
+// 插入
+repos.insert({
+  'name': 'NanoDB',
+  'description': 'Cross-Platforms Local Database Library',
+  'language': 'JavaScript',
+  'gatekeepers': ['Will Wen Gunn', 'Wiky Chen']
+}, function(err) {
+  if (err)
+    return console.error(err);
+
+  console.log('插入成功！');
+});
+
+// 查詢
+repos.find({
+  'language': 'JavaScript'
+}, function(err, rows) {
+  if (err)
+    return console.error(err);
+
+  for (var i = 0, len = rows.length; i < len; i++) {
+    console.log(i, rows[0]);
+  }
+});
+```
+
+#### nanoCollection.insert(data[, callback]) 插值
+
+往集合中插入數據。
+
+```js
+repos.insert({
+  'name': 'NanoDB',
+  'description': 'Cross-Platforms Local Database Library',
+  'language': 'JavaScript',
+  'gatekeepers': ['Will Wen Gunn', 'Wiky Chen']
+}, function(err) {
+  if (err)
+    return console.error(err);
+
+  console.log('插入成功！');
+});
+repos.insert({
+  'name': 'webjs',
+  'description': 'Simple and stable development for Node.js',
+  'language': 'JavaScript',
+  'gatekeepers': ['Will Wen Gunn']
+}, function(err) {
+  if (err)
+    return console.error(err);
+
+  console.log('插入成功！');
+});
+```
+
+#### 查詢
+
+##### nanoCollection.find(query[, options[, callback]])
+
+從集合中查詢所有相關數據。
+
+```js
+repos.find({
+  'language': 'JavaScript'
+}, function(err, rows) {
+  if (err)
+    return console.error(err);
+
+  for (var i = 0, len = rows.length; i < len; i++) {
+    console.log(i, rows[0]);
+  }
+});
+```
+
+`find`方法的返回值會是一個 nanoCursor，所以你也可以這樣做。
+
+```js
+repos.find({
+  'language': 'JavaScript'
+}).toArray(function(err, rows) {
+  if (err)
+    return console.error(err);
+
+  for (var i = 0, len = rows.length; i < len; i++) {
+    console.log(i, rows[0]);
+  }
+});
+```
+
+##### nanoCollection.findOne(query[, options[, callback]])
+
+從集合中查詢第一個相關數據。
+
+```js
+repos.findOne({
+  'language': 'JavaScript'
+}, function(err, curr) {
+  if (err)
+    return console.error(err);
+
+  console.log(curr);
+});
+```
+
+#### 更新
+
+##### nanoCollection.update(query, doc[, options], callback)
+
+更新集合中的相關數據。
+
+```js
+repos.update(
+  {
+    name: 'NanoDB'
+  },
+  {
+    tags: ['HTML5', 'Web App', 'JavaScript', 'REST']
+  },
+  function(err, record) {
+    if (err)
+      return console.error(err);
+    
+    console.log('Update succeed!');
+  }
+);
+```
+
+#### 刪除
+
+##### nanoCollection.remove(query[, callback])
+
+從集合中刪除相關數據。
+
+```js
+repos.remove({
+  'language': 'PHP'
+}, function(err) {
+  if (err)
+    return console.error(err);
+
+  console.log('所有的 PHP 項目都被刪除了！');
+});
+```
+
+##### nanoCollection.removeById(id[, callback])
+
+從集合中刪除指定數據。
+
+```js
+repos.removeById('[A Object ID]', function(err) {
+  if (err)
+    return console.error(err);
+
+  console.log('報告老闆，敵方指定目標已被消滅！');
+});
+```
+
+### MongoAPI - nanoCursor 指針
+
+用於對查詢數據進行操作的實例。
+
+#### nanoCursor.toArray(callback)
+
+將指針中的數據輸出成數組。
+
+```js
+repos.find({
+  'language': 'JavaScript'
+}).toArray(function(err, rows) {
+  if (err)
+    return console.error(err);
+
+  for (var i = 0, len = rows.length; i < len; i++) {
+    console.log(i, rows[0]);
+  }
+});
+```
+
+#### nanoCursor.limit(count)
+
+對指針中的數據數量進行限制。
+
+```js
+var jsCursor = repos.find({
+  'language': 'JavaScript'
+});
+
+jsCursor.limit(10).toArray(function(err, rows) {
+  if (err)
+    return console.error(err);
+
+  for (var i = 0, len = rows.length; i < len; i++) {
+    console.log(i, rows[0]);
+  }
+});
+```
+
+#### nanoCursor.sort(options)
+
+對指針中的數據進行排序處理。
+
+```js
+jsCursor.sort({ name: 1 }).limit(10);
+```
+
+#### nanoCursor.skip(count)
+
+跳過指針中的前若干數據。
+
+```js
+jsCursor.skip(5);
+```
+
+#### nanoCursor.each(fn, index)
+
+對指針中的數據進行歷遍。
+
+```js
+jsCursor.each(function(item) {
+  console.log(item);
+});
+```
+
+### RedisAPI
+
+#### nano.store
+用於 RedisAPI 的 Store Interface 實例。
+
+```js
+nano.store = new FileStore(__dirname + '/nano.redis.json');
+```
+
+#### nano.set(key, value, callback)
+
+往 NanoDB 中設置一個 Key。
+
+```js
+nano.set('name', 'Will Wen Gunn', function(err) {
+  if (err)
+    return console.error(err);
+  
+  console.log('Set OK!');
+});
+```
+
+#### nano.get(key, callback)
+
+從 NanoDB 中獲取一個 Key。
+
+```js
+nano.get('name', function(err, value) {
+  if (err)
+    return console.error(err);
+  
+  console.log(value); //=> 'Will Wen Gunn'
+});
+```
+
+#### nano.del(key, callback)
+
+從 NanoDB 中刪除一個 Key。
+
+```js
+nano.del('name', function(err) {
+  if (err)
+    return console.error(err);
+    
+  console.log('Deleted!');
+});
+```
+
+#### nano.exists(key, callback)
+
+檢測 NanoDB 中是否存在指定 Key。
+
+```js
+nano.exists('name', function(err, exists) {
+  if (err)
+    return console.error(err);
+  
+  console.log(exists);
+});
+```

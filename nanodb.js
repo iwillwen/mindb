@@ -169,11 +169,12 @@
    * var myapp = new nanoDB('myapp');
    * 
    */
-  function nanoDB(dbName, option) {
+  function nanoDB(dbName, options) {
     EventEmitter.call(this);
 
     this.name = dbName;
-    this.option = option;
+    this.options = options;
+    this.readystate = 0;
   }
 
   utils.inherits(nanoDB, EventEmitter);
@@ -187,7 +188,8 @@
    * 
    */
   nanoDB.prototype.collection = function(collName) {
-    var collection = new nanoCollection(collName, this.name);
+    var collection = new nanoCollection(collName, this);
+    this.readystate++;
     if (!this.collections) this.collections = {};
     this.collections[collName] = collection;
     return collection;
@@ -201,14 +203,15 @@
    * var items = new nanoCollection('items', 'myapp');
    * 
    */
-  function nanoCollection (collName, dbName) {
+  function nanoCollection(collName, db) {
     EventEmitter.call(this);
 
     var self = this;
+    var dbName = db.name;
 
     self.name = collName;
-    self.parent = dbName;
-    var store = nano.dbs[dbName].option.store;
+    self.parent = db;
+    var store = db.options.store;
 
     if (store.async) {
       store.get('nano-' + dbName + '-' + collName, function(err, value) {
@@ -224,6 +227,7 @@
 
               self.indexes = [];
               self.emit('ready');
+              --db.readystate || db.emit('ready');
             });
           });
         } else {
@@ -298,18 +302,18 @@
         for (var i = 0; i < results.length; i++) {
           results[i]._id = resultIndexs[i];
         }
-        callback(null, results);
+        return (new nanoCursor(results, this)).toArray(callback);
       } else {
-        callback(new Error('Not item found.'));
+        return (new nanoCursor([], this)).toArray(callback);
       }
     } else {
       if (results.length !== 0) {
         for (var i = 0; i < results.length; i++) {
           results[i]._id = resultIndexs[i];
         }
-        return new nanoCursor(results, this.name);
+        return new nanoCursor(results, this);
       } else {
-        return new nanoCursor([], this.name);
+        return new nanoCursor([], this);
       }
     }
   };
@@ -361,7 +365,7 @@
 
   nanoCollection.prototype.insert = function(doc, callback) {
     var self = this;
-    var store = nano.dbs[this.parent].option.store;
+    var store = self.parent.option.store;
     var last = this.indexes[this.indexes.length - 1];
     if (last) {
       var theNew = last.substr(0, last.length - 1) + (Number(last.substr(last.length - 1)) + 1);
@@ -373,11 +377,11 @@
     self.collection[theNew] = doc;
 
     if (store.async) {
-      store.set('nano-' + self.parent + '-' + self.name, btoa(cP(jS(self.collection))), function(err) {
+      store.set('nano-' + self.parent.name + '-' + self.name, btoa(cP(jS(self.collection))), function(err) {
         if (err)
           return self.emit('error', err);
 
-        store.set('nano-' + self.parent + '-' + self.name + '-indexes', btoa(cP(jS(self.indexes))), function(err) {
+        store.set('nano-' + self.parent.name + '-' + self.name + '-indexes', btoa(cP(jS(self.indexes))), function(err) {
           if (err)
             return self.emit('error', err);
 
@@ -395,7 +399,7 @@
 
   nanoCollection.prototype.update = function() {
     var self = this;
-    var store = nano.dbs[this.parent].option.store;
+    var store = self.parent.option.store;
     var spec = arguments[0];
     var doc = arguments[1];
     var callback = arguments[arguments.length - 1];
@@ -409,11 +413,11 @@
       self.collection[item._id] = item;
 
       if (store.async) {
-        store.set('nano-' + self.parent + '-' + self.name, btoa(cP(jS(self.collection))), function(err) {
+        store.set('nano-' + self.parent.name + '-' + self.name, btoa(cP(jS(self.collection))), function(err) {
           if (err)
             return self.emit('error', err);
 
-          store.set('nano-' + self.parent + '-' + self.name + '-indexes', btoa(cP(jS(self.indexes))), function(err) {
+          store.set('nano-' + self.parent.name + '-' + self.name + '-indexes', btoa(cP(jS(self.indexes))), function(err) {
             if (err)
               return self.emit('error', err);
 
@@ -421,8 +425,8 @@
           });
         });
       } else {
-        store.set('nano-' + self.parent + '-' + self.name, btoa(cP(jS(self.collection))));
-        store.set('nano-' + self.parent + '-' + self.name + '-indexes', btoa(cP(jS(self.indexes))));
+        store.set('nano-' + self.parent.name + '-' + self.name, btoa(cP(jS(self.collection))));
+        store.set('nano-' + self.parent.name + '-' + self.name + '-indexes', btoa(cP(jS(self.indexes))));
         callback(null, item);
       }
       self.emit('update', item);
@@ -431,39 +435,40 @@
     return self;
   };
 
-  // TODO
-  // nanoCollection.prototype.findAndModify = function() {
-  //   var query = arguments[0];
-  //   var sort = arguments[1];
-  //   var update = arguments[2];
-  //   var callback = arguments[arguments.length - 1];
-  //   var options = (arguments.length === 5 ? arguments[3] : {});
-  //   var self = this;
+  /*
+   - TODO
+  nanoCollection.prototype.findAndModify = function() {
+    var query = arguments[0];
+    var sort = arguments[1];
+    var update = arguments[2];
+    var callback = arguments[arguments.length - 1];
+    var options = (arguments.length === 5 ? arguments[3] : {});
+    var self = this;
 
-  //   this.find().sort(sort).toArray(function(err, collection) {
-  //     if (err) return callback(err);
+    this.find().sort(sort).toArray(function(err, collection) {
+      if (err) return callback(err);
 
-  //     var indexes = [];
-  //     for (var i = 0; i < collection.length; i++) {
-  //       indexes.push(collection[i]._id);
-  //     }
-  //     var newCollection = new nanoCollection(collection, indexes);
+      var indexes = [];
+      for (var i = 0; i < collection.length; i++) {
+        indexes.push(collection[i]._id);
+      }
+      var newCollection = new nanoCollection(collection, indexes);
 
-  //     newCollection.findOne(query, function (err, item) {
-  //       if (err) return callback(err);
+      newCollection.findOne(query, function (err, item) {
+        if (err) return callback(err);
 
-  //       self.update(item, update, options, callback);
-  //     });
-  //   });
+        self.update(item, update, options, callback);
+      });
+    });
 
-  //   return this;
-  // };
+    return this;
+  };*/
 
   nanoCollection.prototype.remove = function(selector) {
     var callback = typeof arguments[arguments.length - 1] == 'function' ? arguments[arguments.length - 1] : utils.noop;
     selector = selector || {};
 
-    var store = nano.dbs[this.parent].option.store;
+    var store = this.parent.option.store;
 
     function check (item) {
       if (jS(selector) === '{}') return true;
@@ -490,11 +495,11 @@
     if (i == 0) return callback(new Error('Not items matched'));
 
     if (store.async) {
-      store.set('nano-' + this.parent + '-' + this.name, btoa(cP(jS(this.collection))), function(err) {
+      store.set('nano-' + this.parent.name + '-' + this.name, btoa(cP(jS(this.collection))), function(err) {
         if (err)
           return self.emit('error', err);
 
-        store.set('nano-' + this.parent + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))), function(err) {
+        store.set('nano-' + this.parent.name + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))), function(err) {
           if (err)
             return self.emit('error', err);
 
@@ -502,8 +507,8 @@
         });
       });
     } else {
-      store.set('nano-' + this.parent + '-' + this.name, btoa(cP(jS(this.collection))));
-      store.set('nano-' + this.parent + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))));
+      store.set('nano-' + this.parent.name + '-' + this.name, btoa(cP(jS(this.collection))));
+      store.set('nano-' + this.parent.name + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))));
       if (callback) callback(null, res);
     }
     this.emit('remove', res);
@@ -511,6 +516,56 @@
     return this;
   };
 
+  nanoCollection.prototype.removeById = function(id) {
+    var callback = typeof arguments[arguments.length - 1] == 'function' ? arguments[arguments.length - 1] : utils.noop;
+    id = id || {};
+
+    var store = this.parent.option.store;
+
+    function check (item) {
+      if (item._id === id)
+        return true;
+      return false;
+    }
+
+    var res = [];
+
+    var i = 0;
+    var f = this.indexes.length;
+    for (var i = f - 1; i >= 0; i--) {
+      if (check(this.collection[this.indexes[i]])) {
+        var t = this.collection[this.indexes[i]];
+        t._id = this.indexes[i];
+        res.push(t);
+        t = null;
+        delete this.collection[this.indexes[i]];
+        this.indexes.splice(i, 1);
+        break;
+      }
+    }
+    if (i == 0) return callback(new Error('Not items matched'));
+
+    if (store.async) {
+      store.set('nano-' + this.parent.name + '-' + this.name, btoa(cP(jS(this.collection))), function(err) {
+        if (err)
+          return self.emit('error', err);
+
+        store.set('nano-' + this.parent.name + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))), function(err) {
+          if (err)
+            return self.emit('error', err);
+
+          callback(null, item);
+        });
+      });
+    } else {
+      store.set('nano-' + this.parent.name + '-' + this.name, btoa(cP(jS(this.collection))));
+      store.set('nano-' + this.parent.name + '-' + this.name + '-indexes', btoa(cP(jS(this.indexes))));
+      if (callback) callback(null, res);
+    }
+    this.emit('remove', res);
+
+    return this;
+  };
   utils.inherits(nanoCollection, EventEmitter);
 
 
@@ -544,11 +599,11 @@
   }*/
 
 
-  function nanoCursor (collection, collName) {
+  function nanoCursor (collection, coll) {
     EventEmitter.call(this);
 
     this.collection = collection;
-    this.parent = collName;
+    this.parent = coll;
   }
 
   nanoCursor.prototype.toArray = function(callback) {
@@ -565,10 +620,10 @@
 
     return this;
   };
-  nanoCursor.prototype.sort = function(option) {
-    for (var key in option) {
+  nanoCursor.prototype.sort = function(options) {
+    for (var key in options) {
       this.collection.sort(function(a, b) {
-        if (option[key] == -1) {
+        if (options[key] == -1) {
           return a[key] < b[key] ? 1 : -1;
         } else {
           return a[key] > b[key] ? 1 : -1;
@@ -579,12 +634,14 @@
     return this;
   };
   nanoCursor.prototype.skip = function(count) {
-    this.collection = this.collection.splice(conunt);
+    this.collection = this.collection.splice(count);
 
     return this;
   };
   nanoCursor.prototype.each = function(fn) {
-    this.collection.forEach(fn);
+    for (var i = 0, l = this.collection.length; i < l; i++) {
+      fn(this.collection[i], i);
+    }
 
     return this;
   };
