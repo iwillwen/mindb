@@ -106,7 +106,9 @@ var mydb = nano.db('mydb', { store: EncryptedLocalStore() });</code></pre>
         (function() {
           var output = document.getElementById('output');
 
-          var test = nano.db('test');
+          var test = nano.db('test', {
+            store: new nano.memStore()
+          });
           var items = test.collection('items');
 
           items.insert({
