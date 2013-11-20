@@ -1,0 +1,77 @@
+# NanoDB New Release
+  1. Keys
+    - [*] del
+    - [*] exists
+    - [*] rename
+    - [*] renamenx
+    - [*] keys
+    - [*] randomkey
+    - [*] type
+  2. Mix
+    - [*] set
+    - [*] setnx
+    - [*] setex
+    - [*] psetex
+    - [*] mset
+    - [*] msetnx
+    - [*] get
+    - [*] mget
+    - [*] getset
+  3. Hash
+    - [*] hset
+    - [*] hsetnx
+    - [*] hmset
+    - [*] hget
+    - [*] hmget
+    - [*] hgetall
+    - [*] hdel
+    - [*] hlen
+    - [*] hexists
+    - [*] hkeys
+    - [*] hvals
+  4. List
+    - [*] lpush
+    - [*] lpushx
+    - [*] rpush
+    - [*] rpushx
+    - [*] lpop
+    - [*] rpop
+    - [*] llen
+    - [*] lrange
+    - [*] lrem
+    - [*] lset
+    - [*] ltrim
+    - [*] lindex
+    - [*] linsert
+    - [*] rpoplpush
+  5. Set
+    - [*] sadd
+    - [*] srem
+    - [*] smembers
+    - [*] sismember
+    - [*] scard
+    - [*] smove
+    - [*] spop
+    - [*] srandmember
+    - [*] sinter
+    - [*] sinterstore
+    - [*] sunion
+    - [*] sunionstore
+    - [*] sdiff
+    - [*] sdiffstore
+  6. Sorted Set
+    - [*] zadd
+    - [*] zrem
+    - [*] zcard
+    - [*] zcount
+    - [*] zscore
+    - [*] zrange
+    - [*] zrevrange
+    - [ ] zrangbyscore
+    - [ ] zrevrangebyscore
+    - [ ] zrank
+    - [ ] zrevzank
+    - [ ] zremrangebyrank
+    - [ ] zremrangebyscore
+    - [ ] zinterstore
+    - [ ] zunion

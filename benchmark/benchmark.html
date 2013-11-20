@@ -1,0 +1,26 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>NanoDB Benchmark</title>
+  <link rel="stylesheet" href="assert/mocha.css" />
+</head>
+<body>
+  <div id="mocha"></div>
+  <script src="assert/mocha.js"></script>
+  <script src="assert/benchmark.js"></script>
+  <script src="../new_nano.js"></script>
+  <script>
+    mocha.setup('bdd');
+
+    function assert(expr, msg) {
+      if (!expr) throw new Error(msg || 'failed');
+    }
+  </script>
+  <script src="mix.js"></script>
+  <script>
+    mocha.checkLeaks();
+    mocha.globals([ 'nano', 'assert' ]);
+    mocha.run();
+  </script>
+</body>
+</html>
