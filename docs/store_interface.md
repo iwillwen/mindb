@@ -77,7 +77,15 @@ For Example ([LevelDB](https://github.com/rvagg/node-levelup) in Node.js):
     };
     
     module.exports = LevelStore;
-    
+
+The `callback` argument is a standard callback in Node.js likes:
+
+    function(err, value) {
+      // ...
+    }
+
+Error is the first argument and the others arugments are the methods return.
+
 Got it? There are some [store interface examples](https://github.com/iwillwen/mindb/tree/master/examples/stores) in the code.
 
 Hoping for your contribution about some stores on others platforms. :P
