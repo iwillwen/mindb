@@ -10,7 +10,7 @@
   var $title = $('#title');
 
   // Check the saved content
-  min.hgetall('md-example')
+  nano.hgetall('md-example')
     .then(function(data) {
       $title.val(data.title);
       $markdown.val(data.content);
@@ -26,7 +26,7 @@
     var md = editor.codemirror.getValue();
     var title = $title.val();
 
-    min.hmset('md-example', {
+    nano.hmset('md-example', {
       title: title,
       content: md
     })

@@ -10,7 +10,7 @@
   var $title = $('#title');
 
   // Check the saved content
-  min.hgetall('md-example')
+  nano.hgetall('md-example')
     .then(function(data) {
       $title.val(data.title);
       $markdown.val(data.content);

@@ -981,7 +981,7 @@
   };
 
   /**
-   * Set a key if the key is not exists.
+   * Set the value of a key, only if the key does not exist
    * @param  {String}   key      the key
    * @param  {Mix}      value    Value
    * @param  {Function} callback Callback
@@ -1024,7 +1024,7 @@
   };
 
   /**
-   * Set a key with a TTL(Time to Live)(s)
+   * Set the value and expiration of a key
    * @param  {String}   key      key
    * @param  {Number}   seconds  TTL
    * @param  {Mix}      value    value
@@ -1067,7 +1067,7 @@
   };
 
   /**
-   * Set a key with a TTL(Time to Live)(ms)
+   * Set the value and expiration in milliseconds of a key
    * @param  {String}   key      key
    * @param  {Number}   millionseconds  TTL
    * @param  {Mix}      value    value
@@ -1106,18 +1106,18 @@
   };
 
   /**
-   * Set a set of keys
-   * @param  {Object}   doc      Object to set
+   * Set multiple keys to multiple values
+   * @param  {Object}   plainObject      Object to set
    * @param  {Function} callback Callback
    * @return {Promise}           promise object
    */
-  min.mset = function(doc, callback) {
+  min.mset = function(plainObject, callback) {
     var promise = new Promise();
 
     var self = this;
 
     // keys
-    var keys = Object.keys(doc);
+    var keys = Object.keys(plainObject);
     // counter
     var i = 0;
 
@@ -1130,10 +1130,10 @@
 
     // Loop
     function next(key, index) {
-      // remove the current element of the doc
+      // remove the current element of the plainObject
       delete keys[index];
 
-      self.set(key, doc[key])
+      self.set(key, plainObject[key])
         .then(function() {
           results.push(arguments);
 
@@ -1172,17 +1172,17 @@
   };
 
   /**
-   * Set a set of keys if they are not exists
-   * @param  {Object}   doc      Object to set
+   * Set multiple keys to multiple values, only if none of the keys exist
+   * @param  {Object}   plainObject      Object to set
    * @param  {Function} callback Callback
    * @return {Promise}           promise object
    */
-  min.msetnx = function(doc, callback) {
+  min.msetnx = function(plainObject, callback) {
     var promise = new Promise();
 
     var self = this;
 
-    var keys = Object.keys(doc);
+    var keys = Object.keys(plainObject);
     var i = 0;
 
     var results = [];
@@ -1194,7 +1194,7 @@
     function next(key, index) {
       delete keys[index];
 
-      self.setnx(key, doc[key])
+      self.setnx(key, plainObject[key])
         .then(function() {
           results.push(arguments);
 
@@ -1402,7 +1402,7 @@
   };
 
   /**
-   * Set a value on a key and return the old value
+   * Set the value of a key and return its old value
    * @param  {String}   key      key
    * @param  {Mix}   value       value
    * @param  {Function} callback Callback
@@ -1473,7 +1473,7 @@
   };
 
   /**
-   * Incr the value in the key with 1.
+   * Increment the integer value of a key by one
    * @param  {String}   key      key
    * @param  {Function} callback callback
    * @return {Promise}           promise
@@ -1521,7 +1521,7 @@
   };
 
   /**
-   * Incr the value in the key with the increment.
+   * Increment the integer value of a key by the given amount
    * @param  {String}   key      key
    * @param  {Number}   increment increment
    * @param  {Function} callback callback

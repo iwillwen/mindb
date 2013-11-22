@@ -3,28 +3,28 @@ module.exports = function(grunt) {
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
 
-    copy: {
-      min: {
-        files: [
-          {
-            src: [ 'min.js' ],
-            dest: 'dist/min-debug.js'
-          }
-        ]
-      }
-    },
 
     uglify: {
       min: {
         options: {
-          sourceMap: 'dist/min.js.source'
+          sourceMap: 'min.js.source'
         },
         files: {
           'dist/min.js': [ 'min.js' ],
           'min.min.js': [ 'min.js' ],
         }
       }
-    }
+    },
+
+    copy: {
+      min: {
+        files: [
+          { src: [ 'min.js' ], dest: 'dist/min-debug.js'},
+          { src: [ 'min.js' ], dest: 'index.js'},
+          { src: [ 'min.js.source' ], dest: 'dist/min.js.source'}
+        ]
+      }
+    },
   });
 
   grunt.loadNpmTasks('grunt-contrib-copy');
