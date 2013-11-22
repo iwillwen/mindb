@@ -87,7 +87,7 @@ MinDB 提供一个标准的存储接口(`Store Interface`)和 **Redis** 风格�
 
 还不行？不需要依赖？那么来看看`MULTI`吧:
 
-  min.multi()
+    min.multi()
       .incr('msg-seq')
       .incr('msg-seq')
       .incr('msg-seq')

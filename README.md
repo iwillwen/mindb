@@ -3,6 +3,8 @@
 Storing and structuring your application data on JavaScript.  
 Providing a standard *Store Interface* and **Redis**-copy API that you can use in wherever.
 
+[Chinese version](https://github.com/iwillwen/mindb/blob/master/README_zhcn.md)
+
 # Installation
 
 Loading via script tag:
