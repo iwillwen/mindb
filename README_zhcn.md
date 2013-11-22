@@ -106,6 +106,9 @@ MinDB 也支持多数据库:
       .then(/*...*/)
       .fail(/*...*/);
 
+# Store Interface
+请阅读 [Store Interface 文档](https://github.com/iwillwen/mindb/blob/master/docs/store_interface.md).
+
 # 贡献
 我们非常欢迎贡献。当然为 MinDB 作出贡献的方法有很多。
 

@@ -108,6 +108,9 @@ Support multiple databases:
       .then(/*...*/)
       .fail(/*...*/);
 
+# Store Interface
+Read the [Store Interface Documentation](https://github.com/iwillwen/mindb/blob/master/docs/store_interface.md).
+
 # Contributing
 Contribution is welcome.There are more than one way to contribute, and I will appreciate any way you choose.
 
