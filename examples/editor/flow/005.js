@@ -1,0 +1,31 @@
+// app.js
+(function($, global) {
+  // Markdown Editor
+  var editor = new Editor();
+
+  // Elements
+  var $saveBtn = $('#save');
+  var $statusOut = $('#status');
+  var $markdown = $('#markdown');
+  var $title = $('#title');
+
+  // Check the saved content
+  min.hgetall('md-example')
+    .then(function(data) {
+      $title.val(data.title);
+      $markdown.val(data.content);
+
+      editor.render($markdown.get(0));
+    })
+    .fail(function() {
+      editor.render($markdown.get(0));
+    });
+
+  // Save
+  $saveBtn.on('click', function() {
+    var md = editor.codemirror.getValue();
+    var title = $title.val();
+  });
+})(jQuery, window);
+
+function noop() { return false; }

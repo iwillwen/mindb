@@ -1,0 +1,40 @@
+{
+  "name": "min",
+  "family": "iwillwen",
+  "version": "0.0.1",
+  "description": "Database on JavaScript",
+  "main": "min.js",
+  "directories": {
+    "benchmark": "benchmark",
+    "example": "examples",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/iwillwen/mindb.git"
+  },
+  "keywords": [
+    "html5",
+    "redis",
+    "database",
+    "localstorage",
+    "store"
+  ],
+  "author": "iwillwen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/iwillwen/mindb/issues"
+  },
+  "homepage": "https://github.com/iwillwen/mindb",
+  "devDependencies": {
+    "async": "latest",
+    "level": "latest",
+    "grunt": "latest",
+    "grunt-contrib-uglify": "latest",
+    "mocha": "latest",
+    "grunt-contrib-copy": "~0.4.1"
+  }
+}

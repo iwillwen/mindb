@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Markdown Editor - MinDB</title>
+    <link rel="stylesheet" href="assets/editor.css" />
+    <script type="text/javascript" src="assets/min.min.js"></script>
+    <script type="text/javascript" src="assets/editor.js"></script>
+    <script type="text/javascript" src="assets/marked.min.js"></script>
+    <script type="text/javascript" src="assets/jquery.min.js"></script>
+    <style>
+      body {overflow: hidden;padding: 1em;}
+      .btn {font-size: 100%;padding: .5em 1.5em;color: #444;border: 1px solid #999;border: 0 rgba(0,0,0,0);background-color: #0078e7;color: #fff;text-decoration: none;border-radius: 2px;-webkit-transition: .1s linear -webkit-box-shadow;-moz-transition: .1s linear -moz-box-shadow;-ms-transition: .1s linear box-shadow;-o-transition: .1s linear box-shadow;transition: .1s linear box-shadow;display: inline-block;zoom: 1;line-height: normal;white-space: nowrap;vertical-align: baseline;text-align: center;cursor: pointer;-webkit-user-drag: none;-webkit-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;}
+      .btn:hover {filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#00000000', endColorstr='#1a000000', GradientType=0);background-image: -webkit-gradient(linear,0 0,0 100%,from(transparent),color-stop(40%,rgba(0,0,0,.05)),to(rgba(0,0,0,.1)));background-image: -webkit-linear-gradient(transparent,rgba(0,0,0,.05) 40%,rgba(0,0,0,.1));background-image: -moz-linear-gradient(top,rgba(0,0,0,.05) 0,rgba(0,0,0,.1));background-image: -ms-linear-gradient(transparent,rgba(0,0,0,.05) 40%,rgba(0,0,0,.1));background-image: -o-linear-gradient(transparent,rgba(0,0,0,.05) 40%,rgba(0,0,0,.1));background-image: linear-gradient(transparent,rgba(0,0,0,.05) 40%,rgba(0,0,0,.1));}
+      .btn:active {box-shadow: 0 0 0 1px rgba(0,0,0,.15) inset,0 0 6px rgba(0,0,0,.2) inset;}
+      .btn:focus {outline: 0;}
+      #title {font-size: 2.3em; border: none;margin-bottom: .4em;width: 100%;}
+    </style>
+  </head>
+  <body>
+    <input type="text" id="title" placeholder="标题">
+    <textarea id="markdown"></textarea>
+    <button id="save" class="btn">保存</button>
+    <span id="status" style="margin-left: 1em"></span>
+    <span class="editor-statusbar" style="float: right;">Powered by <a href="https://github.com/lepture/editor" target="_blank">editor</a></span>
+
+    <script src="app.js"></script>
+  </body>
+</html>

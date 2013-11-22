@@ -1,0 +1,24 @@
+{
+  "name": "mindb",
+  "main": "min.js",
+  "version": "0.0.1",
+  "homepage": "http://github.com/iwillwen/mindb",
+  "authors": [
+    "iwillwen <willwengunn@gmail.com>"
+  ],
+  "description": "Database on JavaScript",
+  "keywords": [
+    "html5",
+    "redis",
+    "database",
+    "localstorage",
+    "store"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "dist"
+  ]
+}

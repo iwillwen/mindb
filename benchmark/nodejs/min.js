@@ -968,6 +968,7 @@
         promise.resolve(key, value);
         callback(null, key, value);
       } catch(err) {
+        console.error(err);
         // Error!
         promise.reject(err);
         callback(err);
@@ -981,7 +982,7 @@
   };
 
   /**
-   * Set the value of a key, only if the key does not exist
+   * Set a key if the key is not exists.
    * @param  {String}   key      the key
    * @param  {Mix}      value    Value
    * @param  {Function} callback Callback
@@ -1024,7 +1025,7 @@
   };
 
   /**
-   * Set the value and expiration of a key
+   * Set a key with a TTL(Time to Live)(s)
    * @param  {String}   key      key
    * @param  {Number}   seconds  TTL
    * @param  {Mix}      value    value
@@ -1067,7 +1068,7 @@
   };
 
   /**
-   * Set the value and expiration in milliseconds of a key
+   * Set a key with a TTL(Time to Live)(ms)
    * @param  {String}   key      key
    * @param  {Number}   millionseconds  TTL
    * @param  {Mix}      value    value
@@ -1106,18 +1107,18 @@
   };
 
   /**
-   * Set multiple keys to multiple values
-   * @param  {Object}   plainObject      Object to set
+   * Set a set of keys
+   * @param  {Object}   doc      Object to set
    * @param  {Function} callback Callback
    * @return {Promise}           promise object
    */
-  min.mset = function(plainObject, callback) {
+  min.mset = function(doc, callback) {
     var promise = new Promise();
 
     var self = this;
 
     // keys
-    var keys = Object.keys(plainObject);
+    var keys = Object.keys(doc);
     // counter
     var i = 0;
 
@@ -1130,10 +1131,10 @@
 
     // Loop
     function next(key, index) {
-      // remove the current element of the plainObject
+      // remove the current element of the doc
       delete keys[index];
 
-      self.set(key, plainObject[key])
+      self.set(key, doc[key])
         .then(function() {
           results.push(arguments);
 
@@ -1172,17 +1173,17 @@
   };
 
   /**
-   * Set multiple keys to multiple values, only if none of the keys exist
-   * @param  {Object}   plainObject      Object to set
+   * Set a set of keys if they are not exists
+   * @param  {Object}   doc      Object to set
    * @param  {Function} callback Callback
    * @return {Promise}           promise object
    */
-  min.msetnx = function(plainObject, callback) {
+  min.msetnx = function(doc, callback) {
     var promise = new Promise();
 
     var self = this;
 
-    var keys = Object.keys(plainObject);
+    var keys = Object.keys(doc);
     var i = 0;
 
     var results = [];
@@ -1194,7 +1195,7 @@
     function next(key, index) {
       delete keys[index];
 
-      self.setnx(key, plainObject[key])
+      self.setnx(key, doc[key])
         .then(function() {
           results.push(arguments);
 
@@ -1402,7 +1403,7 @@
   };
 
   /**
-   * Set the value of a key and return its old value
+   * Set a value on a key and return the old value
    * @param  {String}   key      key
    * @param  {Mix}   value       value
    * @param  {Function} callback Callback
@@ -1473,7 +1474,7 @@
   };
 
   /**
-   * Increment the integer value of a key by one
+   * Incr the value in the key with 1.
    * @param  {String}   key      key
    * @param  {Function} callback callback
    * @return {Promise}           promise
@@ -1521,7 +1522,7 @@
   };
 
   /**
-   * Increment the integer value of a key by the given amount
+   * Incr the value in the key with the increment.
    * @param  {String}   key      key
    * @param  {Number}   increment increment
    * @param  {Function} callback callback
@@ -2243,12 +2244,6 @@
     return promise;
   };
 
-  /**
-   * Remove and get the first element in a list
-   * @param  {String}   key      key
-   * @param  {Function} callback Callback
-   * @return {Promise}           promise
-   */
   min.lpop = function(key, callback) {
     var self = this;
     var promise = new Promise(function(value) {
@@ -2283,12 +2278,6 @@
     return promise;
   };
 
-  /**
-   * Remove and get the last element in a list
-   * @param  {String}   key      key
-   * @param  {Function} callback Callback
-   * @return {Promise}           promise
-   */
   min.rpop = function(key, callback) {
     var self = this;
     var promise = new Promise(function(value) {
@@ -3566,10 +3555,7 @@
         var hash = data.ms.indexOf(member);
 
         if (hash >= 0) {
-          var score = data.hsm[hash];
 
-          promise.resolve(score);
-          callback(null, score);
         } else {
           var err = new Error('This member does not be in the set');
 
@@ -3579,54 +3565,7 @@
       })
 
     return promise;
-  };
-
-  min.zrange = function(key, min, max, callback) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit(len);
-    });
-    callback = callback || utils.noop;
-
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var err = new Error('no such key');
-
-          promise.reject(err);
-          callback(err);
-        }
-      })
-      .then(function(data) {
-        var hashs = Object
-          .keys(data.shm)
-          .filter(function(score) {
-            return (min <= score && score <= max);
-          })
-          .map(function(score) {
-            return data.shm[score];
-          });
-
-        var members = [];
-
-        hashs.forEach(function(hash) {
-          members = members.concat(hash.map(function(row) {
-            return data.ms[row];
-          }));;
-        });
-
-        promise.resolve(members);
-        callback(null, members);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
-    return promise;
-  };
+  }
 
   function Multi(_nano) {
     var self = this;

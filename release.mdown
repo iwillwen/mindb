@@ -1,4 +1,4 @@
-# NanoDB New Release
+# MinBD New Release
   1. Keys
     - [*] del
     - [*] exists
@@ -65,8 +65,8 @@
     - [*] zcard
     - [*] zcount
     - [*] zscore
-    - [*] zrange
-    - [*] zrevrange
+    - [ ] zrange
+    - [ ] zrevrange
     - [ ] zrangbyscore
     - [ ] zrevrangebyscore
     - [ ] zrank
