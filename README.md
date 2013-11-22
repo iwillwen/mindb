@@ -149,3 +149,7 @@ the following conditions:
 
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/iwillwen/mindb/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
