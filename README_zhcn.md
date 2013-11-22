@@ -117,6 +117,9 @@ MinDB 也支持多数据库:
 - 在 Github 上为提交更新
 - 为 MinDB 捐款
 
+## 资助我们
+[![通过支付宝捐款](http://iwillwen.u.qiniudn.com/donate-with-alipay.png)](http://me.alipay.com/iwillwen)
+
 ## git-flow
 我们推荐你使用 [`git-flow`](https://github.com/nvie/gitflow)。
 

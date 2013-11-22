@@ -119,6 +119,9 @@ Contribution is welcome.There are more than one way to contribute, and I will ap
 - send patch with github pull request
 - donate MinDB
 
+## Donate us
+[![Donate with Alipay](http://iwillwen.u.qiniudn.com/donate-with-alipay.png)](http://me.alipay.com/iwillwen)
+
 ## git-flow
 We recommend you to use [`git-flow`](https://github.com/nvie/gitflow) to make a patch.
 
