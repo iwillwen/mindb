@@ -1,4 +1,4 @@
-var fs   = require('fs');
+var fs = require('fs');
 
 function FileStore(filename) {
   this.filename = filename;
