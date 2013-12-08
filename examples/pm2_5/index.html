@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>PM2.5 - MinDB DEMO</title>
+  <link rel="stylesheet" href="http://cdn.staticfile.org/pure/0.3.0/pure-min.css">
+  <script type="text/javascript" src="http://cdn.staticfile.org/jquery/2.0.3/jquery.min.js"></script>
+  <script type="text/javascript" src="http://cdn.staticfile.org/async/1.22/async.min.js"></script>
+  <script type="text/javascript" src="http://cdn.staticfile.org/handlebars.js/1.1.2/handlebars.min.js"></script>
+  <script type="text/javascript" src="http://cdn.staticfile.org/moment.js/2.4.0/moment.min.js"></script>
+  <script type="text/javascript" src="http://cdn.staticfile.org/moment.js/2.4.0/lang/zh-cn.js"></script>
+  <script type="text/javascript" src="http://cdn.staticfile.org/Chart.js/0.2.0/Chart.min.js"></script>
+  <script type="text/javascript" src="min.js"></script>
+  <style>
+    *{font-family:"Hiragino Sans GB","微软雅黑","文泉驿微米黑",Arial,sans-serif;}
+    body{color:#777;overflow-x:hidden;}
+    #layout,#menu,.pure-menu-link{-webkit-transition:all 0.2s ease-out;-moz-transition:all 0.2s ease-out;-ms-transition:all 0.2s ease-out;-o-transition:all 0.2s ease-out;transition:all 0.2s ease-out;}
+    .pure-menu-link {cursor: pointer;}
+    h1,h2,h3,h4,h5,h6{font-weight:bold;color:rgb(75,75,75);}
+    h3{font-size:1.25em;}
+    h4{font-size:1.125em;}
+    a{color:#3b8bba;text-decoration:none;}
+    a:visited{color:#265778;}
+    dt{font-weight:bold;}
+    dd{margin:0 0 10px 0;}
+    #layout{padding-left:13em;left:0;}
+    .l-box{padding:1.3em;}
+    .l-vbox{padding:1.3em 0;}
+    .l-hbox{padding:0 1.3em;}
+    .l-centered{text-align:center;}
+    .header{min-height:80px;margin:0;color:#333;padding:1em 2em;text-align:center;border-bottom:1px solid #eee;background:#fff;}
+    .header h1{margin:0.2em 0;font-size:3em;font-weight:300;}
+    .header h2{font-weight:300;margin:0;color:#ccc;}
+    aside{background:#1f8dd6;padding:0.3em 1em;border-radius:3px;color:#fff;}
+    aside a,aside a:visited{color:rgb(169,226,255);}
+    #content{margin-left:13em;width:80em;}
+    .content{margin:0 auto;padding:0 2em;max-width:800px;margin-bottom:50px;}
+    .content p{line-height:1.6em;font-size:1.125em;}
+    .content .content-subhead{margin:50px 0 20px 0;font-weight:300;color:#888;position:relative;}
+    .content .content-spaced{line-height:1.8em;}
+    .content .snippet{margin:1.3em 0 1em;padding:1.3em;}
+    .content .content-quote{color:#666;font-style:italic;line-height:1.8em;border-left:5px solid #ddd;padding-left:1.5em;}
+    .content-link{position:absolute;top:0;right:0;display:block;height:100%;width:20px;background:transparent url('/img/link-icon.png') no-repeat center center;background-size:20px 20px;}
+    @media (-webkit-min-device-pixel-ratio:2),(min-resolution:192dpi){
+      .content-link{background-image:url('/img/link-icon@2x.png');}
+    }
+    .legal{font-size:87.5%;border-top:1px solid #eee;padding:0.5em 1.1429em;background:rgb(250,250,250);line-height:1.6em;}
+    .legal-license{margin:0;}
+    .legal-copyright,.legal-links{text-align:right;margin:0;}
+    .legal-links{list-style:none;padding:0;}
+    .legal-logo{text-align:center;}
+    #menu{margin-left:-13em;width:13em;position:fixed;top:0;left:13em;bottom:0;z-index:1000;background:#191818;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scroll:touch;}
+    #menu a{color:#999;border:none;white-space:normal;padding:0.6em 0 0.6em 0.6em;}
+    #menu .pure-menu-open{background:transparent;border:0;}
+    #menu .pure-menu ul{border:none;background:transparent;}
+    #menu .pure-menu ul,#menu .pure-menu .menu-item-divided{border-top:1px solid #333;}
+    #menu .pure-menu li a:hover,#menu .pure-menu li a:focus{background:#333;}
+    .pure-menu-link{display:none;top:0;left:13em;background:#000;background:rgba(0,0,0,0.7);font-size:10px;z-index:10;width:2em;height:auto;padding:2.1em 1.6em;}
+    .pure-menu-link:hover,.pure-menu-link:focus{background:#000;}
+    .pure-menu-link span{position:relative;display:block;}
+    .pure-menu-link span,.pure-menu-link span:before,.pure-menu-link span:after{background-color:#fff;width:100%;height:.2em;-webkit-transition:all 0.4s;-moz-transition:all 0.4s;-ms-transition:all 0.4s;-o-transition:all 0.4s;transition:all 0.4s;}
+    .pure-menu-link span:before,.pure-menu-link span:after{position:absolute;margin-top:-.6em;content:" ";}
+    .pure-menu-link span:after{margin-top:.6em;}
+    .pure-menu-link.active span{background:transparent;}
+    .pure-menu-link.active span:before{-webkit-transform:rotate(45deg) translate(.5em,.4em);-moz-transform:rotate(45deg) translate(.5em,.4em);-ms-transform:rotate(45deg) translate(.5em,.4em);-o-transform:rotate(45deg) translate(.5em,.4em);transform:rotate(45deg) translate(.5em,.4em);}
+    .pure-menu-link.active span:after{-webkit-transform:rotate(-45deg) translate(.45em,-.35em);-moz-transform:rotate(-45deg) translate(.45em,-.35em);-ms-transform:rotate(-45deg) translate(.45em,-.35em);-o-transform:rotate(-45deg) translate(.45em,-.35em);transform:rotate(-45deg) translate(.45em,-.35em);}
+    #menu .pure-menu-heading{font-size:110%;color:#fff;}
+    #menu .pure-menu-heading:hover,#menu .pure-menu-heading:focus{color:#999;}
+    #menu .pure-menu-selected{background:#1f8dd6;}
+    #menu .pure-menu-selected a{color:#fff;}
+    #menu li.pure-menu-selected a:hover,#menu li.pure-menu-selected a:focus{background:none;}
+    .example-snippet{margin:2em 0;font-size:85%;}
+    .notice{background-color:#61B842;color:white;}
+    .pure-button{font-family:inherit;}
+    a.pure-button-primary{color:white;}
+    .muted{color:#ccc;}
+    @media (max-width:870px){
+      #layout{position:relative;padding-left:0;}
+      #layout.active{position:relative;left:13em;}
+      #layout.active #menu{left:13em;width:13em;}
+      #menu{left:0;}
+      .pure-menu-link{position:fixed;left:0;display:block;}
+      #layout.active .pure-menu-link{left:13em;}
+    }
+    @media (max-width:767px){
+      .header,.content{font-size:87.5%;}
+      .header,.content,.legal{padding-left:1.1429em;padding-right:1.1429em;}
+      .legal-license,.legal-copyright,.legal-links,.legal-links li{text-align:center;}
+      .l-hbox{padding:1.3em;}
+    }
+    .content .pure-menu.pure-menu-open{width:40%;margin-top:2em;}
+    .content .pure-menu.pure-menu-horizontal{width:100%;}
+    pre{word-wrap:break-word;padding:6px 10;line-height:1.3em;margin-bottom:20;border:1px solid #eee;}
+    code{border:none;margin:0 2px;font-size:0.8em;padding:0.4em 0.6em;white-space:nowrap;}
+    pre code{padding:0;margin:0;font-size:0.95em;white-space:pre-wrap;}
+    pre,code{font-family:Consolas,'Liberation Mono',Courier,monospace;color:#333;background:rgb(250,250,250);}
+    pre .comment{color:#999;}
+    pre .tag,pre .tag-name,pre .support.tag-name{color:rgb(85,85,85);}
+    pre .keyword,pre .css-property,pre .vendor-prefix,pre .sass,pre .class,pre .id,pre .css-value,pre .entity.function,pre .storage.function{font-weight:bold;}
+    pre .css-property,pre .css-value,pre .vendor-prefix,pre .support.namespace{color:#333;}
+    pre .constant.numeric,pre .keyword.unit,pre .hex-color{font-weight:normal;color:#099;}
+    pre .attribute,pre .variable,pre .support{color:#757575;}
+    pre .string,pre .support.value{font-weight:normal;color:#3b8bba;}
+    #cities .list-group-item{cursor:pointer;}
+    .chart_examples {list-style: none;}
+    .chart_examples .color {width: 10px;height: 10px;display: inline-block;margin-right: 5px;}
+  </style>
+</head>
+<body>
+  <div id="layout">
+    <a id="menuLink" class="pure-menu-link"><span></span></a>
+    <div class="pure-u" id="menu">
+      <div class="pure-menu pure-form pure-menu-open">
+        <a class="pure-menu-heading" href="/">PM2.5 - MinDB DEMO</a>
+        <input type="text" style="margin: .3em auto;display: block;" id="city_prefix" placeholder="输入城市">
+        <button class="pure-button pure-button-primary" id="search" style="width: 100%;margin-top:.5em;">搜索</button>
+      </form>
+        <p>以空气质量指数(AQI)排序</p>
+        <ul id="cities">
+        </ul>
+
+        <script id="city_tmpl" type="text/x-handlebars-template">
+          <li class="city">
+            <a id="{{escaped}}" href="#{{escaped}}" class="city">{{city}}</a>
+          </li>
+        </script>
+        <button class="pure-button pure-button-primary" id="reset" style="width: 100%;">重置</button>
+      </div>
+    </div>
+    <div class="pure-u-1" id="content">
+      <script id="content_tmpl" type="text/x-handlebars-template">
+        <div class="header">
+          <h1>{{city}}</h1>
+          <div class="pure-menu pure-menu-open pure-menu-horizontal">
+            <ul>
+              {{#each position_names}}
+              <li class="position" id="{{escape this}}"><a href="{{escape this}}">{{this}}</a></li>
+              {{/each}}
+            </ul>
+          </div>
+        </div>
+        <div id="position_content"></div>
+      </script>
+      <div class="pure-g-r">
+      </div>
+      <script id="position_content_tmpl" type="text/x-handlebars-template">
+        <form class="pure-form pure-form-aligned" style="margin-left: 5em;">
+          <fieldset>
+            <div class="pure-g">
+              <div class="pure-u-1-2">
+                <div class="pure-control-group">
+                  <label>PM2.5</label>
+                  <span>{{data pm2_5}}</span>
+                </div>
+                <div class="pure-control-group">
+                  <label>PM10</label>
+                  <span>{{data pm10}}</span>
+                </div>
+                <div class="pure-control-group">
+                  <label>CO 一氧化碳</label>
+                  <span>{{data co}}</span>
+                </div>
+                <div class="pure-control-group">
+                  <label>NO2 二氧化氮</label>
+                  <span>{{data no2}}</span>
+                </div>
+                <div class="pure-control-group">
+                  <label>O3 臭氧</label>
+                  <span>{{data o3}}</span>
+                </div>
+                <div class="pure-control-group">
+                  <label>SO2 二氧化硫</label>
+                  <span>{{data so2}}</span>
+                </div>
+
+                <div class="pure-controls">
+                  <h2>空气质量：{{quality}}</h2>
+                  <h3>空气质量指数(AQI): {{aqi}}</h3>
+                  <small>最后更新：{{time_point}}</small>
+                </div>
+              </div>
+              <div class="pure-u-1-2">
+                <canvas id="chart" width="300" height="300"></canvas>
+                <ul class="chart_examples">
+                  <li><span class="color" style="background: #D97041;"></span><small>PM2.5</small></li>
+                  <li><span class="color" style="background: #C7604C;"></span><small>PM10</small></li>
+                  <li><span class="color" style="background: #21323D;"></span><small>CO 一氧化碳</small></li>
+                  <li><span class="color" style="background: #9D9B7F;"></span><small>NO2 二氧化氮</small></li>
+                  <li><span class="color" style="background: #7D4F6D;"></span><small>O3 臭氧</small></li>
+                  <li><span class="color" style="background: #584A5E;"></span><small>SO2 二氧化硫</small></li>
+                </ul>
+              </div>
+            </div>
+          </fieldset>
+        </form>
+      </script>
+    </div>
+  </div>
+  <script>
+    (function($) {
+      var apis = {
+        allCities     : 'http://www.pm25.in/api/querys/all_cities.json?token=XpaxLMgxbbNRDywpydxL&callback=?',
+        citiesRanking : 'http://www.pm25.in/api/querys/aqi_ranking.json?token=XpaxLMgxbbNRDywpydxL&callback=?'
+      };
+
+      Handlebars.registerHelper('data', function(data) {
+        return (parseFloat(data) !== 0 ? data : '无数据');
+      });
+      Handlebars.registerHelper('escape', function(data) {
+        return escape(data);
+      });
+
+      var Content = {
+        init: function() {
+          this.$el = $('#content');
+          this.$content = $('#position_content');
+          this.$chart = $('#chart');
+
+          var contentTmpl         = $('#content_tmpl').html();
+          var positionContentTmpl = $('#position_content_tmpl').html();
+          this.contentRender = Handlebars.compile(contentTmpl);
+          this.positionContentRender = Handlebars.compile(positionContentTmpl);
+        },
+        showCity: function(city) {
+          var self = this;
+
+          min.hkeys('city-' + city)
+            .then(function(position_names) {
+              self.$el.html(self.contentRender({
+                city: city,
+                position_names: position_names
+              }));
+
+              self.showPosition(position_names[0], city);
+            });
+        },
+        showPosition: function(position, city) {
+          var self = this;
+
+          var $position = self.$el.find('#' + escape(position));
+
+          self.$el.find('.position').removeClass('pure-menu-selected');
+          $position.addClass('pure-menu-selected');
+
+          min.hget('city-' + city, position)
+            .then(function(data) {
+              data.time_point = moment(data.time_point).fromNow();
+
+              self.$content.html(self.positionContentRender(data));
+
+              var canvasCtx = self.$chart.get(0).getContext("2d");
+
+              var chart = new Chart(canvasCtx).PolarArea([
+                {
+                  // PM2.5
+                  value: data.pm2_5,
+                  color: '#D97041'
+                },
+                {
+                  // PM10
+                  value: data.pm10,
+                  color: '#C7604C'
+                },
+                {
+                  // CO
+                  value: data.co,
+                  color: '#21323D'
+                },
+                {
+                  // NO2
+                  value: data.no2,
+                  color: '#9D9B7F'
+                },
+                {
+                  // O3
+                  value: data.o3,
+                  color: '#7D4F6D'
+                },
+                {
+                  // SO2
+                  value: data.so2,
+                  color: '#584A5E'
+                }
+              ]);
+            });
+        },
+        bind: function() {
+          var self = this;
+
+          $content.find('.position').on('click', function() {
+            self.showPosition(unescape($(this).attr('id')));
+
+            return false;
+          });
+        }
+      };
+
+      var Sidebar = {
+        init: function() {
+          this.$el          = $('#menu');
+          this.$cities      = $('#cities');
+          this.$searchBtn   = $('#search');
+          this.$searchInput = $('#city_prefix');
+          this.$resetBtn    = $('#reset');
+          this.$menuLink    = $('#menuLink');
+
+          this.showing = true;
+
+          var cityTmpl = $('#city_tmpl').html();
+
+          this.cityRender = Handlebars.compile(cityTmpl);
+        },
+        addCity: function(city) {
+          var self = this;
+
+          var $city = $('#' + unescape(city));;
+
+          if ($city.length == 0) {
+            $city = $(self.cityRender({
+              city: city,
+              escaped: escape(city)
+            }));
+            self.$cities.append($city);
+          }
+
+          $city.on('click', function() {
+            Content.showCity(city);
+            self.$el.find('.city').removeClass('pure-menu-selected');
+            $(this).addClass('pure-menu-selected');
+
+            return false;
+          });
+        },
+        empty: function() {
+          this.$cities.empty();
+        },
+        bind: function() {
+          var self = this;
+
+          self.$searchBtn.on('click', function() {
+            var keyword = self.$searchInput.val();
+
+            min.keys('city-' + keyword + '*')
+              .then(function(rows) {
+                Main.handleCities(rows.map(function(row) {
+                  return row.substr(5);
+                }));
+              });
+
+            return false;
+          });
+
+          self.$resetBtn.on('click', function() {
+            min.get('cities')
+              .then(Main.handleCities);
+
+            self.$searchInput.val('');
+          });
+
+          self.$menuLink.on('click', function() {
+            if (self.showing) {
+              self.hide();
+            } else {
+              self.show();
+            }
+
+            return false;
+          });
+
+          $(document).on('resize', self.show.bind(self));
+        },
+        show: function() {
+          this.showing = true;
+
+          this.$el.css('margin-left', 0);
+          this.$menuLink.css('margin-left', -this.$el.offset().left);
+        },
+        hide: function() {
+          this.showing = false;
+
+          this.$el.css('margin-left', '-13em');
+          this.$menuLink.css('margin-left', 0);
+        },
+        apply: function() {
+          this.$el.find('.city').eq(0).click();
+        }
+      };
+
+      var Main = {
+        init: function() {
+          var self = this;
+
+          // Apply
+          min.exists('cities')
+            .then(function(exists) {
+              if (exists) {
+                return min.get('cities');
+              } else {
+                $.getJSON(apis.allCities, self.handleCities.bind(self));
+              }
+            })
+            .then(self.handleCities.bind(self));
+        },
+        handleCities: function(rows) {
+          var self = this;
+
+          Sidebar.empty();
+
+          if (!!rows[0].substr) {
+            var onRankLoad = function(_rows) {
+              var cities = _rows
+                .map(function(row) {
+                  if (rows.indexOf(row.area) >= 0) {
+                    return row.area;
+                  }
+                })
+                .filter(Boolean);
+
+              self.renderCities(cities);
+            };
+
+            min.exists('ranking')
+              .then(function(exists) {
+                if (exists) {
+                  return min.get('ranking');
+                } else {
+                  $.getJSON(apis.citiesRanking, function(_rows) {
+                    min.set('ranking', _rows);
+                    onRankLoad(_rows);
+                  });
+                }
+              })
+              .then(onRankLoad);
+          } else {
+            duff(rows, function(row, done) {
+              var city = row.area;
+
+              // Push a position data of the city
+              min.multi()
+                .sadd('cities', city)
+                .hset('city-' + city, row.position_name, row)
+                .hkeys('city-' + city)
+                .exec(function(err, results) {
+                  if (err) {
+                    return console.error(err);
+                  }
+
+                  var positions = results[2][1];
+
+                  var $city = null;
+
+                  if (results[0][0] > 0) {
+                    $city = $(cityRender({
+                      city: city,
+                      escaped: escape(city)
+                    }));
+
+                    $cities.append($city);
+                  } else {
+                    $city = $('#' + unescape(city));
+                  }
+
+                  done();
+                });
+            }, function() {
+              min.get('cities').then(Main.handleCities);
+            });
+          }
+        },
+        renderCities: function(cities) {
+          duff(cities, function(city, done) {
+            Sidebar.addCity(city);
+            return done();
+          }, function() {
+            Sidebar.apply();
+          });
+        }
+      };
+
+      Content.init();
+      Sidebar.init();
+      Main.init();
+
+      // Duff Looper
+      function duff(array, mapper, onDone) {
+        var n = Math.floor(array.length / 8);
+        var l = array.length % 8;
+
+        var reserves = array.length;
+        function fill() {
+          --reserves || onDone();
+        }
+
+        var i = 0;
+        if (l > 0) {
+          do {
+            mapper(array[i++], fill);
+          } while (--l > 0);
+        }
+        do {
+          mapper(array[i++], fill);
+          mapper(array[i++], fill);
+          mapper(array[i++], fill);
+          mapper(array[i++], fill);
+          mapper(array[i++], fill);
+          mapper(array[i++], fill);
+          mapper(array[i++], fill);
+          mapper(array[i++], fill);
+        } while (--n > 0);
+      }
+
+    })(jQuery);
+  </script>
+</body>
