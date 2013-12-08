@@ -2085,14 +2085,9 @@
         self.get(key)
           .done(function(data) {
             var keys = Object.keys(data);
-            var values = [];
 
-            for (var i = 0; i < keys.length; i++) {
-              values.push(data[keys[i]]);
-            }
-
-            promise.resolve(values);
-            callback(null, values);
+            promise.resolve(keys);
+            callback(null, keys);
           })
           .fail(function(err) {
             promise.reject(err);

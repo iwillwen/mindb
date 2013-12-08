@@ -122,20 +122,20 @@
 
         <script id="city_tmpl" type="text/x-handlebars-template">
           <li class="city">
-            <a id="{{escaped}}" href="#{{escaped}}" class="city">{{city}}</a>
+            <a id="{{city}}" href="#{{escaped}}" class="city">{{city}}</a>
           </li>
         </script>
         <button class="pure-button pure-button-primary" id="reset" style="width: 100%;">重置</button>
       </div>
     </div>
-    <div class="pure-u-1" id="content">
+    <div class="pure-u-1" id="main">
       <script id="content_tmpl" type="text/x-handlebars-template">
         <div class="header">
           <h1>{{city}}</h1>
           <div class="pure-menu pure-menu-open pure-menu-horizontal">
             <ul>
               {{#each position_names}}
-              <li class="position" id="{{escape this}}"><a href="{{escape this}}">{{this}}</a></li>
+              <li class="position" id="{{this}}"><a href="{{escape this}}">{{this}}</a></li>
               {{/each}}
             </ul>
           </div>
@@ -213,9 +213,11 @@
 
       var Content = {
         init: function() {
-          this.$el = $('#content');
+          this.$el = $('#main');
           this.$content = $('#position_content');
           this.$chart = $('#chart');
+
+          this.currCity = null;
 
           var contentTmpl         = $('#content_tmpl').html();
           var positionContentTmpl = $('#position_content_tmpl').html();
@@ -227,10 +229,15 @@
 
           min.hkeys('city-' + city)
             .then(function(position_names) {
+              self.currCity = city;
+
               self.$el.html(self.contentRender({
                 city: city,
                 position_names: position_names
               }));
+              self.$content = $('#position_content');
+
+              self.bind();
 
               self.showPosition(position_names[0], city);
             });
@@ -238,7 +245,7 @@
         showPosition: function(position, city) {
           var self = this;
 
-          var $position = self.$el.find('#' + escape(position));
+          var $position = self.$el.find('#' + position);
 
           self.$el.find('.position').removeClass('pure-menu-selected');
           $position.addClass('pure-menu-selected');
@@ -248,6 +255,7 @@
               data.time_point = moment(data.time_point).fromNow();
 
               self.$content.html(self.positionContentRender(data));
+              self.$chart = self.$content.find('#chart');
 
               var canvasCtx = self.$chart.get(0).getContext("2d");
 
@@ -288,8 +296,8 @@
         bind: function() {
           var self = this;
 
-          $content.find('.position').on('click', function() {
-            self.showPosition(unescape($(this).attr('id')));
+          self.$el.find('.position').on('click', function() {
+            self.showPosition($(this).attr('id'), self.currCity);
 
             return false;
           });
@@ -310,11 +318,13 @@
           var cityTmpl = $('#city_tmpl').html();
 
           this.cityRender = Handlebars.compile(cityTmpl);
+
+          this.bind();
         },
         addCity: function(city) {
           var self = this;
 
-          var $city = $('#' + unescape(city));;
+          var $city = $('#' + city);;
 
           if ($city.length == 0) {
             $city = $(self.cityRender({
@@ -352,8 +362,9 @@
           });
 
           self.$resetBtn.on('click', function() {
-            min.get('cities')
-              .then(Main.handleCities);
+            min.empty(function() {
+              Main.init();
+            });
 
             self.$searchInput.val('');
           });
@@ -407,6 +418,9 @@
 
           Sidebar.empty();
 
+          if (rows.length == 0)
+            return;
+
           if (!!rows[0].substr) {
             var onRankLoad = function(_rows) {
               var cities = _rows
@@ -440,31 +454,15 @@
               min.multi()
                 .sadd('cities', city)
                 .hset('city-' + city, row.position_name, row)
-                .hkeys('city-' + city)
                 .exec(function(err, results) {
                   if (err) {
                     return console.error(err);
                   }
 
-                  var positions = results[2][1];
-
-                  var $city = null;
-
-                  if (results[0][0] > 0) {
-                    $city = $(cityRender({
-                      city: city,
-                      escaped: escape(city)
-                    }));
-
-                    $cities.append($city);
-                  } else {
-                    $city = $('#' + unescape(city));
-                  }
-
                   done();
                 });
             }, function() {
-              min.get('cities').then(Main.handleCities);
+              min.get('cities').then(Main.handleCities.bind(Main));
             });
           }
         },
@@ -498,18 +496,19 @@
             mapper(array[i++], fill);
           } while (--l > 0);
         }
-        do {
-          mapper(array[i++], fill);
-          mapper(array[i++], fill);
-          mapper(array[i++], fill);
-          mapper(array[i++], fill);
-          mapper(array[i++], fill);
-          mapper(array[i++], fill);
-          mapper(array[i++], fill);
-          mapper(array[i++], fill);
-        } while (--n > 0);
+        if (n > 0) {
+          do {
+            mapper(array[i++], fill);
+            mapper(array[i++], fill);
+            mapper(array[i++], fill);
+            mapper(array[i++], fill);
+            mapper(array[i++], fill);
+            mapper(array[i++], fill);
+            mapper(array[i++], fill);
+            mapper(array[i++], fill);
+          } while (--n > 0);
+        }
       }
-
     })(jQuery);
   </script>
 </body>
