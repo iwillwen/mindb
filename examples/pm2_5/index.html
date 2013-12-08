@@ -4,14 +4,14 @@
 <head>
   <meta charset="UTF-8">
   <title>PM2.5 - MinDB DEMO</title>
-  <link rel="stylesheet" href="http://cdn.staticfile.org/pure/0.3.0/pure-min.css">
-  <script type="text/javascript" src="http://cdn.staticfile.org/jquery/2.0.3/jquery.min.js"></script>
-  <script type="text/javascript" src="http://cdn.staticfile.org/async/1.22/async.min.js"></script>
-  <script type="text/javascript" src="http://cdn.staticfile.org/handlebars.js/1.1.2/handlebars.min.js"></script>
-  <script type="text/javascript" src="http://cdn.staticfile.org/moment.js/2.4.0/moment.min.js"></script>
-  <script type="text/javascript" src="http://cdn.staticfile.org/moment.js/2.4.0/lang/zh-cn.js"></script>
-  <script type="text/javascript" src="http://cdn.staticfile.org/Chart.js/0.2.0/Chart.min.js"></script>
-  <script type="text/javascript" src="min.js"></script>
+  <link rel="stylesheet" href="assets/pure-min.css">
+  <script type="text/javascript" src="assets/jquery.min.js"></script>
+  <script type="text/javascript" src="assets/async.min.js"></script>
+  <script type="text/javascript" src="assets/handlebars.min.js"></script>
+  <script type="text/javascript" src="assets/moment.min.js"></script>
+  <script type="text/javascript" src="assets/moment_zh-cn.js"></script>
+  <script type="text/javascript" src="assets/Chart.min.js"></script>
+  <script type="text/javascript" src="assets/min.js"></script>
   <style>
     *{font-family:"Hiragino Sans GB","微软雅黑","文泉驿微米黑",Arial,sans-serif;}
     body{color:#777;overflow-x:hidden;}
@@ -105,6 +105,7 @@
     #cities .list-group-item{cursor:pointer;}
     .chart_examples {list-style: none;}
     .chart_examples .color {width: 10px;height: 10px;display: inline-block;margin-right: 5px;}
+    #loading {width: 10em;top: 0;right: 0;bottom: 0;left: 0;position: absolute;margin: auto;}
   </style>
 </head>
 <body>
@@ -129,6 +130,7 @@
       </div>
     </div>
     <div class="pure-u-1" id="main">
+      <h3 id="loading">数据正在拼命加载中……</h3>
       <script id="content_tmpl" type="text/x-handlebars-template">
         <div class="header">
           <h1>{{city}}</h1>
@@ -194,6 +196,7 @@
             </div>
           </fieldset>
         </form>
+        <small style="float: right;padding: 1em;">数据由<a href="http://www.pm25.in/" target="_blank">PM25.in</a> (<a href="http://www.bestapp.us/" target="_blank">BestApp 工作室</a>)提供</small>
       </script>
     </div>
   </div>
