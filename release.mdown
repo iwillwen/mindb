@@ -65,8 +65,8 @@
     - [*] zcard
     - [*] zcount
     - [*] zscore
-    - [ ] zrange
-    - [ ] zrevrange
+    - [*] zrange
+    - [*] zrevrange
     - [ ] zrangbyscore
     - [ ] zrevrangebyscore
     - [ ] zrank
