@@ -7,7 +7,7 @@ function FileStore(filename) {
   this.async    = true;
   this.ready    = true;
 }
-FileStore.prototype.set = function(key, value[, callback]) {
+FileStore.prototype.set = function(key, value, callback) {
   var self = this;
 
   if (!self.buffer) {
@@ -35,7 +35,7 @@ FileStore.prototype.set = function(key, value[, callback]) {
     });
   }
 };
-FileStore.prototype.get = function(key[, callback]) {
+FileStore.prototype.get = function(key, callback) {
   var self = this;
 
   if (!self.buffer) {
@@ -55,7 +55,7 @@ FileStore.prototype.get = function(key[, callback]) {
     }
   }
 };
-FileStore.prototype.remove = function(key[, callback]) {
+FileStore.prototype.remove = function(key, callback) {
   var self = this;
 
   if (!self.buffer) {

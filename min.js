@@ -1008,7 +1008,9 @@
   min.restore = function(dump, callback) {
     var self = this;
     var promise = new Promise(function() {
-      self.emit('restore');
+      self.save(function() {
+        self.emit('restore');
+      });
     });
     callback = callback || utils.noop;
 
@@ -1483,6 +1485,30 @@
     return promise;
   };
 
+  min.getrange = function(key, start, end, callback) {
+    var self = this;
+    var promise = new Promise(function(value) {
+      self.emit('getrange', key, start, end, value);
+    });
+    callback = callback || utils.noop;
+
+    var len = end - start + 1;
+
+    self.get(key)
+      .then(function(value) {
+        var val = value.substr(start, len);
+
+        promise.resolve(val);
+        callback(null, val);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
   /**
    * Get the values of a set of keys
    * @param  {Array}   keys      the keys
@@ -1689,12 +1715,12 @@
         }
       })
       .then(function(curr) {
-        if (isNaN(parseInt(curr))) {
+        if (isNaN(parseFloat(curr))) {
           promise.reject('value wrong');
           return callback('value wrong');
         }
 
-        curr = parseInt(curr);
+        curr = parseFloat(curr);
 
         return self.set(key, curr + increment);
       })
@@ -1711,6 +1737,88 @@
   };
 
   min.incrbyfloat = min.incrby;
+
+  min.decr = function(key, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('decr', key, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.exists(key)
+      .then(function(exists) {
+        if (exists) {
+          return self.get(key);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseInt(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseInt(curr);
+
+        return self.set(key, --curr);
+      })
+      .done(function(key, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.decrby = function(key, decrement, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('decrby', key, decrement, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.exists(key)
+      .then(function(exists) {
+        if (exists) {
+          return self.get(key);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseInt(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseInt(curr);
+
+        return self.set(key, curr - decrement);
+      })
+      .done(function(key, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
 
   /******************************
   **           Hash            **
@@ -2137,6 +2245,172 @@
       .fail(function(err) {
         promise.reject(err);
         callback(err);
+      });
+
+    return promise;
+  };
+
+  min.hincr = function(key, field, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('hincr', key, field, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.hexists(key, field)
+      .then(function(exists) {
+        if (exists) {
+          return self.hget(exists);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseFloat(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseFloat(curr);
+
+        return self.hset(key, field, ++curr);
+      })
+      .then(function(key, field, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(null, err);
+      });
+
+    return promise;
+  };
+
+  min.hincrby = function(key, field, increment, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('hincr', key, field, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.hexists(key, field)
+      .then(function(exists) {
+        if (exists) {
+          return self.hget(exists);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseFloat(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseFloat(curr);
+
+        return self.hset(key, field, curr + increment);
+      })
+      .then(function(key, field, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(null, err);
+      });
+
+    return promise;
+  };
+
+  min.hincrbyfloat = min.hincrby;
+
+  min.hdecr = function(key, field, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('hdecr', key, field, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.hexists(key, field)
+      .then(function(exists) {
+        if (exists) {
+          return self.hget(key, field);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseFloat(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseFloat(curr);
+
+        return self.hset(key, field, --curr);
+      })
+      .then(function(key, field, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.hdecrby = function(key, field, decrement, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('hincr', key, field, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.hexists(key, field)
+      .then(function(exists) {
+        if (exists) {
+          return self.hget(exists);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseFloat(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseFloat(curr);
+
+        return self.hset(key, field, curr - decrement);
+      })
+      .then(function(key, field, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(null, err);
       });
 
     return promise;
@@ -3832,6 +4106,120 @@
 
         promise.resolve(members);
         callback(null, members);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.zincrby = function(key, increment, member, callback) {
+    var self = this;
+    var promise = new Promise(function(score) {
+      self.emit('zincrby', key, increment, member, score);
+    });
+    callback = callback || utils.noop;
+
+    self.exists(key)
+
+      .then(function(exists) {
+        if (exists) {
+          return self.zscore(key, member);
+        } else {
+          self.zadd(key, increment, member, callback)
+            .then(promise.resolve.bind(promise))
+            .fail(promise.reject.bind(promise));
+        }
+      })
+      .then(function(score) {
+        return self.get(key);
+      })
+      .then(function(data) {
+        var hash = data.ms.indexOf(member);
+        var score = data.hsm[hash];
+
+        var newScore = score + increment;
+
+        var ii = data.shm[score].indexOf(hash);
+        data.shm[score].splice(ii, 1);
+
+        data.hsm[hash] = newScore;
+        if (data.shm[newScore]) {
+          data.shm[newScore].push(hash);
+        } else {
+          data.shm[newScore] = [ hash ];
+        }
+
+        promise.resolve(newScore);
+        callback(null, newScore);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.zrank = function(key, member, callback) {
+    var self = this;
+    var promise = new Promise();
+    callback = callback || utils.noop;
+
+    self.exists(key)
+      .then(function(exists) {
+        if (exists) {
+          return self.get(key);
+        } else {
+          var err = new Error('no such key');
+
+          promise.reject(err);
+          return callback(err);
+        }
+      })
+      .then(function(data) {
+        var scores = Object.keys(data.shm);
+        var score = data.hsm[data.ms.indexOf(member)];
+
+        var rank = scores.indexOf(score);
+
+        promise.resolve(rank);
+        callback(null, rank);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.zrevrank = function(key, member, callback) {
+    var self = this;
+    var promise = new Promise();
+    callback = callback || utils.noop;
+
+    self.exists(key)
+      .then(function(exists) {
+        if (exists) {
+          return self.get(key);
+        } else {
+          var err = new Error('no such key');
+
+          promise.reject(err);
+          return callback(err);
+        }
+      })
+      .then(function(data) {
+        var scores = Object.keys(data.shm);
+        var score = data.hsm[data.ms.indexOf(member)];
+
+        var rank = scores.reverse().indexOf(score);
+
+        promise.resolve(rank);
+        callback(null, rank);
       })
       .fail(function(err) {
         promise.reject(err);
