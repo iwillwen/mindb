@@ -513,14 +513,18 @@
       if (self.results !== null) {
         callback.apply(self, self.results);
       }
+
+      self.ended = false;
     } else {
       // Event listening
-      self.on('resolve', function(args) {
+      self.once('resolve', function(args) {
         var ret = callback.apply(self, args);
 
         if (ret instanceof Promise) {
           ret.fail(self.reject.bind(self));
         }
+
+        self.ended = false;
       });
     }
 
@@ -534,10 +538,14 @@
       if (self.errors !== null) {
         callback.apply(self, self.errors);
       }
+      
+      self.ended = false;
     } else {
       // Event listening
-      self.on('reject', function(args) {
+      self.once('reject', function(args) {
         callback.apply(self, args);
+        
+        self.ended = false;
       });
     }
 
@@ -4274,6 +4282,104 @@
   min.multi = function() {
     return new Multi(this);
   };
+
+  function Sorter(key, _min, callback) {
+    var self = this;
+    self.min = _min;
+    self.callback = callback;
+    self.result = [];
+    self.promise = new Promise();
+    self.sortFn = function(a, b) {
+      return JSON.stringify(a) < JSON.stringify(b);
+    };
+
+    (function loop(methods) {
+      var curr = methods.shift();
+
+      if (curr) {
+        self[curr] = function() {
+          return self.promise[curr].apply(self.promise, arguments);
+        };
+
+        loop(methods);
+      } else {
+        run();
+      }
+    })([ 'then', 'fail', 'done']);
+
+    function run() {
+      self.min.exists(key)
+        .then(function(exists) {
+          if (exists) {
+            return self.min.type(key);
+          } else {
+            return new Error('no such key');
+          }
+        })
+        .then(function(type) {
+          switch (type) {
+            case 'list':
+            case 'set':
+              self.min.get(key);
+              break;
+
+            case 'zset':
+              var p = new Promise();
+
+              self.min.get(key, function(err, data) {
+                if (err) {
+                  return p.reject(err);
+                }
+
+                p.resolve(data.ms);
+              });
+
+              return p;
+              break;
+            
+            default:
+              return new Error('content type wrong');
+          }
+        })
+        .then(function(data) {
+          self.result = data.sort(self.sortFn);
+
+          self.promise.resolve(self.result);
+          self.callback(null, self.result);
+        })
+        .fail(function(err) {
+          self.promise.reject(err);
+          self.callback(err);
+        });
+    }
+  }
+  Sorter.prototype.by = function(pattern, callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    
+    
+    return this;
+  };
+  Sorter.prototype.limit = function(offset, count) {
+    
+  };
+  Sorter.prototype.get = function(pattern) {
+    
+  };
+  Sorter.prototype.hget = function(key, field) {
+    
+  };
+  Sorter.prototype.asc = function() {
+    
+  };
+  Sorter.prototype.desc = function() {
+    
+  };
+  Sorter.prototype.store = function(dest) {
+    
+  };
+
 
   // Apply
   min.exists('min_keys')
