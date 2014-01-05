@@ -48,6 +48,23 @@
       shamSrc.src = "//cdn.staticfile.org/es5-shim/2.1.0/es5-sham.min.js";
       head.insertBefore(shamSrc, s);
     }
+
+    if (!Object.create) {
+      Object.create = (function() {
+        function F() {}
+
+        return function(superCtor, ctor) {
+          F.prototype = {};
+          for (var key in superCtor) {
+            F.prototype[key] = superCtor[key];
+          }
+          for (var key in ctor) {
+            F.prototype[key] = ctor[key];
+          }
+          return new F();
+        }
+      })();
+    }
   }
 
 })((typeof(window) !== 'undefined' ? window : this), (typeof(document) !== 'undefined' ? document : null));
@@ -104,6 +121,9 @@
       }
 
       return target;
+    },
+    isNumber: function(obj) {
+      return toString.call(obj) == '[object Number]';
     },
     arrayUnique: function(array) {
       var u = {};
@@ -513,14 +533,18 @@
       if (self.results !== null) {
         callback.apply(self, self.results);
       }
+
+      self.ended = false;
     } else {
       // Event listening
-      self.on('resolve', function(args) {
+      self.once('resolve', function(args) {
         var ret = callback.apply(self, args);
 
         if (ret instanceof Promise) {
           ret.fail(self.reject.bind(self));
         }
+
+        self.ended = false;
       });
     }
 
@@ -534,10 +558,14 @@
       if (self.errors !== null) {
         callback.apply(self, self.errors);
       }
+      
+      self.ended = false;
     } else {
       // Event listening
-      self.on('reject', function(args) {
+      self.once('reject', function(args) {
         callback.apply(self, args);
+
+        self.ended = false;
       });
     }
 
@@ -1008,7 +1036,9 @@
   min.restore = function(dump, callback) {
     var self = this;
     var promise = new Promise(function() {
-      self.emit('restore');
+      self.save(function() {
+        self.emit('restore');
+      });
     });
     callback = callback || utils.noop;
 
@@ -1483,6 +1513,30 @@
     return promise;
   };
 
+  min.getrange = function(key, start, end, callback) {
+    var self = this;
+    var promise = new Promise(function(value) {
+      self.emit('getrange', key, start, end, value);
+    });
+    callback = callback || utils.noop;
+
+    var len = end - start + 1;
+
+    self.get(key)
+      .then(function(value) {
+        var val = value.substr(start, len);
+
+        promise.resolve(val);
+        callback(null, val);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
   /**
    * Get the values of a set of keys
    * @param  {Array}   keys      the keys
@@ -1689,12 +1743,12 @@
         }
       })
       .then(function(curr) {
-        if (isNaN(parseInt(curr))) {
+        if (isNaN(parseFloat(curr))) {
           promise.reject('value wrong');
           return callback('value wrong');
         }
 
-        curr = parseInt(curr);
+        curr = parseFloat(curr);
 
         return self.set(key, curr + increment);
       })
@@ -1711,6 +1765,88 @@
   };
 
   min.incrbyfloat = min.incrby;
+
+  min.decr = function(key, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('decr', key, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.exists(key)
+      .then(function(exists) {
+        if (exists) {
+          return self.get(key);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseInt(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseInt(curr);
+
+        return self.set(key, --curr);
+      })
+      .done(function(key, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.decrby = function(key, decrement, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('decrby', key, decrement, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.exists(key)
+      .then(function(exists) {
+        if (exists) {
+          return self.get(key);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseInt(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseInt(curr);
+
+        return self.set(key, curr - decrement);
+      })
+      .done(function(key, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
 
   /******************************
   **           Hash            **
@@ -2137,6 +2273,172 @@
       .fail(function(err) {
         promise.reject(err);
         callback(err);
+      });
+
+    return promise;
+  };
+
+  min.hincr = function(key, field, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('hincr', key, field, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.hexists(key, field)
+      .then(function(exists) {
+        if (exists) {
+          return self.hget(exists);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseFloat(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseFloat(curr);
+
+        return self.hset(key, field, ++curr);
+      })
+      .then(function(key, field, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(null, err);
+      });
+
+    return promise;
+  };
+
+  min.hincrby = function(key, field, increment, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('hincr', key, field, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.hexists(key, field)
+      .then(function(exists) {
+        if (exists) {
+          return self.hget(exists);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseFloat(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseFloat(curr);
+
+        return self.hset(key, field, curr + increment);
+      })
+      .then(function(key, field, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(null, err);
+      });
+
+    return promise;
+  };
+
+  min.hincrbyfloat = min.hincrby;
+
+  min.hdecr = function(key, field, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('hdecr', key, field, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.hexists(key, field)
+      .then(function(exists) {
+        if (exists) {
+          return self.hget(key, field);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseFloat(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseFloat(curr);
+
+        return self.hset(key, field, --curr);
+      })
+      .then(function(key, field, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.hdecrby = function(key, field, decrement, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('hincr', key, field, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.hexists(key, field)
+      .then(function(exists) {
+        if (exists) {
+          return self.hget(exists);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseFloat(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseFloat(curr);
+
+        return self.hset(key, field, curr - decrement);
+      })
+      .then(function(key, field, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(null, err);
       });
 
     return promise;
@@ -3841,6 +4143,120 @@
     return promise;
   };
 
+  min.zincrby = function(key, increment, member, callback) {
+    var self = this;
+    var promise = new Promise(function(score) {
+      self.emit('zincrby', key, increment, member, score);
+    });
+    callback = callback || utils.noop;
+
+    self.exists(key)
+
+      .then(function(exists) {
+        if (exists) {
+          return self.zscore(key, member);
+        } else {
+          self.zadd(key, increment, member, callback)
+            .then(promise.resolve.bind(promise))
+            .fail(promise.reject.bind(promise));
+        }
+      })
+      .then(function(score) {
+        return self.get(key);
+      })
+      .then(function(data) {
+        var hash = data.ms.indexOf(member);
+        var score = data.hsm[hash];
+
+        var newScore = score + increment;
+
+        var ii = data.shm[score].indexOf(hash);
+        data.shm[score].splice(ii, 1);
+
+        data.hsm[hash] = newScore;
+        if (data.shm[newScore]) {
+          data.shm[newScore].push(hash);
+        } else {
+          data.shm[newScore] = [ hash ];
+        }
+
+        promise.resolve(newScore);
+        callback(null, newScore);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.zrank = function(key, member, callback) {
+    var self = this;
+    var promise = new Promise();
+    callback = callback || utils.noop;
+
+    self.exists(key)
+      .then(function(exists) {
+        if (exists) {
+          return self.get(key);
+        } else {
+          var err = new Error('no such key');
+
+          promise.reject(err);
+          return callback(err);
+        }
+      })
+      .then(function(data) {
+        var scores = Object.keys(data.shm);
+        var score = data.hsm[data.ms.indexOf(member)];
+
+        var rank = scores.indexOf(score);
+
+        promise.resolve(rank);
+        callback(null, rank);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.zrevrank = function(key, member, callback) {
+    var self = this;
+    var promise = new Promise();
+    callback = callback || utils.noop;
+
+    self.exists(key)
+      .then(function(exists) {
+        if (exists) {
+          return self.get(key);
+        } else {
+          var err = new Error('no such key');
+
+          promise.reject(err);
+          return callback(err);
+        }
+      })
+      .then(function(data) {
+        var scores = Object.keys(data.shm);
+        var score = data.hsm[data.ms.indexOf(member)];
+
+        var rank = scores.reverse().indexOf(score);
+
+        promise.resolve(rank);
+        callback(null, rank);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
   function Multi(_nano) {
     var self = this;
     this.queue = [];
@@ -3885,6 +4301,409 @@
 
   min.multi = function() {
     return new Multi(this);
+  };
+
+  function Sorter(key, _min, callback) {
+    var self = this;
+    self.min = _min;
+    self.callback = callback;
+    self.result = [];
+    self.keys = {};
+    self.promise = new Promise();
+    self.sortFn = function(a, b) {
+      if (utils.isNumber(a) && utils.isNumber(b)) {
+        return a > b;
+      } else {
+        return JSON.stringify(a) > JSON.stringify(b);
+      }
+    };
+
+    var run = function() {
+      self.min.exists(key)
+        .then(function(exists) {
+          if (exists) {
+            return self.min.get(key);
+          } else {
+            return new Error('no such key');
+          }
+        })
+        .then(function(value) {
+          var p = new Promise();
+
+          switch (true) {
+            case Array.isArray(value):
+              p.resolve(value);
+              break;
+            case (value.ms && Array.isArray(value.ms)):
+              p.resolve(value.ms);
+              break;
+            
+            default:
+              return new Error('content type wrong');
+          }
+
+          return p;
+        })
+        .then(function(data) {
+          self.result = data.sort(self.sortFn);
+
+          self.result.forEach(function(chunk) {
+            self.keys[chunk] = chunk;
+          });
+
+          self.promise.resolve(self.result);
+          self.callback(null, self.result);
+        })
+        .fail(function(err) {
+          self.promise.reject(err);
+          self.callback(err);
+        });
+    };
+
+    // Promise Shim
+    (function loop(methods) {
+      var curr = methods.shift();
+
+      if (curr) {
+        self[curr] = function() {
+          return self.promise[curr].apply(self.promise, arguments);
+        };
+
+        loop(methods);
+      } else {
+        run();
+      }
+    })([ 'then', 'fail', 'done']);
+
+  }
+  Sorter.prototype.by = function(pattern, callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    var src2ref = {};
+    var refs = {};
+    var aviKeys = [];
+
+    // TODO: Sort by hash field
+    var field = null;
+
+    if (pattern.indexOf('->') > 0) {
+      var i = pattern.indexOf('->');
+      field = pattern.substr(i + 2);
+      pattern = pattern.substr(0, pattern.length - i);
+    }
+    var isHash = !!field;
+
+    self.min.keys(pattern)
+      .then(function(keys) {
+        var filter = new RegExp(pattern
+          .replace('?', '(.)')
+          .replace('*', '(.*)'));
+
+        for (var i = 0; i < keys.length; i++) {
+          var symbol = filter.exec(keys[i])[1];
+
+          if (self.result.indexOf(symbol) >= 0) {
+            src2ref[keys[i]] = symbol;
+          }
+        }
+
+        aviKeys = Object.keys(src2ref);
+
+        return self.min.mget(aviKeys.slice());
+      })
+      .then(function(values) {
+        var reverse = {};
+
+        for (var i = 0; i < values.length; i++) {
+          reverse[JSON.stringify(values[i])] = aviKeys[i];
+        }
+
+        values.sort(self.sortFn);
+
+        var newResult = values
+          .map(function(value) {
+            return reverse[JSON.stringify(value)];
+          })
+          .map(function(key) {
+            return src2ref[key];
+          });
+
+        self.result = newResult;
+
+        self.promise.resolve(newResult);
+        callback(null, newResult);
+      })
+      .fail(function(err) {
+        self.promise.reject(err);
+        callback(err);
+        self.callback(err);
+      });
+    
+    return this;
+  };
+  Sorter.prototype.asc = function(callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    self.sortFn = function(a, b) {
+      if (utils.isNumber(a) && utils.isNumber(b)) {
+        return a > b;
+      } else {
+        return JSON.stringify(a) > JSON.stringify(b); 
+      }
+    };
+
+    var handle = function(result) {
+      self.result = result.sort(self.sortFn);
+
+      self.promise.resolve(self.result);
+      callback(null, self.result);
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return self;
+  };
+  Sorter.prototype.desc = function(callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    self.sortFn = function(a, b) {
+      if (utils.isNumber(a) && utils.isNumber(b)) {
+        return a < b;
+      } else {
+        return JSON.stringify(a) < JSON.stringify(b); 
+      }
+    };
+
+    var handle = function(result) {
+      self.result = result.sort(self.sortFn);
+
+      self.promise.resolve(self.result);
+      callback(null, self.result);
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return self;
+  };
+  Sorter.prototype.get = function(pattern, callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    var handle = function(_result) {
+      var result = [];
+
+      (function loop(res) {
+        var curr = res.shift();
+
+        if (curr) {
+          if (Array.isArray(curr)) {
+            var key = self.keys[curr[0]];
+
+            self.min.get(pattern.replace('*', key))
+              .then(function(value) {
+                curr.push(value);
+                result.push(curr);
+
+                loop(res);
+              })
+              .fail(function(err) {
+                self.promise.reject(err);
+                callback(err);
+              });
+
+          } else if (!!curr.substr) {
+            var key = self.keys[curr];
+
+            self.min.get(pattern.replace('*', key))
+              .then(function(value) {
+                result.push([ value ]);
+                self.keys[value] = key;
+
+                loop(res);
+              })
+              .fail(function(err) {
+                self.promise.reject(err);
+                callback(err);
+              });
+
+          }
+        } else {
+          self.result = result;
+
+          self.promise.resolve(result);
+          callback(null, result);
+        }
+      })(_result.slice());
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return this;
+  };
+  Sorter.prototype.hget = function(pattern, field, callback) {
+    callback = callback || utils.noop;
+    var self = this;
+
+    var handle = function(_result) {
+      var result = [];
+
+      (function loop(res) {
+        var curr = res.shift();
+
+        if (curr) {
+          if (Array.isArray(curr)) {
+            var key = self.keys[curr[0]];
+
+            self.min.hget(pattern.replace('*', key), field)
+              .then(function(value) {
+                curr.push(value);
+                result.push(curr);
+
+                loop(res);
+              })
+              .fail(function(err) {
+                self.promise.reject(err);
+                callback(err);
+              });
+
+          } else if (!!curr.substr) {
+            var key = self.keys[curr];
+
+            self.min.hget(pattern.replace('*', key), field)
+              .then(function(value) {
+                result.push([ value ]);
+                self.keys[value] = key;
+
+                loop(res);
+              })
+              .fail(function(err) {
+                self.promise.reject(err);
+                callback(err);
+              });
+
+          }
+        } else {
+          self.result = result;
+
+          self.promise.resolve(result);
+          callback(null, result);
+        }
+      })(_result.slice());
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return this;
+  };
+  Sorter.prototype.limit = function(offset, count, callback) {
+    callback = callback || utils.noop;
+    var self = this;
+
+    var handle = function(result) {
+      self.result = result.splice(offset, count);
+
+      self.promise.resolve(self.result);
+      callback(null, self.result);
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return this;
+  };
+  Sorter.prototype.flatten = function(callback) {
+    callback = callback || utils.noop;
+    var self = this;
+
+    if (self.promise.ended) {
+      var rtn = [];
+
+      for (var i = 0; i < self.result.length; i++) {
+        for (var j = 0; j < self.result[i].length; j++) {
+          rtn.push(self.result[i][j]);
+        }
+      }
+
+      self.result = rtn;
+
+      self.promise.resolve(rtn);
+      callback(null, rtn);
+    } else {
+      self.promise.once('resolve', function(result) {
+        var rtn = [];
+
+        for (var i = 0; i < result.length; i++) {
+          for (var j = 0; j < result[i].length; j++) {
+            rtn.push(result[i][j]);
+          }
+        }
+
+        self.result = rtn;
+
+        self.promise.resolve(rtn);
+        callback(null, rtn);
+      });
+    }
+
+    return this;
+  };
+  Sorter.prototype.store = function(dest, callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    if (self.promise.ended) {
+      self.min.set(dest, self.result)
+        .then(function() {
+          self.promise.resolve(self.result);
+          callback(null, self.result);
+        })
+        .fail(function(err) {
+          self.promise.reject(err);
+          callback(err);
+        });
+    } else {
+      self.promise.once('resolve', function(result) {
+        self.min.set(dest, result)
+          .then(function() {
+            self.promise.resolve(result);
+            callback(null, result);
+          })
+          .fail(function(err) {
+            self.promise.reject(err);
+            callback(err);
+          });
+      });
+    }
+
+    return this;
+  };
+
+  min.sort = function(key, callback) {
+    callback = callback || utils.noop;
+
+    return new Sorter(key, this, callback);
   };
 
   // Apply
