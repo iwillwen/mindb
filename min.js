@@ -48,6 +48,23 @@
       shamSrc.src = "//cdn.staticfile.org/es5-shim/2.1.0/es5-sham.min.js";
       head.insertBefore(shamSrc, s);
     }
+
+    if (!Object.create) {
+      Object.create = (function() {
+        function F() {}
+
+        return function(superCtor, ctor) {
+          F.prototype = {};
+          for (var key in superCtor) {
+            F.prototype[key] = superCtor[key];
+          }
+          for (var key in ctor) {
+            F.prototype[key] = ctor[key];
+          }
+          return new F();
+        }
+      })();
+    }
   }
 
 })((typeof(window) !== 'undefined' ? window : this), (typeof(document) !== 'undefined' ? document : null));
@@ -104,6 +121,9 @@
       }
 
       return target;
+    },
+    isNumber: function(obj) {
+      return toString.call(obj) == '[object Number]';
     },
     arrayUnique: function(array) {
       var u = {};
@@ -544,7 +564,7 @@
       // Event listening
       self.once('reject', function(args) {
         callback.apply(self, args);
-        
+
         self.ended = false;
       });
     }
@@ -4288,11 +4308,59 @@
     self.min = _min;
     self.callback = callback;
     self.result = [];
+    self.keys = {};
     self.promise = new Promise();
     self.sortFn = function(a, b) {
-      return JSON.stringify(a) < JSON.stringify(b);
+      if (utils.isNumber(a) && utils.isNumber(b)) {
+        return a > b;
+      } else {
+        return JSON.stringify(a) > JSON.stringify(b);
+      }
     };
 
+    var run = function() {
+      self.min.exists(key)
+        .then(function(exists) {
+          if (exists) {
+            return self.min.get(key);
+          } else {
+            return new Error('no such key');
+          }
+        })
+        .then(function(value) {
+          var p = new Promise();
+
+          switch (true) {
+            case Array.isArray(value):
+              p.resolve(value);
+              break;
+            case (value.ms && Array.isArray(value.ms)):
+              p.resolve(value.ms);
+              break;
+            
+            default:
+              return new Error('content type wrong');
+          }
+
+          return p;
+        })
+        .then(function(data) {
+          self.result = data.sort(self.sortFn);
+
+          self.result.forEach(function(chunk) {
+            self.keys[chunk] = chunk;
+          });
+
+          self.promise.resolve(self.result);
+          self.callback(null, self.result);
+        })
+        .fail(function(err) {
+          self.promise.reject(err);
+          self.callback(err);
+        });
+    };
+
+    // Promise Shim
     (function loop(methods) {
       var curr = methods.shift();
 
@@ -4307,79 +4375,336 @@
       }
     })([ 'then', 'fail', 'done']);
 
-    function run() {
-      self.min.exists(key)
-        .then(function(exists) {
-          if (exists) {
-            return self.min.type(key);
-          } else {
-            return new Error('no such key');
-          }
-        })
-        .then(function(type) {
-          switch (type) {
-            case 'list':
-            case 'set':
-              self.min.get(key);
-              break;
-
-            case 'zset':
-              var p = new Promise();
-
-              self.min.get(key, function(err, data) {
-                if (err) {
-                  return p.reject(err);
-                }
-
-                p.resolve(data.ms);
-              });
-
-              return p;
-              break;
-            
-            default:
-              return new Error('content type wrong');
-          }
-        })
-        .then(function(data) {
-          self.result = data.sort(self.sortFn);
-
-          self.promise.resolve(self.result);
-          self.callback(null, self.result);
-        })
-        .fail(function(err) {
-          self.promise.reject(err);
-          self.callback(err);
-        });
-    }
   }
   Sorter.prototype.by = function(pattern, callback) {
     var self = this;
     callback = callback || utils.noop;
 
-    
+    var src2ref = {};
+    var refs = {};
+    var aviKeys = [];
+
+    // TODO: Sort by hash field
+    var field = null;
+
+    if (pattern.indexOf('->') > 0) {
+      var i = pattern.indexOf('->');
+      field = pattern.substr(i + 2);
+      pattern = pattern.substr(0, pattern.length - i);
+    }
+    var isHash = !!field;
+
+    self.min.keys(pattern)
+      .then(function(keys) {
+        var filter = new RegExp(pattern
+          .replace('?', '(.)')
+          .replace('*', '(.*)'));
+
+        for (var i = 0; i < keys.length; i++) {
+          var symbol = filter.exec(keys[i])[1];
+
+          if (self.result.indexOf(symbol) >= 0) {
+            src2ref[keys[i]] = symbol;
+          }
+        }
+
+        aviKeys = Object.keys(src2ref);
+
+        return self.min.mget(aviKeys.slice());
+      })
+      .then(function(values) {
+        var reverse = {};
+
+        for (var i = 0; i < values.length; i++) {
+          reverse[JSON.stringify(values[i])] = aviKeys[i];
+        }
+
+        values.sort(self.sortFn);
+
+        var newResult = values
+          .map(function(value) {
+            return reverse[JSON.stringify(value)];
+          })
+          .map(function(key) {
+            return src2ref[key];
+          });
+
+        self.result = newResult;
+
+        self.promise.resolve(newResult);
+        callback(null, newResult);
+      })
+      .fail(function(err) {
+        self.promise.reject(err);
+        callback(err);
+        self.callback(err);
+      });
     
     return this;
   };
-  Sorter.prototype.limit = function(offset, count) {
-    
+  Sorter.prototype.asc = function(callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    self.sortFn = function(a, b) {
+      if (utils.isNumber(a) && utils.isNumber(b)) {
+        return a > b;
+      } else {
+        return JSON.stringify(a) > JSON.stringify(b); 
+      }
+    };
+
+    var handle = function(result) {
+      self.result = result.sort(self.sortFn);
+
+      self.promise.resolve(self.result);
+      callback(null, self.result);
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return self;
   };
-  Sorter.prototype.get = function(pattern) {
-    
+  Sorter.prototype.desc = function(callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    self.sortFn = function(a, b) {
+      if (utils.isNumber(a) && utils.isNumber(b)) {
+        return a < b;
+      } else {
+        return JSON.stringify(a) < JSON.stringify(b); 
+      }
+    };
+
+    var handle = function(result) {
+      self.result = result.sort(self.sortFn);
+
+      self.promise.resolve(self.result);
+      callback(null, self.result);
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return self;
   };
-  Sorter.prototype.hget = function(key, field) {
-    
+  Sorter.prototype.get = function(pattern, callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    var handle = function(_result) {
+      var result = [];
+
+      (function loop(res) {
+        var curr = res.shift();
+
+        if (curr) {
+          if (Array.isArray(curr)) {
+            var key = self.keys[curr[0]];
+
+            self.min.get(pattern.replace('*', key))
+              .then(function(value) {
+                curr.push(value);
+                result.push(curr);
+
+                loop(res);
+              })
+              .fail(function(err) {
+                self.promise.reject(err);
+                callback(err);
+              });
+
+          } else if (!!curr.substr) {
+            var key = self.keys[curr];
+
+            self.min.get(pattern.replace('*', key))
+              .then(function(value) {
+                result.push([ value ]);
+                self.keys[value] = key;
+
+                loop(res);
+              })
+              .fail(function(err) {
+                self.promise.reject(err);
+                callback(err);
+              });
+
+          }
+        } else {
+          self.result = result;
+
+          self.promise.resolve(result);
+          callback(null, result);
+        }
+      })(_result.slice());
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return this;
   };
-  Sorter.prototype.asc = function() {
-    
+  Sorter.prototype.hget = function(pattern, field, callback) {
+    callback = callback || utils.noop;
+    var self = this;
+
+    var handle = function(_result) {
+      var result = [];
+
+      (function loop(res) {
+        var curr = res.shift();
+
+        if (curr) {
+          if (Array.isArray(curr)) {
+            var key = self.keys[curr[0]];
+
+            self.min.hget(pattern.replace('*', key), field)
+              .then(function(value) {
+                curr.push(value);
+                result.push(curr);
+
+                loop(res);
+              })
+              .fail(function(err) {
+                self.promise.reject(err);
+                callback(err);
+              });
+
+          } else if (!!curr.substr) {
+            var key = self.keys[curr];
+
+            self.min.hget(pattern.replace('*', key), field)
+              .then(function(value) {
+                result.push([ value ]);
+                self.keys[value] = key;
+
+                loop(res);
+              })
+              .fail(function(err) {
+                self.promise.reject(err);
+                callback(err);
+              });
+
+          }
+        } else {
+          self.result = result;
+
+          self.promise.resolve(result);
+          callback(null, result);
+        }
+      })(_result.slice());
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return this;
   };
-  Sorter.prototype.desc = function() {
-    
+  Sorter.prototype.limit = function(offset, count, callback) {
+    callback = callback || utils.noop;
+    var self = this;
+
+    var handle = function(result) {
+      self.result = result.splice(offset, count);
+
+      self.promise.resolve(self.result);
+      callback(null, self.result);
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return this;
   };
-  Sorter.prototype.store = function(dest) {
-    
+  Sorter.prototype.flatten = function(callback) {
+    callback = callback || utils.noop;
+    var self = this;
+
+    if (self.promise.ended) {
+      var rtn = [];
+
+      for (var i = 0; i < self.result.length; i++) {
+        for (var j = 0; j < self.result[i].length; j++) {
+          rtn.push(self.result[i][j]);
+        }
+      }
+
+      self.result = rtn;
+
+      self.promise.resolve(rtn);
+      callback(null, rtn);
+    } else {
+      self.promise.once('resolve', function(result) {
+        var rtn = [];
+
+        for (var i = 0; i < result.length; i++) {
+          for (var j = 0; j < result[i].length; j++) {
+            rtn.push(result[i][j]);
+          }
+        }
+
+        self.result = rtn;
+
+        self.promise.resolve(rtn);
+        callback(null, rtn);
+      });
+    }
+
+    return this;
+  };
+  Sorter.prototype.store = function(dest, callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    if (self.promise.ended) {
+      self.min.set(dest, self.result)
+        .then(function() {
+          self.promise.resolve(self.result);
+          callback(null, self.result);
+        })
+        .fail(function(err) {
+          self.promise.reject(err);
+          callback(err);
+        });
+    } else {
+      self.promise.once('resolve', function(result) {
+        self.min.set(dest, result)
+          .then(function() {
+            self.promise.resolve(result);
+            callback(null, result);
+          })
+          .fail(function(err) {
+            self.promise.reject(err);
+            callback(err);
+          });
+      });
+    }
+
+    return this;
   };
 
+  min.sort = function(key, callback) {
+    callback = callback || utils.noop;
+
+    return new Sorter(key, this, callback);
+  };
 
   // Apply
   min.exists('min_keys')
