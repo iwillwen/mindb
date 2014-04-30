@@ -1,4 +1,4 @@
-var min = require('../../min');
+var min = require('../../../min');
 var LevelStore = require('./nano_level');
 
 min.store = new LevelStore('/tmp/mydb', { encoding: 'json' });

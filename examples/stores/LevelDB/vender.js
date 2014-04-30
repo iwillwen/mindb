@@ -1,12 +1,12 @@
 var min = require('../../../min');
-var LevelStore = require('./min-level');
+var LevelStore = require('./nano_level');
 var net = require('net');
 var util = require('util');
 
 min.store = new LevelStore('/tmp/mydb', { encoding: 'json' });
 
 var server = net.createServer(function(stream) {
-  stream.write(util.format('Simple Redis CLI Simulator: MinDB with LevelDB on \'%s\'\r\n', min.store.filename));
+  stream.write(util.format('Simple Redis CLI Simulator: NanoDB with LevelDB on \'%s\'\r\n', min.store.filename));
   stream.write('> ');
 
   stream.on('data', function(data) {
@@ -44,6 +44,6 @@ var server = net.createServer(function(stream) {
   });
 });
 
-server.listen(8080);
+server.listen(8081);
 
 var slice = [].slice;

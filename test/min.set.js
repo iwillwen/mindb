@@ -1,4 +1,4 @@
-describe('NanoDB - Mix - Set', function() {
+describe('MinDB - Mix - Set', function() {
   describe('set', function() {
     it('should set a key with a string value', function(done) {
       nano.set('key', 'value')

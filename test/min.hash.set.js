@@ -1,4 +1,4 @@
-describe('NanoDB - Hash - Set', function() {
+describe('MinDB - Hash - Set', function() {
   describe('hset', function() {
     it('should set the field in the hash on the key with the value', function(done) {
       nano.hset('hashKey', 'foo', 'bar')

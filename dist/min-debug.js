@@ -125,6 +125,9 @@
     isNumber: function(obj) {
       return toString.call(obj) == '[object Number]';
     },
+    isUndefined: function(val) {
+      return val === void 0;
+    },
     arrayUnique: function(array) {
       var u = {};
       var ret = [];
@@ -467,7 +470,7 @@
 
     // Done Callback
     if ('function' === typeof done) {
-      this.done(done);
+      this.then(done);
     }
   }
   utils.inherits(Promise, EventEmitter);
@@ -476,7 +479,7 @@
     var args = slice(arguments);
 
     // Done
-    this.emit('resolve', args);
+    this.emit('fulfill', args);
     this.ended   = true;
     this.results = args;
 
@@ -500,66 +503,47 @@
     onResolve = onResolve || utils.noop;
     onReject  = onReject  || utils.noop;
 
-    self
-      .done(function() {
-        var ret = onResolve.apply(self, arguments);
+    var handle = function(ret) {
+      if (!!ret && typeof ret.then === 'function') {
+        ret
+          .then(function() {
+            promise.resolve.apply(promise, arguments);
+          }, function(err) {
+            promise.reject(err);
+          });
+      } else if (ret instanceof Error) {
+        promise.reject(ret);
+      }
+    };
 
-        if (ret instanceof Promise) {
-          ret.then(
-            function() {
-              promise.resolve.apply(promise, arguments);
-            },
-            function(err) {
-              promise.reject(err);
-            }
-          );
-        } else if (ret instanceof Error) {
-          promise.reject(ret);
-        }
-      })
-      .fail(function(err) {
-        onReject.call(self, err);
-
-        promise.reject(err);
-      });
-
-    return promise;
-  };
-  Promise.prototype.done = function(callback) {
-    var self = this;
-
-    if (self.ended) {
-      // Done before
-      if (self.results !== null) {
-        callback.apply(self, self.results);
+    if (self.ended && (self.results || self.errors)) {
+      if (self.results) {
+        handle(onResolve.apply(null, self.results));
       }
 
-      self.ended = false;
+      if (self.errors) {
+        onReject.apply(null, self.errors)
+        handle.apply(null, self.errors);
+      }
     } else {
-      // Event listening
-      self.once('resolve', function(args) {
-        var ret = callback.apply(self, args);
-
-        if (ret instanceof Promise) {
-          ret.fail(self.reject.bind(self));
-        }
-
-        self.ended = false;
-      });
+      self
+        .once('fulfill', function(args) {
+          return handle(onResolve.apply(null, args));
+        })
+        .once('reject', function(err) {
+          onReject.call(null, err)
+          return handle(err);
+        });
     }
 
-    return self;
+    return promise;
   };
   Promise.prototype.fail = function(callback) {
     var self = this;
 
-    if (self.ended) {
+    if (self.ended && self.errors !== null) {
       // Reject Before
-      if (self.errors !== null) {
-        callback.apply(self, self.errors);
-      }
-      
-      self.ended = false;
+      callback.apply(self, self.errors);
     } else {
       // Event listening
       self.once('reject', function(args) {
@@ -823,7 +807,7 @@
       reject(new Error('The key is equal to the new key.'));
     } else {
       self.renamenx.apply(self, arguments)
-        .done(promise.resolve.bind(promise))
+        .then(promise.resolve.bind(promise))
         .fail(promise.reject.bind(promise));
     }
     return promise;
@@ -1180,7 +1164,7 @@
         return promise.reject(new Error('The key is exists.'));
       } else {
         self.set(key, value, callback)
-          .done(function(key, value) {
+          .then(function(key, value) {
             // Done
             callback(null, key, value);
             promise.resolve(key, value);
@@ -1224,7 +1208,7 @@
       setTimeout(timeout, seconds * 1000);
       callback(err, result);
     })
-      .done(function(key, value) {
+      .then(function(key, value) {
         // Done
         setTimeout(timeout, seconds * 1000);
         promise.resolve(key, value);
@@ -1267,7 +1251,7 @@
       setTimeout(timeout, milliseconds);
       callback(err, result);
     })
-      .done(function() {
+      .then(function() {
       // Done
         setTimeout(timeout, milliseconds);
         promise.resolve.apply(promise, arguments);
@@ -1428,7 +1412,7 @@
       .then(function(key, value) {
         return self.strlen(key);
       })
-      .done(function(len) {
+      .then(function(len) {
         promise.resolve(len);
         callback(null, len);
       })
@@ -1704,7 +1688,7 @@
 
         return self.set(key, ++curr);
       })
-      .done(function(key, value) {
+      .then(function(key, value) {
         promise.resolve(value);
         callback(null, value);
       })
@@ -1752,7 +1736,7 @@
 
         return self.set(key, curr + increment);
       })
-      .done(function(key, value) {
+      .then(function(key, value) {
         promise.resolve(value);
         callback(null, value);
       })
@@ -1795,7 +1779,7 @@
 
         return self.set(key, --curr);
       })
-      .done(function(key, value) {
+      .then(function(key, value) {
         promise.resolve(value);
         callback(null, value);
       })
@@ -1836,7 +1820,7 @@
 
         return self.set(key, curr - decrement);
       })
-      .done(function(key, value) {
+      .then(function(key, value) {
         promise.resolve(value);
         callback(null, value);
       })
@@ -1975,25 +1959,16 @@
     var keys = Object.keys(docs);
     var replies = [];
 
-    (function loop(index) {
-      var currField = keys[index];
+    var multi = min.multi();
 
-      if (currField) {
-        self.hset(key, currField, docs[currField], function(err, reply) {
-          if (err) {
-            promise.reject(err);
-            return callback(err);
-          }
+    keys.forEach(function(field) {
+      multi.hset(key, field, docs[field]);
+    });
 
-          replies.push(reply);
-
-          loop(++index);
-        });
-      } else {
-        callback(null, replies);
-        promise.resolve(replies);
-      }
-    })(0);
+    multi.exec(function(err, replies) {
+      callback(null, replies);
+      promise.resolve(replies);
+    });
 
     return promise;
   };
@@ -2018,7 +1993,7 @@
 
       if (exists) {
         self.get(key)
-          .done(function(value) {
+          .then(function(value) {
             var data = value[field];
             promise.resolve(data);
             callback(null, data);
@@ -2052,26 +2027,25 @@
 
     var values = [];
 
-    (function loop(index) {
-      var currField = fields[index];
+    var multi = min.multi();
 
-      if (currField) {
-        self.hget(key, currField, function(err, value) {
-          if (err) {
-            callback(err);
-            return promise.reject(err);
-          }
+    fields.forEach(function(field) {
+      multi.hget(key, field);
+    });
 
-          values.push(values);
-
-          loop(++index);
-        });
-      } else {
-        promise.resolve(values);
-        callback(null, values);
+    multi.exec(function(err, replies) {
+      if (err) {
+        callback(err);
+        return promise.reject(err);
       }
 
-    })(0);
+      values = replies.map(function(row) {
+        return row[0];
+      });
+
+      promise.resolve(values);
+      callback(null, values);
+    });
 
     return promise;
   };
@@ -2095,7 +2069,7 @@
 
       if (exists) {
         self.get(key)
-          .done(function(data) {
+          .then(function(data) {
             promise.resolve(data);
             callback(null, data);
           })
@@ -2134,12 +2108,12 @@
 
       if (exists) {
         self.get(key)
-          .done(function(data) {
+          .then(function(data) {
             var removed = data[field];
             delete data[field];
 
             self.set(key, data)
-              .done(function() {
+              .then(function() {
                 promise.resolve(key, field, removed);
                 callback(null, key, field, removed);
               })
@@ -2181,7 +2155,7 @@
 
       if (exists) {
         self.get(key)
-          .done(function(data) {
+          .then(function(data) {
             var length = Object.keys(data).length;
 
             promise.resolve(length);
@@ -2219,7 +2193,7 @@
 
       if (exists) {
         self.get(key)
-          .done(function(data) {
+          .then(function(data) {
             var keys = Object.keys(data);
 
             promise.resolve(keys);
@@ -2278,6 +2252,13 @@
     return promise;
   };
 
+  /**
+   * Increase key field
+   * @param  {String}   key      key
+   * @param  {String}   field    hash field
+   * @param  {Function} callback callback
+   * @return {Promise}           promise
+   */
   min.hincr = function(key, field, callback) {
     var self = this;
     var promise = new Promise(function(curr) {
@@ -4092,6 +4073,41 @@
         callback(err);
       });
 
+    promise.withScore = function(callback) {
+      var p = new Promise();
+      callback = callback || utils.noop;
+
+      promise
+        .then(function(members) {
+          var multi = self.multi();
+
+          members.forEach(function(member) {
+            multi.zscore(key, member);
+          });
+
+          multi.exec(function(err, replies) {
+            if (err) {
+              callback(err);
+              return p.reject(err);
+            }
+
+            var rtn = [];
+
+            replies.forEach(function(reply, ii) {
+              rtn.push({
+                member: members[ii],
+                score: reply[0]
+              });
+            });
+
+            p.resolve(rtn);
+            callback(null, rtn);
+          });
+        })
+
+      return p;
+    };
+
     return promise;
   };
 
@@ -4140,6 +4156,41 @@
         callback(err);
       });
 
+    promise.withScore = function(callback) {
+      var p = new Promise();
+      callback = callback || utils.noop;
+
+      promise
+        .then(function(members) {
+          var multi = self.multi();
+
+          members.forEach(function(member) {
+            multi.zscore(key, member);
+          });
+
+          multi.exec(function(err, replies) {
+            if (err) {
+              callback(err);
+              return p.reject(err);
+            }
+
+            var rtn = [];
+
+            replies.forEach(function(reply, ii) {
+              rtn.push({
+                member: members[ii],
+                score: reply[0]
+              });
+            });
+
+            p.resolve(rtn);
+            callback(null, rtn);
+          });
+        })
+
+      return p;
+    };
+
     return promise;
   };
 
@@ -4149,6 +4200,8 @@
       self.emit('zincrby', key, increment, member, score);
     });
     callback = callback || utils.noop;
+
+    var newScore = null;
 
     self.exists(key)
 
@@ -4168,7 +4221,7 @@
         var hash = data.ms.indexOf(member);
         var score = data.hsm[hash];
 
-        var newScore = score + increment;
+        newScore = score + increment;
 
         var ii = data.shm[score].indexOf(hash);
         data.shm[score].splice(ii, 1);
@@ -4180,6 +4233,63 @@
           data.shm[newScore] = [ hash ];
         }
 
+        return self.set(key, data);
+      })
+      .then(function() {
+        promise.resolve(newScore);
+        callback(null, newScore);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.zdecrby = function(key, decrement, member, callback) {
+    var self = this;
+    var promise = new Promise(function(score) {
+      self.emit('zdecrby', key, decrement, member, score);
+    });
+    callback = callback || utils.noop;
+
+    var newScore = null;
+
+    self.exists(key)
+
+      .then(function(exists) {
+        if (exists) {
+          return self.zscore(key, member);
+        } else {
+          var err = new Error('no such key');
+
+          promise.reject(err);
+          return callback(err);
+        }
+      })
+      .then(function(score) {
+        return self.get(key);
+      })
+      .then(function(data) {
+        var hash = data.ms.indexOf(member);
+        var score = data.hsm[hash];
+
+        newScore = score - decrement;
+
+        var ii = data.shm[score].indexOf(hash);
+        data.shm[score].splice(ii, 1);
+
+        data.hsm[hash] = newScore;
+        if (data.shm[newScore]) {
+          data.shm[newScore].push(hash);
+        } else {
+          data.shm[newScore] = [ hash ];
+        }
+
+        return self.set(key, data);
+      })
+      .then(function() {
         promise.resolve(newScore);
         callback(null, newScore);
       })
@@ -4312,7 +4422,7 @@
     self.promise = new Promise();
     self.sortFn = function(a, b) {
       if (utils.isNumber(a) && utils.isNumber(b)) {
-        return a > b;
+        return a - b;
       } else {
         return JSON.stringify(a) > JSON.stringify(b);
       }
@@ -4448,7 +4558,7 @@
 
     self.sortFn = function(a, b) {
       if (utils.isNumber(a) && utils.isNumber(b)) {
-        return a > b;
+        return a - b;
       } else {
         return JSON.stringify(a) > JSON.stringify(b); 
       }
@@ -4475,7 +4585,7 @@
 
     self.sortFn = function(a, b) {
       if (utils.isNumber(a) && utils.isNumber(b)) {
-        return a < b;
+        return b - a;
       } else {
         return JSON.stringify(a) < JSON.stringify(b); 
       }
@@ -4506,7 +4616,7 @@
       (function loop(res) {
         var curr = res.shift();
 
-        if (curr) {
+        if (!utils.isUndefined(curr)) {
           if (Array.isArray(curr)) {
             var key = self.keys[curr[0]];
 
@@ -4522,13 +4632,17 @@
                 callback(err);
               });
 
-          } else if (!!curr.substr) {
+          } else if (curr.substr || utils.isNumber(curr)) {
             var key = self.keys[curr];
 
             self.min.get(pattern.replace('*', key))
               .then(function(value) {
                 result.push([ value ]);
-                self.keys[value] = key;
+                if (value.substr || utils.isNumber(value)) {
+                  self.keys[value] = key;
+                } else {
+                  self.keys[JSON.stringify(value)] = key;
+                }
 
                 loop(res);
               })
@@ -4536,7 +4650,6 @@
                 self.promise.reject(err);
                 callback(err);
               });
-
           }
         } else {
           self.result = result;
@@ -4565,7 +4678,7 @@
       (function loop(res) {
         var curr = res.shift();
 
-        if (curr) {
+        if (!utils.isUndefined(curr)) {
           if (Array.isArray(curr)) {
             var key = self.keys[curr[0]];
 
@@ -4581,13 +4694,17 @@
                 callback(err);
               });
 
-          } else if (!!curr.substr) {
+          } else if (curr.substr || utils.isNumber(curr)) {
             var key = self.keys[curr];
 
-            self.min.hget(pattern.replace('*', key), field)
+            self.min.hget(pattern.replace('*', key))
               .then(function(value) {
                 result.push([ value ]);
-                self.keys[value] = key;
+                if (value.substr || utils.isNumber(value)) {
+                  self.keys[value] = key;
+                } else {
+                  self.keys[JSON.stringify(value)] = key;
+                }
 
                 loop(res);
               })
@@ -4595,7 +4712,6 @@
                 self.promise.reject(err);
                 callback(err);
               });
-
           }
         } else {
           self.result = result;
@@ -4704,6 +4820,10 @@
     callback = callback || utils.noop;
 
     return new Sorter(key, this, callback);
+  };
+
+  min.scan = function(cursor, pattern, count, callback) {
+    
   };
 
   // Apply
