@@ -3175,7 +3175,7 @@
       self.emit('sadd', key, len);
     });
 
-    members = [].slice.call(arguments, 1);
+    members = Array.isArray(members) ? members : [].slice.call(arguments, 1);
     var added = 0;
 
     if (!(members[members.length - 1] instanceof Function)) {
@@ -4812,6 +4812,73 @@
     callback = callback || utils.noop;
 
     return new Sorter(key, this, callback);
+  };
+
+  function Scanner(cursor, pattern, count, min) {
+    pattern = pattern || '*';
+
+    this.cursor = cursor || 0;
+    this.pattern = new RegExp(pattern.replace('*', '(.*)'));
+    this.limit = count > -1 ? count : 10;
+    this.end = this.cursor;
+
+    this.parent = min;
+  }
+  Scanner.prototype.scan = function(callback) {
+    var self = this;
+
+    var rtn = [];
+
+    self.parent.get('min_keys')
+      .then(function(data) {
+        data = JSON.parse(data);
+
+        var keys = Object.keys(data);
+
+        (function scan(ii) {
+          var key = keys[ii];
+
+          if (key && self.pattern.test(key) && key !== 'min_keys') {
+            rtn.push(key);
+
+            if ((++self.end - self.cursor) >= self.limit) {
+              return callback(null, rtn, self.end);
+            }
+          } else if (!key) {
+            self.end = 0;
+            return callback(null, rtn, self.end);
+          }
+
+          return scan(++ii);
+        })(self.cursor);
+      }, function(err) {
+        callback(err);
+      });
+
+    return this;
+  };
+  Scanner.prototype.match = function(pattern, callback) {
+    this.pattern = new RegExp(pattern.replace('*', '(.*)'));
+    this.end = this.cursor;
+
+    return this.scan(callback || utils.noop);
+  };
+  Scanner.prototype.count = function(count, callback) {
+    this.limit = count;
+    this.end = this.cursor;
+
+    return this.scan(callback || utils.noop);
+  };
+
+  min.scan = function(cursor, callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    var scanner = new Scanner(cursor, null, -1, self);
+
+    scanner.scan(callback);
+
+    return scanner;
   };
 
   // Apply
