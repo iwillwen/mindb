@@ -23,4 +23,4 @@ LevelStore.prototype.remove = function(key, callback) {
   this.db.del(key, callback);
 };
 
-module.exports = LevelStore.LevelStore = LevelStore;
+module.exports = LevelStore;

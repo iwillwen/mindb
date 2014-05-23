@@ -1,4 +1,4 @@
-describe('NanoDB - Mix - Get', function() {
+describe('MinDB - Mix - Get', function() {
   describe('get', function() {
     it('should get the value of the key', function(done) {
       nano.get('key')

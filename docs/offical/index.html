@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A layout example with a side menu that hides on mobile, just like the Pure website.">
+
+  <title>MinDB - Database on JavaScript</title>
+
+  <link rel="stylesheet" href="http://cdn.staticfile.org/pure/0.3.0/pure-min.css">
+  <link rel="stylesheet" href="http://cdn.staticfile.org/highlight.js/7.4/styles/default.min.css">
+  <link rel="stylesheet" href="css/layouts/side-menu.css">
+  <script src="http://cdn.staticfile.org/MinDB/0.0.3/min.min.js"></script>
+  <script src="http://cdn.staticfile.org/highlight.js/7.4/highlight.min.js"></script>
+  <style>
+    .snippet {
+      border: 1px solid #eee;
+      background: rgb(250, 250, 250);
+      padding: .7em 1em;
+    }
+  </style>
+</head>
+<body>
+
+<div id="layout">
+  <!-- Menu toggle -->
+  <a href="#menu" id="menuLink" class="menu-link">
+    <!-- Hamburger icon -->
+    <span></span>
+  </a>
+
+  <div id="menu">
+    <div class="pure-menu pure-menu-open">
+      <a class="pure-menu-heading" href="/">MinDB</a>
+
+      <ul>
+        <li class="pure-menu-selected"><a href="/">Overview</a></li>
+        <li><a href="mix.html">Mix</a></li>
+        <li><a href="keys.html">Keys</a></li>
+        <li><a href="hash.html">Hash</a></li>
+        <li><a href="list.html">List</a></li>
+        <li><a href="set.html">Set</a></li>
+        <li><a href="zset.html">Sorted Set</a></li>
+
+        <li class="menu-item-divided">
+          <a href="storeinterface.html">Store Interface</a>
+        </li>
+        <li><a href="extend.html">Extend</a></li>
+        <li><a href="apps.html">Applications</a></li>
+        <li><a href="releases.html">Releases</a></li>
+        <li class="menu-item-divided">
+          <a href="issues.html">Issues</a>
+          <a href="changelog.html">Change Log</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="main">
+    <div class="header">
+      <img src="https://github-camo.global.ssl.fastly.net/5591cd6094ce2db635adaa4df8aef354ee3f270d/687474703a2f2f6977696c6c77656e2e752e71696e6975646e2e636f6d2f6d696e2f6d696e64625f6c6f676f2e706e673f313233" alt="">
+      <h2>Database on JavaScript</h2>
+    </div>
+
+    <div class="content">
+      <h2 class="content-subhead">Introduction</h2>
+      <p>MinDB is a utility-belt library for JavaScript that provides a lots of data controlling and storing support that you would expect in <a href="http://redis.io"><b>Redis</b></a>.</p>
+      <p>MinDB helps you store and structure your application data and provides a strandard <a href="storeinterface.html"><em>Store Interface</em></a> that you can use MinDB in any JavaScript platforms.</p>
+
+      <pre><code class="snippet">var min = require('min');
+min.multi()
+  .zadd('pageranks', 'google.com', 10)
+  .zadd('pageranks', 'lifemap.in', 3)
+  .zadd('pageranks', 'mindb.org', 3)
+  .exec(function(err, results) {
+
+    min.zscore('pageranks', 'google.com')
+      .then(function(pr) {
+        consoel.log(pr); //=> 10
+      })
+      .fail(function(err) {
+        console.error(err);
+      });
+  });</code></pre>
+
+      <h2 class="content-subhead">Installation</h2>
+      <p>Loading via script tag:</p>
+      <pre><code class="snippet">&lt;script style="text/javascript" src="/path/to/script/min.js"&gt;</code></pre>
+
+      <p>With Node.js previously installed:</p>
+      <pre><code class="snippet">$ npm install min</code></pre>
+
+      <p>If you using <a href="http://seajs.org">SeaJS</a>, you can instal MinDB with <a href="https://github.com/spmjs/spm2">spm</a>:</p>
+      <pre><code class="snippet">$ spm install iwillwen/min</code></pre>
+
+      <p>If you are using <a href="http://component.io/">component</a>, you can install it with:</p>
+      <pre><code class="snippet">$ component install iwillwen/mindb</code></pre>
+
+      <p>Or <a href="http://bower.io/">bower</a>?:</p>
+      <pre><code class="snippet">$ bower install mindb</code></pre>
+
+      <h2 class="content-subhead">Quick Start</h2>
+      <p>Umm..I wanna to build a memo app using MinDB.</p>
+      <pre><code class="snippet">// Inserting Memo
+min.incr('memo_id')
+  .then(function(curr) {
+    return min.hmset('memo:' + curr, {
+      content: 'Hello MinDB!',
+      time: Date.now()
+    });
+  })
+  .then(function() {
+    //...
+  })
+  .fail(function(err) {
+    console.error(err);
+  });
+
+// Reading Memo
+min.hgetall('memo:1')
+  .then(function(memo) {
+    var render = Handlebars.compile(template);
+    var html = render(memo);
+
+    $('#memo-content').html(html);
+  });</code></pre>
+
+    <h2 class="content-subhead">Features</h2>
+    <p>Before MinDB, when you are building a UGC(<a href="http://en.wikipedia.org/wiki/User-generated_content">User-generated content</a>) WebApp, you have to think about how to handle the data. Synchronize with the server? But my app needs to provide a friendly user exprience, so make the user waiting is no good.</p>
+
+    <pre><code class="snippet">$('#form').on('submit', function(evt) {
+  evt.preventDefault();
+
+  var str = $(this).serialize();
+  var data = {};
+  str.split('&').forEach(function(row) {
+    var tmp = row.split('=');
+    data[tmp[0]] = data[tmp[1]];
+  });
+
+  $.post('/sync', data, /* Waiting waiting.... done */ function(res) {
+    console.log('Sync successfully!');
+  });
+
+  return false;
+});</code></pre>
+
+    <p>Can your application be used when the device offline? It is not all the flights have the WiFi support.</p>
+    <p>Why not to use a JavaScript library to handle the data and push the update in the background?</p>
+
+    <pre><code class="snippet">// Example
+function SyncStore(url) {
+  this.target = url;
+  this.data = {};
+  this.update = [];
+  this.status = 'updated';
+}
+SyncStore.prototype.set = function(key, value) {
+  this.data[key] = value;
+  this.update.push({
+    action: 'set',
+    key: key,
+    value: value
+  });
+  this.status = 'padding';
+
+  this.checkStep();
+};
+SyncStore.prototype.get = function(key) {
+  return this.data[key];
+};
+SyncStore.prototype.remove = function(key) { /* ... */ };
+SyncStore.prototype.checkStep = function() {
+  var self = this;
+  if (self.update.length >= 5) {
+    $.post(self.target, this.update, function(res) {
+      self.status = 'updated';
+    });
+  }
+};
+
+min.store = new SyncStore('/sync');
+min.multi()
+  .incr('user_id')
+  .incr('user_id')
+  .incr('user_id')
+  .incr('user_id')
+  .incr('user_id')
+  .incr('user_id')
+  .exec(function(err, results) {
+    if (err) {
+      return console.error(err);
+    }
+
+    // ...
+  });</code></pre>
+    </div>
+  </div>
+</div>
+
+<script src="js/ui.js"></script>
+<script>
+  hljs.initHighlightingOnLoad();
+</script>
+
+</body>
+</html>

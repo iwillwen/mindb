@@ -1,4 +1,4 @@
-describe('NanoDB - Keys', function() {
+describe('MinDB - Keys', function() {
   describe('del', function() {
     it('should delete a key', function(done) {
       nano.del('key')
