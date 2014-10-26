@@ -1,7 +1,7 @@
 ![MinDB](http://iwillwen.u.qiniudn.com/min/mindb_logo.png?123)**Database on JavaScript**
 
 Storing and structuring your application data on JavaScript.  
-Providing a standard *Store Interface* and **Redis**-copy API that you can use in wherever.
+Providing a standard *Store Interface* and **Redis**-like API that you can use in wherever.
 
 [Chinese version](https://github.com/iwillwen/mindb/blob/master/README_zhcn.md)
 
