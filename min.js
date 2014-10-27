@@ -181,21 +181,21 @@
   // Navite Store Interfaces
   function memStore () {}
   memStore.prototype.get = function(key) {
-    if (sessionStorage) {
+    if (typeof sessionStorage != 'undefined') {
       return sessionStorage.getItem(key);
     } else {
       return false;
     }
   };
   memStore.prototype.set = function(key, value) {
-    if (sessionStorage) {
+    if (typeof sessionStorage != 'undefined') {
       return sessionStorage.setItem(key, value);
     } else {
       return false;
     }
   };
   memStore.prototype.remove = function(key) {
-    if (sessionStorage) {
+    if (typeof sessionStorage != 'undefined') {
       return sessionStorage.removeItem(key);
     } else {
       return false;
@@ -204,21 +204,21 @@
 
   function localStore () {}
   localStore.prototype.get = function(key) {
-    if (localStorage) {
+    if (typeof localStorage != 'undefined') {
       return localStorage.getItem(key);
     } else {
       return false;
     }
   };
   localStore.prototype.set = function(key, value) {
-    if (localStorage) {
+    if (typeof localStorage != 'undefined') {
       return localStorage.setItem(key, value);
     } else {
       return false;
     }
   };
   localStore.prototype.remove = function(key) {
-    if (localStorage) {
+    if (typeof localStorage != 'undefined') {
       return localStorage.removeItem(key);
     } else {
       return false;
