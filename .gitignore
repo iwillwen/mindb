@@ -17,3 +17,6 @@ node_modules
 coverage.html
 **.txt
 npm_debug.log
+.gitignore
+.npmignore
+.dropbox

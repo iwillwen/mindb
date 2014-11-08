@@ -65,12 +65,12 @@ FileStore.prototype.remove = function(key, callback) {
 
       delete self.buffer[key];
 
-      fs.writeFile(self.filename, JSON.stringify(self.buffer)[, callback]);
+      fs.writeFile(self.filename, JSON.stringify(self.buffer), callback);
     });
   } else {
     delete self.buffer[key];
 
-    fs.writeFile(self.filename, JSON.stringify(self.buffer)[, callback]);
+    fs.writeFile(self.filename, JSON.stringify(self.buffer), callback);
   }
 };
 
