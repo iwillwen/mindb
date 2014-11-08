@@ -1,0 +1,15 @@
+{
+  "name": "min-level",
+  "version": "0.0.1",
+  "description": "LevelDB StoreInterface for MinDB",
+  "main": "min-level.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mindb",
+    "leveldb"
+  ],
+  "author": "iwillwen",
+  "license": "MIT"
+}

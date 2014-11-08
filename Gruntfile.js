@@ -3,6 +3,25 @@ module.exports = function(grunt) {
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
 
+    concat: {
+      mindb: {
+        files: {
+          'min.all.js': [
+            'src/shim.js',
+            'src/def.js',
+            'src/utils.js',
+            'src/deps/events.js',
+            'src/mix.js',
+            'src/hash.js',
+            'src/list.js',
+            'src/set.js',
+            'src/zset.js',
+            'src/mise.js',
+            'src/core.js'
+          ]
+        }
+      }
+    },
 
     uglify: {
       min: {
@@ -10,8 +29,8 @@ module.exports = function(grunt) {
           sourceMap: 'min.js.source'
         },
         files: {
-          'dist/min.js': [ 'min.js' ],
-          'min.min.js': [ 'min.js' ],
+          'dist/min.js': [ 'min.all.js' ],
+          'min.min.js': [ 'min.all.js' ],
         }
       }
     },
@@ -19,8 +38,8 @@ module.exports = function(grunt) {
     copy: {
       min: {
         files: [
-          { src: [ 'min.js' ], dest: 'dist/min-debug.js'},
-          { src: [ 'min.js' ], dest: 'index.js'},
+          { src: [ 'min.all.js' ], dest: 'dist/min-debug.js'},
+          { src: [ 'min.all.js' ], dest: 'index.js'},
           { src: [ 'min.js.source' ], dest: 'dist/min.js.source'}
         ]
       }
@@ -29,5 +48,6 @@ module.exports = function(grunt) {
 
   grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-uglify');
-  grunt.registerTask('default', [ 'copy', 'uglify' ]);
+  grunt.loadNpmTasks('grunt-contrib-concat');
+  grunt.registerTask('default', [ 'concat', 'copy', 'uglify' ]);
 };

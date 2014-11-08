@@ -1,4 +1,60 @@
 
+n.n.n / 2014-05-23 
+==================
+
+ * Added `min.scan()` method;
+ * Release v0.0.4
+ * Release v0.0.3
+ * start new feature `SORT` command
+ * Release v0.0.3 (Update Sorted Set)
+ * Update PM2.5 DEMO
+ * PM2.5 DEMO
+ * Fix min.hkeys bug
+ * Add Dump and Restore Methods
+ * Fix component
+ * Add alipay donate button
+ * Add Async Store callback explanation
+ * Add Store Interface docs
+ * Merge commit '3a4dd2840f3458d1dc8e2d4d62a5028f4fa2b8b1'
+ * Add Store Interface docs
+ * Code Typo
+ * Update README.md
+ * Delete nanodb.min.js
+ * Delete nanodb.js
+ * Delete README.mdown
+ * Delete README-zhcn.mdown
+ * Delete README-en_US.mdown
+ * MinDB release v0.0.1
+ * MinDB release
+ * MinDB release
+ * Update Redis API and README
+ * Update Redis API and README
+ * Update Redis API and README
+ * Update Redis API and README
+ * Update README
+ * Update Redis copy api and events object
+ * Update Redis copy api and events object
+ * Update Redis copy api and events object
+ * Fixed Async Queue
+ * Update
+ * Added Async Store API
+ * Fixed Base64 bug
+ * Fixed Normal
+ * New Version - Removed zpipe and added redis api
+ * update
+ * Update README.mdown
+ * update
+ * update
+ * using requirejs or seajs
+ * new version
+ * Merge pull request #1 from kinogam/master
+ * add test
+ * Added raw.js
+ * Core v0.0.1
+ * Fixed new database
+ * insert method added
+ * Core
+
 n.n.n / 2013-12-19 
 ==================
 
