@@ -1,7 +1,7 @@
 ![MinDB](http://iwillwen.u.qiniudn.com/min/mindb_logo.png?123)**Database on JavaScript**
 
 Storing and structuring your application data on JavaScript.  
-Providing a standard *Store Interface* and **Redis**-copy API that you can use in wherever.
+Providing a standard *Store Interface* and **Redis**-like API that you can use in wherever.
 
 [Chinese version](https://github.com/iwillwen/mindb/blob/master/README_zhcn.md)
 
@@ -119,8 +119,9 @@ Contribution is welcome.There are more than one way to contribute, and I will ap
 - send patch with github pull request
 - donate MinDB
 
-## Donate us
-[![Donate with Alipay](http://iwillwen.u.qiniudn.com/donate-with-alipay.png)](http://me.alipay.com/iwillwen)
+## Donate 
+Because of the Alipay donate page service had been stopped so if you want to support our job, please transfer to my Alipay account(willwengunn@gmail.com) manually. Thanks.
+PayPal is welcome too: willwengunn@gmail.com
 
 ## git-flow
 We recommend you to use [`git-flow`](https://github.com/nvie/gitflow) to make a patch.
