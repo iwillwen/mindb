@@ -9,7 +9,7 @@ Providing a standard *Store Interface* and **Redis**-like API that you can use i
 
 Loading via script tag:
 
-    <script style="text/javascript" src="/path/to/script/min.js">
+    <script style="text/javascript" src="/path/to/script/min.js"></script>
 
 With [node](http://nodejs.org) previously installed:
 
