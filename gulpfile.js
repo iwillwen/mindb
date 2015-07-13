@@ -8,21 +8,19 @@ var File = require('vinyl')
 var path = require('path')
 var fs = require('fs')
 
-var source = gulp.src([
-  'src/stores.js',
-  'src/utils.js',
-  'src/deps/events.js',
-  'src/mix.js',
-  'src/hash.js',
-  'src/list.js',
-  'src/set.js',
-  'src/zset.js',
-  'src/mise.js',
-  'src/min.js'
-])
-
 gulp.task('concat', function() {
-  return source
+  return gulp.src([
+      'src/stores.js',
+      'src/utils.js',
+      'src/deps/events.js',
+      'src/mix.js',
+      'src/hash.js',
+      'src/list.js',
+      'src/set.js',
+      'src/zset.js',
+      'src/mise.js',
+      'src/min.js'
+    ])
     .pipe(sourcemaps.init())
     .pipe(babel({
       stage: 0,
@@ -35,7 +33,18 @@ gulp.task('concat', function() {
 })
 
 gulp.task('uglify', function() {
-  return source
+  return gulp.src([
+      'src/stores.js',
+      'src/utils.js',
+      'src/deps/events.js',
+      'src/mix.js',
+      'src/hash.js',
+      'src/list.js',
+      'src/set.js',
+      'src/zset.js',
+      'src/mise.js',
+      'src/min.js'
+    ])
     .pipe(sourcemaps.init())
     .pipe(babel({
       stage: 0,
