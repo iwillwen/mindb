@@ -101,6 +101,18 @@ Anymore else? How about `MULTI`?
         console.log(results); //=> [ [ 1 ], [ 2 ], [ 3 ] ]
       });
 
+SWEET! Let's run to **Harmony**(ES2015)!
+
+    async _ => {
+      var userId = await min.incr('users:id:seq')
+      await min.hmset(`user:${userId}`, {
+        name: 'Will Wen Gunn',
+        sign: 'iwillwen',
+        homepage: 'http://lifemap.in'
+      })
+      await min.sadd(`user:${userId}:msgs`, 'Welcome')
+    }
+
 Support multiple databases:
 
     var Min = min.fork();

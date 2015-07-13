@@ -99,6 +99,18 @@ MinDB 提供一个标准的存储接口(`Store Interface`)和 **Redis** 风格�
         console.log(results); //=> [ [ 1 ], [ 2 ], [ 3 ] ]
       });
 
+ES2015的时代已经到来，你还在等什么？
+
+    async _ => {
+      var userId = await min.incr('users:id:seq')
+      await min.hmset(`user:${userId}`, {
+        name: 'Will Wen Gunn',
+        sign: 'iwillwen',
+        homepage: 'http://lifemap.in'
+      })
+      await min.sadd(`user:${userId}:msgs`, 'Welcome')
+    }
+
 MinDB 也支持多数据库:
 
     var Min = min.fork();
