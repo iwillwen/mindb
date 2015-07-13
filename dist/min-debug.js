@@ -1115,7 +1115,7 @@
           } else {
             var err = new Error('no such key');
 
-            promise.resolve(err);
+            promise.reject(err);
             callback(err);
           }
         });
