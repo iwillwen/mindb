@@ -1,9 +1,9 @@
 {
   "name": "min",
   "family": "iwillwen",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "Database on JavaScript",
-  "main": "min.js",
+  "main": "dist/min.js",
   "directories": {
     "benchmark": "benchmark",
     "example": "examples",
@@ -11,6 +11,9 @@
   },
   "scripts": {
     "test": "make test"
+  },
+  "bin": {
+    "mindb-concat": "./bin/concat.js"
   },
   "repository": {
     "type": "git",
@@ -30,11 +33,17 @@
   },
   "homepage": "https://github.com/iwillwen/mindb",
   "devDependencies": {
-    "async": "latest",
-    "level": "latest",
-    "grunt": "latest",
-    "grunt-contrib-uglify": "latest",
-    "mocha": "latest",
-    "grunt-contrib-copy": "~0.4.1"
+    "gulp": "^3.9.0",
+    "gulp-babel": "^5.1.0",
+    "gulp-concat": "^2.6.0",
+    "gulp-header": "^1.2.2",
+    "gulp-sourcemaps": "^1.5.2",
+    "gulp-uglify": "^1.2.0",
+    "mocha": "latest"
+  },
+  "dependencies": {
+    "commander": "^2.5.0",
+    "ejs": "^1.0.0",
+    "uglify-js": "^2.4.15"
   }
 }

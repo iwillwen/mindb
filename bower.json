@@ -1,7 +1,7 @@
 {
   "name": "mindb",
-  "main": "min.js",
-  "version": "0.0.4",
+  "main": "dist/min.js",
+  "version": "0.1.0",
   "homepage": "http://github.com/iwillwen/mindb",
   "authors": [
     "iwillwen <willwengunn@gmail.com>"
@@ -18,7 +18,6 @@
   "ignore": [
     "**/.*",
     "node_modules",
-    "bower_components",
-    "dist"
+    "bower_components"
   ]
 }

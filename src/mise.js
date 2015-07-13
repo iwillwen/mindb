@@ -1,540 +1,513 @@
-def('min.mise', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
-  
-  if ('undefined' !== typeof define && define.amd) {
-    var utils = arguments[0];
-    var events = arguments[1];
-  } else {
-    var utils = require('min.utils');
-    var events = require('min.deps.events');
-  }
+import utils from './utils.js'
+import { Promise } from './deps/events.js'
 
-  var Promise = events.Promise;
+var self = this || window || global
 
-  var min = {};
+var noop = utils.noop
 
-  /******************************
-  **            Mise           **
-  ******************************/
-  function Multi(_nano) {
-    var self = this;
-    this.queue = [];
-    this.last = null;
-    this.state = 0;
-    this.min = _nano;
+var min = {}
+export default min
+
+/******************************
+**            Mise           **
+******************************/
+class Multi {
+  constructor(_min) {
+    this.queue = []
+    this.last = null
+    this.state = 0
+    this.min = _min
 
     for (var prop in _nano) {
       if (_nano.hasOwnProperty(prop) && 'function' === typeof _nano[prop]) {
-        (function(method) {
-          self[method] = function() {
-            self.queue.push({
+        (method => {
+          this[method] = () => {
+            this.queue.push({
               method: method,
               args: arguments
-            });
+            })
 
-            return self;
-          };
-        })(prop);
+            return this
+          }
+        })(prop)
       }
     }
   }
-  Multi.prototype.exec = function(callback) {
-    var self = this;
-    var results = [];
 
-    (function loop(task) {
+  exec(callback = noop) {
+    var results = []
+    var loop = null
+
+    (loop = task => {
       if (task) {
-        self.min[task.method].apply(self.min, task.args)
-          .then(function() {
-            results.push(arguments);
-            loop(self.queue.shift());
+        this.min[task.method].apply(this.min, task.args)
+          .then(_ => {
+            results.push(arguments)
+            loop(this.queue.shift())
+          }, err => {
+            callback(err, results)
           })
-          .fail(function(err) {
-            callback(err, results);
-          });
       } else {
-        callback(null, results);
+        callback(null, results)
       }
-    })(self.queue.shift());
-  };
+    })(this.queue.shift())
+  }
+}
 
-  min.multi = function() {
-    return new Multi(this);
-  };
+min.multi = () => {
+  return new Multi(this)
+}
 
-  function Sorter(key, _min, callback) {
-    var self = this;
-    self.min = _min;
-    self.callback = callback;
-    self.result = [];
-    self.keys = {};
-    self.promise = new Promise();
-    self.sortFn = function(a, b) {
+class Sorter {
+  constructor(key, _min, callback = noop) {
+    var loop = null
+
+    this.min = _min
+    this.callback = callback
+    this.result = []
+    this.keys = {}
+    this.promise = new Promise(noop)
+    this.sortFn = (a, b) => {
       if (utils.isNumber(a) && utils.isNumber(b)) {
-        return a - b;
+        return a - b
       } else {
-        return JSON.stringify(a) > JSON.stringify(b);
+        return JSON.stringify(a) > JSON.stringify(b)
       }
-    };
+    }
 
-    var run = function() {
-      self.min.exists(key)
-        .then(function(exists) {
+    var run = _ => {
+      this.min.exists(key)
+        .then(exists => {
           if (exists) {
-            return self.min.get(key);
+            return this.min.get(key)
           } else {
-            return new Error('no such key');
+            return new Error('no such key')
           }
         })
-        .then(function(value) {
-          var p = new Promise();
+        .then(value => {
+          var p = new Promise(noop)
 
           switch (true) {
             case Array.isArray(value):
-              p.resolve(value);
-              break;
+              p.resolve(value)
+              break
             case (value.ms && Array.isArray(value.ms)):
-              p.resolve(value.ms);
-              break;
+              p.resolve(value.ms)
+              break
             
             default:
-              return new Error('content type wrong');
+              return new Error('content type wrong')
           }
 
-          return p;
+          return p
         })
-        .then(function(data) {
-          self.result = data.sort(self.sortFn);
+        .then(data => {
+          this.result = data.sort(this.sortFn)
 
-          self.result.forEach(function(chunk) {
-            self.keys[chunk] = chunk;
-          });
+          this.result.forEach(chunk => {
+            this.keys[chunk] = chunk
+          })
 
-          self.promise.resolve(self.result);
-          self.callback(null, self.result);
+          this.promise.resolve(this.result)
+          this.callback(null, this.result)
+        }, err => {
+          this.promise.reject(err)
+          this.callback(err)
         })
-        .fail(function(err) {
-          self.promise.reject(err);
-          self.callback(err);
-        });
-    };
+    }
 
     // Promise Shim
-    (function loop(methods) {
-      var curr = methods.shift();
+    (loop = methods => {
+      var curr = methods.shift()
 
       if (curr) {
-        self[curr] = function() {
-          return self.promise[curr].apply(self.promise, arguments);
-        };
+        this[curr] = () => {
+          return this.promise[curr].apply(this.promise, arguments)
+        }
 
-        loop(methods);
+        loop(methods)
       } else {
-        run();
+        run()
       }
-    })([ 'then', 'fail', 'done']);
+    })(['then', 'done'])
   }
-  Sorter.prototype.by = function(pattern, callback) {
-    var self = this;
-    callback = callback || utils.noop;
 
-    var src2ref = {};
-    var refs = {};
-    var aviKeys = [];
+  by(pattern, callback = noop) {
+    var src2ref = {}
+    var refs = {}
+    var aviKeys = []
 
     // TODO: Sort by hash field
-    var field = null;
+    var field = null
 
     if (pattern.indexOf('->') > 0) {
-      var i = pattern.indexOf('->');
-      field = pattern.substr(i + 2);
-      pattern = pattern.substr(0, pattern.length - i);
+      var i = pattern.indexOf('->')
+      field = pattern.substr(i + 2)
+      pattern = pattern.substr(0, pattern.length - i)
     }
-    var isHash = !!field;
+    var isHash = !!field
 
-    self.min.keys(pattern)
-      .then(function(keys) {
+    this.min.keys(pattern)
+      .then(keys => {
         var filter = new RegExp(pattern
           .replace('?', '(.)')
-          .replace('*', '(.*)'));
+          .replace('*', '(.*)'))
 
         for (var i = 0; i < keys.length; i++) {
-          var symbol = filter.exec(keys[i])[1];
+          var symbol = filter.exec(keys[i])[1]
 
-          if (self.result.indexOf(symbol) >= 0) {
-            src2ref[keys[i]] = symbol;
+          if (this.result.indexOf(symbol) >= 0) {
+            src2ref[keys[i]] = symbol
           }
         }
 
-        aviKeys = Object.keys(src2ref);
+        aviKeys = Object.keys(src2ref)
 
-        return self.min.mget(aviKeys.slice());
+        return this.min.mget(aviKeys.slice())
       })
-      .then(function(values) {
-        var reverse = {};
+      .then(values => {
+        var reverse = {}
 
         for (var i = 0; i < values.length; i++) {
-          reverse[JSON.stringify(values[i])] = aviKeys[i];
+          reverse[JSON.stringify(values[i])] = aviKeys[i]
         }
 
-        values.sort(self.sortFn);
+        values.sort(this.sortFn)
 
         var newResult = values
-          .map(function(value) {
-            return reverse[JSON.stringify(value)];
+          .map(value => {
+            return reverse[JSON.stringify(value)]
           })
-          .map(function(key) {
-            return src2ref[key];
-          });
+          .map(key => {
+            return src2ref[key]
+          })
 
-        self.result = newResult;
+        this.result = newResult
 
-        self.promise.resolve(newResult);
-        callback(null, newResult);
+        this.promise.resolve(newResult)
+        callback(null, newResult)
+      },
+      err => {
+        this.promise.reject(err)
+        callback(err)
+        this.callback(err)
       })
-      .fail(function(err) {
-        self.promise.reject(err);
-        callback(err);
-        self.callback(err);
-      });
     
-    return this;
-  };
-  Sorter.prototype.asc = function(callback) {
-    var self = this;
-    callback = callback || utils.noop;
+    return this
+  }
 
-    self.sortFn = function(a, b) {
+  asc(callback = noop) {
+    this.sortFn = (a, b) => {
       if (utils.isNumber(a) && utils.isNumber(b)) {
-        return a - b;
+        return a - b
       } else {
         return JSON.stringify(a) > JSON.stringify(b); 
       }
-    };
-
-    var handle = function(result) {
-      self.result = result.sort(self.sortFn);
-
-      self.promise.resolve(self.result);
-      callback(null, self.result);
-    };
-
-    if (self.promise.ended) {
-      handle(self.result);
-    } else {
-      self.promise.once('resolve', handle);
     }
 
-    return self;
-  };
-  Sorter.prototype.desc = function(callback) {
-    var self = this;
-    callback = callback || utils.noop;
+    var handle = result => {
+      this.result = result.sort(this.sortFn)
 
-    self.sortFn = function(a, b) {
+      this.promise.resolve(this.result)
+      callback(null, this.result)
+    }
+
+    if (this.promise.ended) {
+      handle(this.result)
+    } else {
+      this.promise.once('resolve', handle)
+    }
+
+    return this
+  }
+
+  desc(callback = noop) {
+    this.sortFn = (a, b) => {
       if (utils.isNumber(a) && utils.isNumber(b)) {
-        return b - a;
+        return b - a
       } else {
         return JSON.stringify(a) < JSON.stringify(b); 
       }
-    };
-
-    var handle = function(result) {
-      self.result = result.sort(self.sortFn);
-
-      self.promise.resolve(self.result);
-      callback(null, self.result);
-    };
-
-    if (self.promise.ended) {
-      handle(self.result);
-    } else {
-      self.promise.once('resolve', handle);
     }
 
-    return self;
-  };
-  Sorter.prototype.get = function(pattern, callback) {
-    var self = this;
-    callback = callback || utils.noop;
+    var handle = result => {
+      this.result = result.sort(this.sortFn)
 
-    var handle = function(_result) {
-      var result = [];
+      this.promise.resolve(this.result)
+      callback(null, this.result)
+    }
 
-      (function loop(res) {
-        var curr = res.shift();
+    if (this.promise.ended) {
+      handle(this.result)
+    } else {
+      this.promise.once('resolve', handle)
+    }
+
+    return this
+  }
+
+  get(pattern, callback = noop) {
+    var handle = (_result) => {
+      var result = []
+      var loop = null
+
+      (loop = res => {
+        var curr = res.shift()
 
         if (!utils.isUndefined(curr)) {
           if (Array.isArray(curr)) {
-            var key = self.keys[curr[0]];
+            var key = this.keys[curr[0]]
 
-            self.min.get(pattern.replace('*', key))
-              .then(function(value) {
-                curr.push(value);
-                result.push(curr);
+            this.min.get(pattern.replace('*', key))
+              .then(value => {
+                curr.push(value)
+                result.push(curr)
 
-                loop(res);
+                loop(res)
+              }, err => {
+                this.promise.reject(err)
+                callback(err)
               })
-              .fail(function(err) {
-                self.promise.reject(err);
-                callback(err);
-              });
 
           } else if (curr.substr || utils.isNumber(curr)) {
-            var key = self.keys[curr];
+            var key = this.keys[curr]
 
-            self.min.get(pattern.replace('*', key))
-              .then(function(value) {
-                result.push([ value ]);
+            this.min.get(pattern.replace('*', key))
+              .then(value => {
+                result.push([ value ])
                 if (value.substr || utils.isNumber(value)) {
-                  self.keys[value] = key;
+                  this.keys[value] = key
                 } else {
-                  self.keys[JSON.stringify(value)] = key;
+                  this.keys[JSON.stringify(value)] = key
                 }
 
-                loop(res);
+                loop(res)
+              }, err => {
+                this.promise.reject(err)
+                callback(err)
               })
-              .fail(function(err) {
-                self.promise.reject(err);
-                callback(err);
-              });
           }
         } else {
-          self.result = result;
+          this.result = result
 
-          self.promise.resolve(result);
-          callback(null, result);
+          this.promise.resolve(result)
+          callback(null, result)
         }
-      })(_result.slice());
-    };
-
-    if (self.promise.ended) {
-      handle(self.result);
-    } else {
-      self.promise.once('resolve', handle);
+      })(_result.slice())
     }
 
-    return this;
-  };
-  Sorter.prototype.hget = function(pattern, field, callback) {
-    callback = callback || utils.noop;
-    var self = this;
+    if (this.promise.ended) {
+      handle(this.result)
+    } else {
+      this.promise.once('resolve', handle)
+    }
 
-    var handle = function(_result) {
-      var result = [];
+    return this
+  }
 
-      (function loop(res) {
-        var curr = res.shift();
+  hget(pattern, field, callback = noop) {
+    var handle = _result => {
+      var result = []
+      var loop = null
+
+      (loop = res => {
+        var curr = res.shift()
 
         if (!utils.isUndefined(curr)) {
           if (Array.isArray(curr)) {
-            var key = self.keys[curr[0]];
+            var key = this.keys[curr[0]]
 
-            self.min.hget(pattern.replace('*', key), field)
-              .then(function(value) {
-                curr.push(value);
-                result.push(curr);
+            this.min.hget(pattern.replace('*', key), field)
+              .then(value => {
+                curr.push(value)
+                result.push(curr)
 
-                loop(res);
+                loop(res)
+              }, err => {
+                this.promise.reject(err)
+                callback(err)
               })
-              .fail(function(err) {
-                self.promise.reject(err);
-                callback(err);
-              });
 
           } else if (curr.substr || utils.isNumber(curr)) {
-            var key = self.keys[curr];
+            var key = this.keys[curr]
 
-            self.min.hget(pattern.replace('*', key))
-              .then(function(value) {
-                result.push([ value ]);
+            this.min.hget(pattern.replace('*', key))
+              .then(value => {
+                result.push([ value ])
                 if (value.substr || utils.isNumber(value)) {
-                  self.keys[value] = key;
+                  this.keys[value] = key
                 } else {
-                  self.keys[JSON.stringify(value)] = key;
+                  this.keys[JSON.stringify(value)] = key
                 }
 
-                loop(res);
+                loop(res)
+              }, err => {
+                this.promise.reject(err)
+                callback(err)
               })
-              .fail(function(err) {
-                self.promise.reject(err);
-                callback(err);
-              });
           }
         } else {
-          self.result = result;
+          this.result = result
 
-          self.promise.resolve(result);
-          callback(null, result);
+          this.promise.resolve(result)
+          callback(null, result)
         }
-      })(_result.slice());
-    };
-
-    if (self.promise.ended) {
-      handle(self.result);
-    } else {
-      self.promise.once('resolve', handle);
+      })(_result.slice())
     }
 
-    return this;
-  };
-  Sorter.prototype.limit = function(offset, count, callback) {
-    callback = callback || utils.noop;
-    var self = this;
-
-    var handle = function(result) {
-      self.result = result.splice(offset, count);
-
-      self.promise.resolve(self.result);
-      callback(null, self.result);
-    };
-
-    if (self.promise.ended) {
-      handle(self.result);
+    if (this.promise.ended) {
+      handle(this.result)
     } else {
-      self.promise.once('resolve', handle);
+      this.promise.once('resolve', handle)
     }
 
-    return this;
-  };
-  Sorter.prototype.flatten = function(callback) {
-    callback = callback || utils.noop;
-    var self = this;
+    return this
+  }
 
-    if (self.promise.ended) {
-      var rtn = [];
+  limit(offset, count, callback = noop) {
+    var handle = result => {
+      this.result = result.splice(offset, count)
 
-      for (var i = 0; i < self.result.length; i++) {
-        for (var j = 0; j < self.result[i].length; j++) {
-          rtn.push(self.result[i][j]);
+      this.promise.resolve(this.result)
+      callback(null, this.result)
+    }
+
+    if (this.promise.ended) {
+      handle(this.result)
+    } else {
+      this.promise.once('resolve', handle)
+    }
+
+    return this
+  }
+
+  flatten(callback = noop) {
+    if (this.promise.ended) {
+      var rtn = []
+
+      for (var i = 0; i < this.result.length; i++) {
+        for (var j = 0; j < this.result[i].length; j++) {
+          rtn.push(this.result[i][j])
         }
       }
 
-      self.result = rtn;
+      this.result = rtn
 
-      self.promise.resolve(rtn);
-      callback(null, rtn);
+      this.promise.resolve(rtn)
+      callback(null, rtn)
     } else {
-      self.promise.once('resolve', function(result) {
-        var rtn = [];
+      this.promise.once('resolve', result => {
+        var rtn = []
 
         for (var i = 0; i < result.length; i++) {
           for (var j = 0; j < result[i].length; j++) {
-            rtn.push(result[i][j]);
+            rtn.push(result[i][j])
           }
         }
 
-        self.result = rtn;
+        this.result = rtn
 
-        self.promise.resolve(rtn);
-        callback(null, rtn);
-      });
+        this.promise.resolve(rtn)
+        callback(null, rtn)
+      })
     }
 
-    return this;
-  };
-  Sorter.prototype.store = function(dest, callback) {
-    var self = this;
-    callback = callback || utils.noop;
-
-    if (self.promise.ended) {
-      self.min.set(dest, self.result)
-        .then(function() {
-          self.promise.resolve(self.result);
-          callback(null, self.result);
-        })
-        .fail(function(err) {
-          self.promise.reject(err);
-          callback(err);
-        });
-    } else {
-      self.promise.once('resolve', function(result) {
-        self.min.set(dest, result)
-          .then(function() {
-            self.promise.resolve(result);
-            callback(null, result);
-          })
-          .fail(function(err) {
-            self.promise.reject(err);
-            callback(err);
-          });
-      });
-    }
-
-    return this;
-  };
-
-  min.sort = function(key, callback) {
-    callback = callback || utils.noop;
-
-    return new Sorter(key, this, callback);
-  };
-
-  function Scanner(cursor, pattern, count, min) {
-    pattern = pattern || '*';
-
-    this.cursor = cursor || 0;
-    this.pattern = new RegExp(pattern.replace('*', '(.*)'));
-    this.limit = count > -1 ? count : 10;
-    this.end = this.cursor;
-
-    this.parent = min;
+    return this
   }
-  Scanner.prototype.scan = function(callback) {
-    var self = this;
 
-    var rtn = [];
+  store(dest, callback = noop) {
+    if (this.promise.ended) {
+      this.min.set(dest, this.result)
+        .then(_ => {
+          this.promise.resolve(this.result)
+          callback(null, this.result)
+        }, err => {
+          this.promise.reject(err)
+          callback(err)
+        })
+    } else {
+      this.promise.once('resolve', result => {
+        this.min.set(dest, result)
+          .then(_ => {
+            this.promise.resolve(result)
+            callback(null, result)
+          }, err => {
+            this.promise.reject(err)
+            callback(err)
+          })
+      })
+    }
 
-    self.parent.get('min_keys')
-      .then(function(data) {
-        data = JSON.parse(data);
+    return this
+  }
+}
 
-        var keys = Object.keys(data);
+min.sort = (key, callback = noop) => new Sorter(key, this, callback)
 
-        (function scan(ii) {
-          var key = keys[ii];
+class Scanner {
+  constructor(cursor, pattern, count, min) {
+    pattern = pattern || '*'
 
-          if (key && self.pattern.test(key) && key !== 'min_keys') {
-            rtn.push(key);
+    this.cursor = cursor || 0
+    this.pattern = new RegExp(pattern.replace('*', '(.*)'))
+    this.limit = count > -1 ? count : 10
+    this.end = this.cursor
 
-            if ((++self.end - self.cursor) >= self.limit) {
-              return callback(null, rtn, self.end);
+    this.parent = min
+  }
+
+  scan(callback = noop) {
+    var rtn = []
+
+    this.parent.get('min_keys')
+      .then(data => {
+        data = JSON.parse(data)
+        var scan = null
+
+        var keys = Object.keys(data)
+
+        (scan = ii => {
+          var key = keys[ii]
+
+          if (key && this.pattern.test(key) && key !== 'min_keys') {
+            rtn.push(key)
+
+            if ((++this.end - this.cursor) >= this.limit) {
+              return callback(null, rtn, this.end)
             }
           } else if (!key) {
-            self.end = 0;
-            return callback(null, rtn, self.end);
+            this.end = 0
+            return callback(null, rtn, this.end)
           }
 
-          return scan(++ii);
-        })(self.cursor);
-      }, function(err) {
-        callback(err);
-      });
+          return scan(++ii)
+        })(this.cursor)
+      }, err => {
+        callback(err)
+      })
 
-    return this;
-  };
-  Scanner.prototype.match = function(pattern, callback) {
-    this.pattern = new RegExp(pattern.replace('*', '(.*)'));
-    this.end = this.cursor;
+    return this
+  }
 
-    return this.scan(callback || utils.noop);
-  };
-  Scanner.prototype.count = function(count, callback) {
-    this.limit = count;
-    this.end = this.cursor;
+  match(pattern, callback = noop) {
+    this.pattern = new RegExp(pattern.replace('*', '(.*)'))
+    this.end = this.cursor
 
-    return this.scan(callback || utils.noop);
-  };
+    return this.scan(callback)
+  }
 
-  min.scan = function(cursor, callback) {
-    var self = this;
-    callback = callback || utils.noop;
+  count(count, callback = noop) {
+    this.limit = count
+    this.end = this.cursor
 
-    var scanner = new Scanner(cursor, null, -1, self);
+    return this.scan(callback)
+  }
+}
 
-    scanner.scan(callback);
+min.scan = (cursor, callback = noop) => {
+  var scanner = new Scanner(cursor, null, -1, this)
 
-    return scanner;
-  };
+  scanner.scan(callback)
 
-  return min;
-});
+  return scanner
+}

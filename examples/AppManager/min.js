@@ -4,7 +4,7 @@
  *
  * Database on JavaScript
  *
- *  Copyright (c) 2012-2013 Will Wen Gunn(willwengunn@gmail.com)
+ *  Copyright (c) 2012-2014 Will Wen Gunn(willwengunn@gmail.com)
  *  All rights reserved.
  *
  *  MIT License
@@ -88,19 +88,26 @@ function def(name, deps, factory) {
     }
   } else if (hasExports) {
     // Node.js Module
-    exports = factory(require, exports, module);
+    var _require = function(name) {
+      if ('undefined' !== typeof def.cache[name]) {
+        return def.cache[name];
+      } else {
+        return require(name);
+      }
+    }
+    def.cache[name] = module.exports = exports = factory(_require, exports, module);
   } else {
     // Normal
-    var module = {
+    var _module = {
       exports: {}
     };
-    def.cache[name] = this[name] = module.exports = factory(function(name) {
+    def.cache[name] = this[name] = _module.exports = factory(function(name) {
       if (def.cache.hasOwnProperty(name)) {
         return def.cache[name];
       } else {
         return null;
       }
-    }, module.exports, module);
+    }, _module.exports, _module);
   }
 }
 def.cache = {};
@@ -437,7 +444,9 @@ def('min.deps.events', [ 'min.utils' ], function(require, exports, module) {
       ret = emitter._events[type].length;
     return ret;
   };
-
+  EventEmitter.inherits = function(ctor) {
+    utils.inherits(ctor, EventEmitter);
+  };
   function Promise(done) {
     this.results = null;
     this.errors  = null;
@@ -559,7 +568,6 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
 
   var min = {};
 
-  var _keys = min._keys = {};
   var _keysTimer = null;
 
   /******************************
@@ -582,7 +590,7 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
         clearTimeout(_keysTimer);
       }
 
-      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
+      _keysTimer = setTimeout(self.save.bind(self), 1000);
     });
 
     // Store
@@ -596,7 +604,7 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
 
     if (store.async) {
       // Async Store Operating
-      var laod = function() {
+      var load = function() {
         // Value processing
         var $value = JSON.stringify(value);
         store.set($key, $value, function(err) {
@@ -606,7 +614,7 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
             return callback(err);
           }
 
-          _keys[key] = 0;
+          self._keys[key] = 0;
 
           // Done
           promise.resolve(key, value);
@@ -623,7 +631,7 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
         // Value processing
         var $value = JSON.stringify(value);
         store.set($key, $value);
-        _keys[key] = 0;
+        self._keys[key] = 0;
 
         // Done
         promise.resolve(key, value);
@@ -1054,7 +1062,11 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
 
     function next(key, index) {
       delete keys[index];
-
+      
+      if (!key) {
+        i++;
+        return next(keys[i], i);
+      }
       self.get(key, function(err, value) {
         if (err) {
           errors.push(err);
@@ -1081,8 +1093,10 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
 
     function out() {
       if (errors.length) {
+        callback(errors);
         promise.reject(errors);
       } else {
+        callback(null, results);
         promise.resolve(results);
       }
     }
@@ -4498,6 +4512,8 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
 
   var min = {};
   utils.extend(min, new events.EventEmitter());
+  min.EventEmitter = events.EventEmitter;
+  min.Promise = events.Promise;
 
   // Default Store Interfaces
   function memStore () {}
@@ -4553,7 +4569,7 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
   min.store = new min.localStore();
 
   // Default variables
-  var _keys  = {};
+  var _keys = min._keys = {};
   var _keysTimer = null;
   var _types = {
     0 : 'mix',
@@ -4600,7 +4616,7 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
         clearTimeout(_keysTimer);
       }
 
-      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
+      _keysTimer = setTimeout(self.save.bind(self), 1000);
     });
 
     // Store
@@ -4626,7 +4642,7 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
             return callback(err);
           }
 
-          delete _keys[key];
+          delete self._keys[key];
 
           // Done
           promise.resolve(key);
@@ -4643,7 +4659,7 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
       try {
         store.remove($key);
 
-        delete _keys[key];
+        delete self._keys[key];
 
         // Done
         promise.resolve(key);
@@ -4741,7 +4757,7 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
           }
         })
         .then(function(_value) {
-          type = _keys[key];
+          type = self._keys[key];
           value = _value;
 
           return min.del(key);
@@ -4750,7 +4766,7 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
           return min.set(newKey, value, callback);
         })
         .then(function() {
-          _keys[newKey] = type;
+          self._keys[newKey] = type;
           promise.resolve('OK');
           callback(null, 'OK');
         })
@@ -4816,7 +4832,7 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
     var promise = new Promise();
 
     // Stored keys
-    var keys = Object.keys(_keys);
+    var keys = Object.keys(this._keys);
 
     // Callback and Promise's shim
     callback = callback || utils.noop;
@@ -4853,7 +4869,7 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
     var promise = new Promise();
 
     // Stored keys
-    var keys = Object.keys(_keys);
+    var keys = Object.keys(this._keys);
 
     // Callback and Promise's shim
     if ('undefined' == typeof callback) {
@@ -4885,8 +4901,8 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
     // Callback and Promise's shim
     callback = callback || utils.noop;
 
-    if (_keys.hasOwnProperty(key)) {
-      promise.resolve(_types[_keys[key]]);
+    if (this._keys.hasOwnProperty(key)) {
+      promise.resolve(_types[this._keys[key]]);
       callback(null, callback);
     } else {
       promise.resolve(null);
@@ -4911,7 +4927,7 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
 
       _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
     });
-    var keys = Object.keys(_keys);
+    var keys = Object.keys(this._keys);
     var last = null;
     var removeds = 0;
     callback = callback || utils.noop;
@@ -5070,7 +5086,7 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
       }
     })
     .then(function(keys) {
-      _keys = JSON.parse(keys);
+      min._keys = JSON.parse(keys);
     });
 
   return min;

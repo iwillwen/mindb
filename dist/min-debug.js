@@ -1,117 +1,134 @@
-/**!
- * 
- * MinDB
+/**
+ * MinDB - Database on JavaScript
  *
- * Database on JavaScript
+ * Will Wen Gunn(iwillwen) and other contributors
  *
- *  Copyright (c) 2012-2014 Will Wen Gunn(willwengunn@gmail.com)
- *  All rights reserved.
- *
- *  MIT License
- *
- *  Permission is hereby granted, free of charge, to any person obtaining
- *  a copy of this software and associated documentation files (the
- *  "Software"), to deal in the Software without restriction, including
- *  without limitation the rights to use, copy, modify, merge, publish,
- *  distribute, sublicense, and/or sell copies of the Software, and to
- *  permit persons to whom the Software is furnished to do so, subject to
- *  the following conditions:
- *
- *  The above copyright notice and this permission notice shall be
- *  included in all copies or substantial portions of the Software.
- * 
+ * @license MIT-license
+ * @copyright 2012-2015 iwillwen(willwengunn@gmail.com)
  */
-
-// Shims
-(function(window, document) {
-
-  if (window && document) {
-    function createScript() {
-      return document.createElement("script");
-    }
-    // JSON
-    var s = document.getElementsByTagName("script")[0];
-    var head = s.parentNode;
-
-    if (!window.JSON) {
-      var jsonSrc = createScript();
-      jsonSrc.src = "//cdn.staticfile.org/json2/20121008/json2.min.js";
-      head.insertBefore(jsonSrc, s);
-    }
-
-    if (!Function.prototype.bind || !Array.isArray) {
-      // ECMAScript 5
-      var shimSrc = createScript();
-      shimSrc.src = "//cdn.staticfile.org/es5-shim/2.1.0/es5-shim.min.js";
-      head.insertBefore(shimSrc, s);
-      var shamSrc = createScript();
-      shamSrc.src = "//cdn.staticfile.org/es5-shim/2.1.0/es5-sham.min.js";
-      head.insertBefore(shamSrc, s);
-    }
-
-    if (!Object.create) {
-      Object.create = (function() {
-        function F() {}
-
-        return function(superCtor, ctor) {
-          F.prototype = {};
-          for (var key in superCtor) {
-            F.prototype[key] = superCtor[key];
-          }
-          for (var key in ctor) {
-            F.prototype[key] = ctor[key];
-          }
-          return new F();
-        }
-      })();
-    }
-  }
-
-})((typeof(window) !== 'undefined' ? window : this), (typeof(document) !== 'undefined' ? document : null));
-function def(name, deps, factory) {
-  var hasDefine  = 'undefined' !== typeof define;
-  var hasExports = 'undefined' !== typeof exports;
-
-  if (!factory && deps instanceof Function) {
-    factory = deps;
-    deps = [];
-  }
-
-  if (hasDefine) {
-    // CommonJS: SeaJS, RequireJS etc.
-    if (define.amd) {
-      // AMD
-      define(factory);
-    } else {
-      // CMD
-      define(name, deps, factory);
-    }
-  } else if (hasExports) {
-    // Node.js Module
-    exports = factory(require, exports, module);
+(function (global, factory) {
+  if (typeof define === "function" && define.amd) {
+    define(["exports"], factory);
+  } else if (typeof exports !== "undefined") {
+    factory(exports);
   } else {
-    // Normal
-    var module = {
+    var mod = {
       exports: {}
     };
-    def.cache[name] = this[name] = module.exports = factory(function(name) {
-      if (def.cache.hasOwnProperty(name)) {
-        return def.cache[name];
-      } else {
-        return null;
-      }
-    }, module.exports, module);
+    factory(mod.exports);
+    global.stores = mod.exports;
   }
-}
-def.cache = {};
-def('min.utils', [], function() {
+})(this, function (exports) {
+  "use strict";
+
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+
+  var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+  function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+  var memStore = (function () {
+    function memStore() {
+      _classCallCheck(this, memStore);
+    }
+
+    _createClass(memStore, [{
+      key: "get",
+      value: function get(key) {
+        if (sessionStorage) {
+          return sessionStorage.getItem(key);
+        } else {
+          return false;
+        }
+      }
+    }, {
+      key: "set",
+      value: function set(key, value) {
+        if (sessionStorage) {
+          return sessionStorage.setItem(key, value);
+        } else {
+          return false;
+        }
+      }
+    }, {
+      key: "remove",
+      value: function remove(key) {
+        if (sessionStorage) {
+          return sessionStorage.removeItem(key);
+        } else {
+          return false;
+        }
+      }
+    }]);
+
+    return memStore;
+  })();
+
+  exports.memStore = memStore;
+
+  var localStore = (function () {
+    function localStore() {
+      _classCallCheck(this, localStore);
+    }
+
+    _createClass(localStore, [{
+      key: "get",
+      value: function get(key) {
+        if (localStorage) {
+          return localStorage.getItem(key);
+        } else {
+          return false;
+        }
+      }
+    }, {
+      key: "set",
+      value: function set(key, value) {
+        if (localStorage) {
+          return localStorage.setItem(key, value);
+        } else {
+          return false;
+        }
+      }
+    }, {
+      key: "remove",
+      value: function remove(key) {
+        if (localStorage) {
+          return localStorage.removeItem(key);
+        } else {
+          return false;
+        }
+      }
+    }]);
+
+    return localStore;
+  })();
+
+  exports.localStore = localStore;
+});
+(function (global, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['exports', 'module'], factory);
+  } else if (typeof exports !== 'undefined' && typeof module !== 'undefined') {
+    factory(exports, module);
+  } else {
+    var mod = {
+      exports: {}
+    };
+    factory(mod.exports, mod);
+    global.utils = mod.exports;
+  }
+})(this, function (exports, module) {
   // Utils
-  var utils = {
-    noop: function() {
+  'use strict';
+
+  module.exports = {
+    noop: function noop() {
       return false;
     },
     // Class Inherits
-    inherits: function (ctor, superCtor) {
+    inherits: function inherits(ctor, superCtor) {
       ctor.super_ = superCtor;
       ctor.prototype = Object.create(superCtor.prototype, {
         constructor: {
@@ -123,441 +140,585 @@ def('min.utils', [], function() {
       });
     },
     // Object Extend
-    extend: function() {
+    extend: function extend() {
       var target = arguments[0];
 
       var objs = [].slice.call(arguments, 1);
 
       for (var i = 0, l = objs.length; i < l; i++) {
-        for (var key in objs[i]) {
-          target[key] = objs[i][key];
+        var keys = Object.getOwnPropertyNames(objs[i] || {});
+
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+          for (var _iterator = keys[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            var key = _step.value;
+
+            target[key] = objs[i][key];
+          }
+        } catch (err) {
+          _didIteratorError = true;
+          _iteratorError = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion && _iterator['return']) {
+              _iterator['return']();
+            }
+          } finally {
+            if (_didIteratorError) {
+              throw _iteratorError;
+            }
+          }
         }
       }
 
       return target;
     },
-    isNumber: function(obj) {
+    isNumber: function isNumber(obj) {
       return toString.call(obj) == '[object Number]';
     },
-    isUndefined: function(val) {
+    isUndefined: function isUndefined(val) {
       return val === void 0;
     },
-    isObject: function (obj) {
+    isObject: function isObject(obj) {
       return obj === Object(obj);
     },
-    arrayUnique: function(array) {
+    arrayUnique: function arrayUnique(array) {
       var u = {};
       var ret = [];
       for (var i = 0, l = array.length; i < l; ++i) {
         if (u.hasOwnProperty(array[i]) && !utils.isObject(array[i])) {
-           continue;
+          continue;
         }
         ret.push(array[i]);
         u[array[i]] = 1;
       }
       return ret;
     },
-    arrayInter: function(array) {
+    arrayInter: function arrayInter(array) {
       var rest = [].slice.call(arguments, 1);
-      return utils.arrayUnique(array).filter(function(item) {
+      return utils.arrayUnique(array).filter(function (item) {
         var ret = true;
 
-        for (var i = 0; i < rest.length; i++) {
-          (function(index) {
-            var other = rest[index];
+        var _iteratorNormalCompletion2 = true;
+        var _didIteratorError2 = false;
+        var _iteratorError2 = undefined;
+
+        try {
+          for (var _iterator2 = rest[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+            var other = _step2.value;
 
             if (other.indexOf(item) < 0) {
               ret = false;
             }
-          })(i);
+          }
+        } catch (err) {
+          _didIteratorError2 = true;
+          _iteratorError2 = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion2 && _iterator2['return']) {
+              _iterator2['return']();
+            }
+          } finally {
+            if (_didIteratorError2) {
+              throw _iteratorError2;
+            }
+          }
         }
 
         return ret;
       });
     },
-    arrayDiff: function(array) {
+    arrayDiff: function arrayDiff(array) {
       var rest = [].slice.call(arguments, 1);
-      return array.filter(function(item) {
+      return array.filter(function (item) {
         var ret = true;
 
-        for (var i = 0; i < rest.length; i++) {
-          (function(index) {
-            var other = rest[index];
+        var _iteratorNormalCompletion3 = true;
+        var _didIteratorError3 = false;
+        var _iteratorError3 = undefined;
+
+        try {
+          for (var _iterator3 = rest[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+            var other = _step3.value;
 
             if (other.indexOf(item) >= 0) {
               ret = false;
             }
-          })(i);
+          }
+        } catch (err) {
+          _didIteratorError3 = true;
+          _iteratorError3 = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion3 && _iterator3['return']) {
+              _iterator3['return']();
+            }
+          } finally {
+            if (_didIteratorError3) {
+              throw _iteratorError3;
+            }
+          }
         }
 
         return ret;
       });
-    }
-  };
+    },
 
-  return utils;
-});
-def('min.deps.events', [ 'min.utils' ], function(require, exports, module) {
-
-  if ('undefined' !== typeof define && define.amd) {
-    var utils = arguments[0];
-  } else {
-    var utils = require('min.utils');
-  }
-
-  // EventEmitter(without `domain` module) From Node.js
-  function EventEmitter() {
-    this._events = this._events || {};
-    this._maxListeners = this._maxListeners || defaultMaxListeners;
-  }
-  var defaultMaxListeners = 10;
-  EventEmitter.prototype.setMaxListeners = function(n) {
-    if (typeof n !== 'number' || n < 0)
-      throw TypeError('n must be a positive number');
-    this._maxListeners = n;
-  };
-  EventEmitter.prototype.emit = function(type) {
-    var er, handler, len, args, i, listeners;
-
-    if (!this._events)
-      this._events = {};
-
-    // If there is no 'error' event listener then throw.
-    if (type === 'error') {
-      if (!this._events.error ||
-          (typeof this._events.error === 'object' &&
-           !this._events.error.length)) {
-        er = arguments[1];
-        if (this.domain) {
-          if (!er) er = new TypeError('Uncaught, unspecified "error" event.');
-        } else if (er instanceof Error) {
-          throw er; // Unhandled 'error' event
-        } else {
-          throw TypeError('Uncaught, unspecified "error" event.');
-        }
-        return false;
+    flatten: (function (_flatten) {
+      function flatten(_x, _x2, _x3, _x4) {
+        return _flatten.apply(this, arguments);
       }
+
+      flatten.toString = function () {
+        return _flatten.toString();
+      };
+
+      return flatten;
+    })(function (input, shallow, strict, startIndex) {
+      var output = [],
+          idx = 0;
+      for (var i = startIndex || 0, length = getLength(input); i < length; i++) {
+        var value = input[i];
+        if (isArrayLike(value) && (_.isArray(value) || _.isArguments(value))) {
+          //flatten current level of array or arguments object
+          if (!shallow) value = flatten(value, shallow, strict);
+          var j = 0,
+              len = value.length;
+          output.length += len;
+          while (j < len) {
+            output[idx++] = value[j++];
+          }
+        } else if (!strict) {
+          output[idx++] = value;
+        }
+      }
+      return output;
+    })
+  };
+});
+(function (global, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['exports', '../utils.js'], factory);
+  } else if (typeof exports !== 'undefined') {
+    factory(exports, require('../utils.js'));
+  } else {
+    var mod = {
+      exports: {}
+    };
+    factory(mod.exports, global.utils);
+    global.events = mod.exports;
+  }
+})(this, function (exports, _utilsJs) {
+  'use strict';
+
+  Object.defineProperty(exports, '__esModule', {
+    value: true
+  });
+
+  var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+  exports.Promise = Promise;
+
+  function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+  var _utils = _interopRequireDefault(_utilsJs);
+
+  var noop = _utils['default'].noop;
+
+  var self = undefined || window || global;
+
+  var defaultMaxListeners = 10;
+
+  var EventEmitter = (function () {
+    function EventEmitter() {
+      _classCallCheck(this, EventEmitter);
+
+      this._events = this._events || {};
+      this._maxListeners = this._maxListeners || defaultMaxListeners;
     }
 
-    handler = this._events[type];
+    _createClass(EventEmitter, [{
+      key: 'setMaxListeners',
+      value: function setMaxListeners(n) {
+        if (typeof n !== 'number' || n < 0) throw TypeError('n must be a positive number');
+        this._maxListeners = n;
+      }
+    }, {
+      key: 'emit',
+      value: function emit(type) {
+        var er, handler, len, args, i, listeners;
 
-    if (typeof handler === 'undefined')
-      return false;
+        if (!this._events) this._events = {};
 
-    if (typeof handler === 'function') {
-      switch (arguments.length) {
-        // fast cases
-        case 1:
-          handler.call(this);
-          break;
-        case 2:
-          handler.call(this, arguments[1]);
-          break;
-        case 3:
-          handler.call(this, arguments[1], arguments[2]);
-          break;
-        // slower
-        default:
+        // If there is no 'error' event listener then throw.
+        if (type === 'error') {
+          if (!this._events.error || typeof this._events.error === 'object' && !this._events.error.length) {
+            er = arguments[1];
+            if (this.domain) {
+              if (!er) er = new TypeError('Uncaught, unspecified "error" event.');
+            } else if (er instanceof Error) {
+              throw er; // Unhandled 'error' event
+            } else {
+              throw TypeError('Uncaught, unspecified "error" event.');
+            }
+            return false;
+          }
+        }
+
+        handler = this._events[type];
+
+        if (typeof handler === 'undefined') return false;
+
+        if (typeof handler === 'function') {
+          switch (arguments.length) {
+            // fast cases
+            case 1:
+              handler.call(this);
+              break;
+            case 2:
+              handler.call(this, arguments[1]);
+              break;
+            case 3:
+              handler.call(this, arguments[1], arguments[2]);
+              break;
+            // slower
+            default:
+              len = arguments.length;
+              args = new Array(len - 1);
+              for (i = 1; i < len; i++) args[i - 1] = arguments[i];
+              handler.apply(this, args);
+          }
+        } else if (typeof handler === 'object') {
           len = arguments.length;
           args = new Array(len - 1);
-          for (i = 1; i < len; i++)
-            args[i - 1] = arguments[i];
-          handler.apply(this, args);
-      }
-    } else if (typeof handler === 'object') {
-      len = arguments.length;
-      args = new Array(len - 1);
-      for (i = 1; i < len; i++)
-        args[i - 1] = arguments[i];
+          for (i = 1; i < len; i++) args[i - 1] = arguments[i];
 
-      listeners = handler.slice();
-      len = listeners.length;
-      for (i = 0; i < len; i++)
-        listeners[i].apply(this, args);
-    }
-
-    return true;
-  };
-  EventEmitter.prototype.addListener = function(type, listener) {
-    var m;
-
-    if (typeof listener !== 'function')
-      throw TypeError('listener must be a function');
-
-    if (!this._events)
-      this._events = {};
-
-    // To avoid recursion in the case that type === "newListener"! Before
-    // adding it to the listeners, first emit "newListener".
-    if (this._events.newListener)
-      this.emit('newListener', type, typeof listener.listener === 'function' ?
-                listener.listener : listener);
-
-    if (!this._events[type])
-      // Optimize the case of one listener. Don't need the extra array object.
-      this._events[type] = listener;
-    else if (typeof this._events[type] === 'object')
-      // If we've already got an array, just append.
-      this._events[type].push(listener);
-    else
-      // Adding the second element, need to change to array.
-      this._events[type] = [this._events[type], listener];
-
-    // Check for listener leak
-    if (typeof this._events[type] === 'object' && !this._events[type].warned) {
-      m = this._maxListeners;
-      if (m && m > 0 && this._events[type].length > m) {
-        this._events[type].warned = true;
-        console.error('(node) warning: possible EventEmitter memory ' +
-                      'leak detected. %d listeners added. ' +
-                      'Use emitter.setMaxListeners() to increase limit.',
-                      this._events[type].length);
-        console.trace();
-      }
-    }
-
-    return this;
-  };
-  EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-  EventEmitter.prototype.once = function(type, listener) {
-    if (typeof listener !== 'function')
-      throw TypeError('listener must be a function');
-
-    function g() {
-      this.removeListener(type, g);
-      listener.apply(this, arguments);
-    }
-
-    g.listener = listener;
-    this.on(type, g);
-
-    return this;
-  };
-  // emits a 'removeListener' event iff the listener was removed
-  EventEmitter.prototype.removeListener = function(type, listener) {
-    var list, position, length, i;
-
-    if (typeof listener !== 'function')
-      throw TypeError('listener must be a function');
-
-    if (!this._events || !this._events[type])
-      return this;
-
-    list = this._events[type];
-    length = list.length;
-    position = -1;
-
-    if (list === listener ||
-        (typeof list.listener === 'function' && list.listener === listener)) {
-      this._events[type] = undefined;
-      if (this._events.removeListener)
-        this.emit('removeListener', type, listener);
-
-    } else if (typeof list === 'object') {
-      for (i = length; i-- > 0;) {
-        if (list[i] === listener ||
-            (list[i].listener && list[i].listener === listener)) {
-          position = i;
-          break;
+          listeners = handler.slice();
+          len = listeners.length;
+          for (i = 0; i < len; i++) listeners[i].apply(this, args);
         }
-      }
 
-      if (position < 0)
+        return true;
+      }
+    }, {
+      key: 'addListener',
+      value: function addListener(type, listener) {
+        var m;
+
+        if (typeof listener !== 'function') throw TypeError('listener must be a function');
+
+        if (!this._events) this._events = {};
+
+        // To avoid recursion in the case that type === "newListener"! Before
+        // adding it to the listeners, first emit "newListener".
+        if (this._events.newListener) this.emit('newListener', type, typeof listener.listener === 'function' ? listener.listener : listener);
+
+        if (!this._events[type])
+          // Optimize the case of one listener. Don't need the extra array object.
+          this._events[type] = listener;else if (typeof this._events[type] === 'object')
+          // If we've already got an array, just append.
+          this._events[type].push(listener);else
+          // Adding the second element, need to change to array.
+          this._events[type] = [this._events[type], listener];
+
+        // Check for listener leak
+        if (typeof this._events[type] === 'object' && !this._events[type].warned) {
+          m = this._maxListeners;
+          if (m && m > 0 && this._events[type].length > m) {
+            this._events[type].warned = true;
+            console.error('(node) warning: possible EventEmitter memory ' + 'leak detected. %d listeners added. ' + 'Use emitter.setMaxListeners() to increase limit.', this._events[type].length);
+            console.trace();
+          }
+        }
+
         return this;
-
-      if (list.length === 1) {
-        list.length = 0;
-        this._events[type] = undefined;
-      } else {
-        list.splice(position, 1);
       }
+    }, {
+      key: 'once',
+      value: function once(type, listener) {
+        if (typeof listener !== 'function') throw TypeError('listener must be a function');
 
-      if (this._events.removeListener)
-        this.emit('removeListener', type, listener);
-    }
+        function g() {
+          this.removeListener(type, g);
+          listener.apply(this, arguments);
+        }
 
-    return this;
-  };
-  EventEmitter.prototype.removeAllListeners = function(type) {
-    var key, listeners;
+        g.listener = listener;
+        this.on(type, g);
 
-    if (!this._events)
-      return this;
-
-    // not listening for removeListener, no need to emit
-    if (!this._events.removeListener) {
-      if (arguments.length === 0)
-        this._events = {};
-      else if (this._events[type])
-        this._events[type] = undefined;
-      return this;
-    }
-
-    // emit removeListener for all listeners on all events
-    if (arguments.length === 0) {
-      for (key in this._events) {
-        if (key === 'removeListener') continue;
-        this.removeAllListeners(key);
+        return this;
       }
-      this.removeAllListeners('removeListener');
-      this._events = {};
-      return this;
-    }
+    }, {
+      key: 'removeListener',
+      value: function removeListener(type, listener) {
+        var list, position, length, i;
 
-    listeners = this._events[type];
+        if (typeof listener !== 'function') throw TypeError('listener must be a function');
 
-    if (typeof listeners === 'function') {
-      this.removeListener(type, listeners);
-    } else {
-      // LIFO order
-      while (listeners.length)
-        this.removeListener(type, listeners[listeners.length - 1]);
-    }
-    this._events[type] = undefined;
+        if (!this._events || !this._events[type]) return this;
 
-    return this;
-  };
-  EventEmitter.prototype.listeners = function(type) {
+        list = this._events[type];
+        length = list.length;
+        position = -1;
+
+        if (list === listener || typeof list.listener === 'function' && list.listener === listener) {
+          this._events[type] = undefined;
+          if (this._events.removeListener) this.emit('removeListener', type, listener);
+        } else if (typeof list === 'object') {
+          for (i = length; i-- > 0;) {
+            if (list[i] === listener || list[i].listener && list[i].listener === listener) {
+              position = i;
+              break;
+            }
+          }
+
+          if (position < 0) return this;
+
+          if (list.length === 1) {
+            list.length = 0;
+            this._events[type] = undefined;
+          } else {
+            list.splice(position, 1);
+          }
+
+          if (this._events.removeListener) this.emit('removeListener', type, listener);
+        }
+
+        return this;
+      }
+    }, {
+      key: 'removeAllListeners',
+      value: function removeAllListeners(type) {
+        var key, listeners;
+
+        if (!this._events) return this;
+
+        // not listening for removeListener, no need to emit
+        if (!this._events.removeListener) {
+          if (arguments.length === 0) this._events = {};else if (this._events[type]) this._events[type] = undefined;
+          return this;
+        }
+
+        // emit removeListener for all listeners on all events
+        if (arguments.length === 0) {
+          for (key in this._events) {
+            if (key === 'removeListener') continue;
+            this.removeAllListeners(key);
+          }
+          this.removeAllListeners('removeListener');
+          this._events = {};
+          return this;
+        }
+
+        listeners = this._events[type];
+
+        if (typeof listeners === 'function') {
+          this.removeListener(type, listeners);
+        } else {
+          // LIFO order
+          while (listeners.length) this.removeListener(type, listeners[listeners.length - 1]);
+        }
+        this._events[type] = undefined;
+
+        return this;
+      }
+    }, {
+      key: 'listeners',
+      value: function listeners(type) {
+        var ret;
+        if (!this._events || !this._events[type]) ret = [];else if (typeof this._events[type] === 'function') ret = [this._events[type]];else ret = this._events[type].slice();
+        return ret;
+      }
+    }]);
+
+    return EventEmitter;
+  })();
+
+  exports.EventEmitter = EventEmitter;
+
+  EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+  EventEmitter.listenerCount = function (emitter, type) {
     var ret;
-    if (!this._events || !this._events[type])
-      ret = [];
-    else if (typeof this._events[type] === 'function')
-      ret = [this._events[type]];
-    else
-      ret = this._events[type].slice();
+    if (!emitter._events || !emitter._events[type]) ret = 0;else if (typeof emitter._events[type] === 'function') ret = 1;else ret = emitter._events[type].length;
     return ret;
   };
-  EventEmitter.listenerCount = function(emitter, type) {
-    var ret;
-    if (!emitter._events || !emitter._events[type])
-      ret = 0;
-    else if (typeof emitter._events[type] === 'function')
-      ret = 1;
-    else
-      ret = emitter._events[type].length;
-    return ret;
+  EventEmitter.inherits = function (ctor) {
+    _utils['default'].inherits(ctor, EventEmitter);
   };
 
-  function Promise(done) {
-    this.results = null;
-    this.errors  = null;
-    this.ended   = false;
+  var _Promise = (function () {
+    function _Promise() {
+      var resolver = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
 
-    // Done Callback
-    if ('function' === typeof done) {
-      this.then(done);
+      _classCallCheck(this, _Promise);
+
+      this._settled = false;
+      this._success = false;
+      this._args = [];
+      this._callbacks = [];
+      this._onReject = noop;
+
+      resolver(this.resolve.bind(this), this.reject.bind(this));
     }
-  }
-  utils.inherits(Promise, EventEmitter);
-  Promise.prototype.resolve = function() {
-    // Arguments processing
-    var args = slice(arguments);
 
-    // Done
-    this.emit('fulfill', args);
-    this.ended   = true;
-    this.results = args;
+    _createClass(_Promise, [{
+      key: 'then',
+      value: function then(onResolve) {
+        var _this = this;
 
-    return this;
-  };
-  Promise.prototype.reject = function() {
-    // Arguments processing
-    var args = slice(arguments);
+        var onReject = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
-    // Error!
-    this.emit('reject', args);
-    this.ended  = true;
-    this.errors = args;
+        var promise = new _Promise();
 
-    return this;
-  };
-  Promise.prototype.then = function(onResolve, onReject) {
-    var promise = new Promise();
-    var self = this;
+        this._onReject = onReject;
+        this._callbacks.push(function () {
+          for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+            args[_key] = arguments[_key];
+          }
 
-    onResolve = onResolve || utils.noop;
-    onReject  = onReject  || utils.noop;
+          var ret = onResolve.apply(_this, args);
 
-    var handle = function(ret) {
-      if (!!ret && typeof ret.then === 'function') {
-        ret
-          .then(function() {
-            promise.resolve.apply(promise, arguments);
-          }, function(err) {
-            promise.reject(err);
-          });
-      } else if (ret instanceof Error) {
-        promise.reject(ret);
-      }
-    };
-
-    if (self.ended && (self.results || self.errors)) {
-      if (self.results) {
-        handle(onResolve.apply(null, self.results));
-      }
-
-      if (self.errors) {
-        onReject.apply(null, self.errors)
-        handle.apply(null, self.errors);
-      }
-    } else {
-      self
-        .once('fulfill', function(args) {
-          return handle(onResolve.apply(null, args));
-        })
-        .once('reject', function(err) {
-          onReject.call(null, err)
-          return handle(err);
+          if (ret && typeof ret.then == 'function') {
+            ret.then(promise.resolve.bind(promise), promise.reject.bind(promise));
+          }
         });
+
+        if (this._settled) {
+          if (this._success) {
+            this.resolve.apply(this, this._args);
+          } else {
+            this.onReject.apply(this, this._args);
+          }
+        }
+
+        return promise;
+      }
+    }, {
+      key: 'catch',
+      value: function _catch(onReject) {
+        this._onReject = onReject;
+
+        return this;
+      }
+    }, {
+      key: 'resolve',
+      value: function resolve() {
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+          args[_key2] = arguments[_key2];
+        }
+
+        try {
+          for (var _iterator = this._callbacks[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            var handler = _step.value;
+
+            handler.apply(this, args);
+          }
+        } catch (err) {
+          _didIteratorError = true;
+          _iteratorError = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion && _iterator['return']) {
+              _iterator['return']();
+            }
+          } finally {
+            if (_didIteratorError) {
+              throw _iteratorError;
+            }
+          }
+        }
+
+        this._args = args;
+        this._settled = true;
+        this._success = true;
+      }
+    }, {
+      key: 'reject',
+      value: function reject() {
+        for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+          args[_key3] = arguments[_key3];
+        }
+
+        this._onReject.apply(this, args);
+
+        this._args = args;
+        this._settled = true;
+      }
+    }]);
+
+    return _Promise;
+  })();
+
+  var nativePromise = self.Promise;
+
+  function Promise(resolver) {
+    var promise = null;
+    var resolve = noop;
+    var reject = noop;
+
+    if (nativePromise) {
+      promise = new nativePromise(function (_1, _2) {
+        resolve = _1;
+        reject = _2;
+      });
+      promise.resolve = function () {
+        for (var _len4 = arguments.length, args = Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
+          args[_key4] = arguments[_key4];
+        }
+
+        resolve.apply(promise, args);
+      };
+      promise.reject = function () {
+        for (var _len5 = arguments.length, args = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
+          args[_key5] = arguments[_key5];
+        }
+
+        reject.apply(promise, args);
+      };
+    } else {
+      promise = new _Promise();
     }
 
     return promise;
-  };
-  Promise.prototype.fail = function(callback) {
-    var self = this;
-
-    if (self.ended && self.errors !== null) {
-      // Reject Before
-      callback.apply(self, self.errors);
-    } else {
-      // Event listening
-      self.once('reject', function(args) {
-        callback.apply(self, args);
-
-        self.ended = false;
-      });
-    }
-
-    return self;
-  };
-  function slice(argv) {
-    var args = [];
-
-    for (var i = 0; i < argv.length; i++) {
-      args[i] = argv[i];
-    }
-
-    return args;
   }
-
-  return {
-    EventEmitter: EventEmitter,
-    Promise: Promise
-  };
 });
-def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
-  
-  if ('undefined' !== typeof define && define.amd) {
-    var utils = arguments[0];
-    var events = arguments[1];
+(function (global, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['exports', 'module', './utils.js', './deps/events.js'], factory);
+  } else if (typeof exports !== 'undefined' && typeof module !== 'undefined') {
+    factory(exports, module, require('./utils.js'), require('./deps/events.js'));
   } else {
-    var utils = require('min.utils');
-    var events = require('min.deps.events');
+    var mod = {
+      exports: {}
+    };
+    factory(mod.exports, mod, global.utils, global.events);
+    global.mix = mod.exports;
   }
+})(this, function (exports, module, _utilsJs, _depsEventsJs) {
+  'use strict';
 
-  var Promise = events.Promise;
+  var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
+
+  function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _utils = _interopRequireDefault(_utilsJs);
+
+  var self = undefined || window || global;
+
+  var noop = _utils['default'].noop;
 
   var min = {};
+  module.exports = min;
 
   var _keysTimer = null;
 
@@ -572,43 +733,47 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback Callback
    * @return {Promise}           Promise Object
    */
-  min.set = function(key, value, callback) {
-    var self = this;
+  min.set = function (key, value, callback) {
+    var _this = this;
 
     // Promise Object
-    var promise = new Promise(function() {
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (_) {
+      _this.emit('set', key, value);
+
       if (_keysTimer) {
         clearTimeout(_keysTimer);
       }
 
-      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
+      _keysTimer = setTimeout(_this.save.bind(_this), 1000);
     });
 
     // Store
     var store = this.store;
 
     // Callback and Promise's shim
-    callback = callback || utils.noop;
+    callback = callback || _utils['default'].noop;
 
     // Key prefix
     var $key = 'min-' + key;
 
     if (store.async) {
       // Async Store Operating
-      var load = function() {
+      var load = function load(_) {
         // Value processing
         var $value = JSON.stringify(value);
-        store.set($key, $value, function(err) {
+        store.set($key, $value, function (err) {
           if (err) {
             // Error!
             promise.reject(err);
             return callback(err);
           }
 
-          self._keys[key] = 0;
+          _this._keys[key] = 0;
 
           // Done
-          promise.resolve(key, value);
+          promise.resolve([key, value]);
           callback(null, key, value);
         });
       };
@@ -622,20 +787,17 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
         // Value processing
         var $value = JSON.stringify(value);
         store.set($key, $value);
-        self._keys[key] = 0;
+        this._keys[key] = 0;
 
         // Done
-        promise.resolve(key, value);
+        promise.resolve([key, value]);
         callback(null, key, value);
-      } catch(err) {
+      } catch (err) {
         // Error!
         promise.reject(err);
         callback(err);
       }
     }
-
-    // Event emitting
-    this.emit('set', key, value);
 
     return promise;
   };
@@ -647,17 +809,15 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback Callback
    * @return {Promise}           Promise Object
    */
-  min.setnx = function(key, value, callback) {
+  min.setnx = function (key, value) {
+    var _this2 = this;
+
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
     // Promise Object
-    var promise = new Promise();
+    var promise = new _depsEventsJs.Promise();
 
-    var self = this;
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-
-    self.exists(key, function(err, exists) {
+    this.exists(key, function (err, exists) {
       if (err) {
         callback(err);
         promise.reject(err);
@@ -667,16 +827,14 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
         // The key is exists
         return promise.reject(new Error('The key is exists.'));
       } else {
-        self.set(key, value, callback)
-          .then(function(key, value) {
-            // Done
-            callback(null, key, value);
-            promise.resolve(key, value);
-          })
-          .fail(function(err) {
-            callback(err);
-            promise.reject(err);
-          });          
+        _this2.set(key, value, callback).then(function (key, value) {
+          // Done
+          callback(null, key, value);
+          promise.resolve([key, value]);
+        }, function (err) {
+          callback(err);
+          promise.reject(err);
+        });
       }
     });
 
@@ -691,37 +849,33 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback Callback
    * @return {Promise}           promise object
    */
-  min.setex = function(key, seconds, value, callback) {
+  min.setex = function (key, seconds, value) {
+    var _this3 = this;
+
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
 
     // Promise Object
-    var promise = new Promise();
-
-    var self = this;
+    var promise = new _depsEventsJs.Promise();
 
     // TTL
-    function timeout() {
-      self.del(key, utils.noop);
-    }
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
+    var timeout = function timeout(_) {
+      _this3.del(key, noop);
+    };
 
     // Set
-    self.set(key, value, function(err, result) {
+    this.set(key, value, function (err, result) {
       // Done
       setTimeout(timeout, seconds * 1000);
       callback(err, result);
-    })
-      .then(function(key, value) {
-        // Done
-        setTimeout(timeout, seconds * 1000);
-        promise.resolve(key, value);
-        callback(null, key, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+    }).then(function (key, value) {
+      // Done
+      setTimeout(timeout, seconds * 1000);
+      promise.resolve([key, value]);
+      callback(null, key, value);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
@@ -734,33 +888,30 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback Callback
    * @return {Promise}           promise object
    */
-  min.psetex = function(key, milliseconds, value, callback) {
+  min.psetex = function (key, milliseconds, value) {
+    var _this4 = this,
+        _arguments = arguments;
+
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
 
     // Promise Object
-    var promise = new Promise();
-
-    var self = this;
+    var promise = new _depsEventsJs.Promise();
 
     // TTL
-    function timeout() {
-      self.del(key, utils.noop);
-    }
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
+    var timeout = function timeout(_) {
+      _this4.del(key, _utils['default'].noop);
+    };
 
     // Set
-    self.set(key, value, function(err, result) {
+    this.set(key, value, function (err, result) {
       // Done
       setTimeout(timeout, milliseconds);
       callback(err, result);
-    })
-      .then(function() {
+    }).then(function (_) {
       // Done
-        setTimeout(timeout, milliseconds);
-        promise.resolve.apply(promise, arguments);
-      })
-      .fail(promise.reject.bind(promise));
+      setTimeout(timeout, milliseconds);
+      promise.resolve.apply(promise, _arguments);
+    }, promise.reject.bind(promise));
 
     return promise;
   };
@@ -771,10 +922,13 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback Callback
    * @return {Promise}           promise object
    */
-  min.mset = function(plainObject, callback) {
-    var promise = new Promise();
+  min.mset = function (plainObject) {
+    var _this5 = this,
+        _arguments2 = arguments;
 
-    var self = this;
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise();
 
     // keys
     var keys = Object.keys(plainObject);
@@ -785,36 +939,31 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
     var results = [];
     var errors = [];
 
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-
     // Loop
-    function next(key, index) {
+    var next = function next(key, index) {
       // remove the current element of the plainObject
       delete keys[index];
 
-      self.set(key, plainObject[key])
-        .then(function() {
-          results.push(arguments);
+      _this5.set(key, plainObject[key]).then(function (_) {
+        results.push(_arguments2);
 
-          i++;
-          if (keys[i]) {
-            next(keys[i], i);
-          } else {
-            out();
-          }
-        })
-        .fail(function(err) {
-          errors.push(err);
+        i++;
+        if (keys[i]) {
+          next(keys[i], i);
+        } else {
+          out();
+        }
+      }, function (err) {
+        errors.push(err);
 
-          i++;
-          if (keys[i]) {
-            return next(keys[i], i);
-          } else {
-            return out();
-          }
-        });
-    }
+        i++;
+        if (keys[i]) {
+          return next(keys[i], i);
+        } else {
+          return out();
+        }
+      });
+    };
 
     function out() {
       if (errors.length) {
@@ -837,39 +986,36 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback Callback
    * @return {Promise}           promise object
    */
-  min.msetnx = function(plainObject, callback) {
-    var promise = new Promise();
+  min.msetnx = function (plainObject) {
+    var _this6 = this,
+        _arguments3 = arguments;
 
-    var self = this;
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
+    var promise = new _depsEventsJs.Promise();
     var keys = Object.keys(plainObject);
     var i = 0;
 
     var results = [];
     var errors = [];
 
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-
-    function next(key, index) {
+    var next = function next(key, index) {
       delete keys[index];
 
-      self.setnx(key, plainObject[key])
-        .then(function() {
-          results.push(arguments);
+      _this6.setnx(key, plainObject[key]).then(function (_) {
+        results.push(_arguments3);
 
-          i++;
-          if (keys[i]) {
-            next(keys[i], i);
-          } else {
-            out();
-          }
-        })
-        .fail(function(err) {
-          errors.push(err);
+        i++;
+        if (keys[i]) {
+          next(keys[i], i);
+        } else {
           out();
-        });
-    }
+        }
+      }, function (err) {
+        errors.push(err);
+        out();
+      });
+    };
 
     function out() {
       if (errors.length) {
@@ -893,37 +1039,34 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.append = function(key, value, callback) {
-    var self = this;
-    var promise = new Promise();
-    callback = callback || utils.noop;
+  min.append = function (key, value) {
+    var _this7 = this;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var p = new Promise();
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
-          p.resolve('');
+    var promise = new _depsEventsJs.Promise();
 
-          return p;
-        }
-      })
-      .then(function(currVal) {
-        return self.set(key, currVal + value);
-      })
-      .then(function(key, value) {
-        return self.strlen(key);
-      })
-      .then(function(len) {
-        promise.resolve(len);
-        callback(null, len);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this7.get(key);
+      } else {
+        var p = new _depsEventsJs.Promise();
+
+        p.resolve('');
+
+        return p;
+      }
+    }).then(function (currVal) {
+      return _this7.set(key, currVal + value);
+    }).then(function (key, value) {
+      return _this7.strlen(key);
+    }).then(function (len) {
+      promise.resolve(len);
+      callback(null, len);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
@@ -934,27 +1077,29 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback Callback
    * @return {Promise}           Promise Object
    */
-  min.get = function(key, callback) {
-    var self = this;
+  min.get = function (key) {
+    var _this8 = this;
+
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
     // Promise Object
-    var promise = new Promise(function(value) {
-      self.emit('get', key, value);
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (value) {
+      return _this8.emit('get', key, value);
     });
 
     // Store
     var store = this.store;
 
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
     // Key prefix
     var $key = 'min-' + key;
 
     if (store.async) {
       // Async Store Operating
-      var load = function() {
+      var load = function load(_) {
         // Value processing
-        store.get($key, function(err, value) {
+        store.get($key, function (err, value) {
           if (err) {
             var _err = new Error('no such key');
             // Error!
@@ -973,7 +1118,6 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
             promise.resolve(err);
             callback(err);
           }
-
         });
       };
       if (store.ready) {
@@ -989,17 +1133,23 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
         if (_value) {
           var value = JSON.parse(_value);
           // Done
-          promise.resolve(value);
+          setTimeout(function (_) {
+            return promise.resolve(value);
+          }, 100);
           callback(null, value);
         } else {
           var err = new Error('no such key');
 
-          promise.reject(err);
+          setTimeout(function (_) {
+            return promise.reject(err);
+          }, 100);
           callback(err);
         }
-      } catch(err) {
+      } catch (err) {
         // Error!
-        promise.reject(err);
+        setTimeout(function (_) {
+          return promise.reject(err);
+        }, 100);
         callback(err);
       }
     }
@@ -1007,26 +1157,28 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
     return promise;
   };
 
-  min.getrange = function(key, start, end, callback) {
-    var self = this;
-    var promise = new Promise(function(value) {
-      self.emit('getrange', key, start, end, value);
+  min.getrange = function (key, start, end) {
+    var _this9 = this;
+
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (value) {
+      return _this9.emit('getrange', key, start, end, value);
     });
-    callback = callback || utils.noop;
 
     var len = end - start + 1;
 
-    self.get(key)
-      .then(function(value) {
-        var val = value.substr(start, len);
+    this.get(key).then(function (value) {
+      var val = value.substr(start, len);
 
-        promise.resolve(val);
-        callback(null, val);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      promise.resolve(val);
+      callback(null, val);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
@@ -1037,51 +1189,66 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback Callback
    * @return {Promise}           promise object
    */
-  min.mget = function(keys, callback) {
+  min.mget = function (keys) {
+    var _this10 = this;
+
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
     // Promise Object
-    var promise = new Promise();
-
-    var self = this;
+    var promise = new _depsEventsJs.Promise();
 
     var i = 0;
     var results = [];
     var errors = [];
 
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
+    var next = function next(_x17, _x18) {
+      var _again = true;
 
-    function next(key, index) {
-      delete keys[index];
+      _function: while (_again) {
+        var key = _x17,
+            index = _x18;
+        _again = false;
 
-      self.get(key, function(err, value) {
-        if (err) {
-          errors.push(err);
-          results.push(null);
+        delete keys[index];
+
+        if (!key) {
+          i++;
+          _x17 = keys[i];
+          _x18 = i;
+          _again = true;
+          continue _function;
+        }
+        _this10.get(key, function (err, value) {
+          if (err) {
+            errors.push(err);
+            results.push(null);
+
+            i++;
+            if (keys[i]) {
+              return next(keys[i], i);
+            } else {
+              return out();
+            }
+          }
+
+          results.push(value);
 
           i++;
           if (keys[i]) {
-            return next(keys[i], i);
+            next(keys[i], i);
           } else {
-            return out();
+            out();
           }
-        }
-
-        results.push(value);
-
-        i++;
-        if (keys[i]) {
-          next(keys[i], i);
-        } else {
-          out();
-        }
-      });
-    }
+        });
+      }
+    };
 
     function out() {
       if (errors.length) {
+        callback(errors);
         promise.reject(errors);
       } else {
+        callback(null, results);
         promise.resolve(results);
       }
     }
@@ -1098,33 +1265,30 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback Callback
    * @return {Promise}           promise object
    */
-  min.getset = function(key, value, callback) {
-    var self = this;
-    var promise = new Promise(function(old) {
-      self.emit('getset', key, value, old);
-    });
+  min.getset = function (key, value) {
+    var _this11 = this;
 
-    // Callback and Promise's shim
-    if ('undefined' == typeof callback) {
-      callback = utils.noop;
-    }
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (old) {
+      return _this11.emit('getset', key, value, old);
+    });
 
     var _value = null;
 
-    self.get(key)
-      .then(function($value) {
-        _value = $value;
+    this.get(key).then(function ($value) {
+      _value = $value;
 
-        return self.set(key, value);
-      })
-      .then(function() {
-        promise.resolve(_value);
-        callback(null, _value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      return _this11.set(key, value);
+    }).then(function (_) {
+      promise.resolve(_value);
+      callback(null, _value);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
@@ -1135,29 +1299,27 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.strlen = function(key, callback) {
-    var self = this;
-    var promise = new Promise();
-    callback = callback || utils.noop;
+  min.strlen = function (key) {
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
-    self.get(key)
-      .then(function(value) {
-        if ('string' === typeof value) {
-          var len = value.length;
+    var promise = new _depsEventsJs.Promise();
 
-          promise.resolve(len);
-          callback(null, len);
-        } else {
-          var err = new TypeError();
+    this.get(key).then(function (value) {
+      if ('string' === typeof value) {
+        var len = value.length;
 
-          promise.reject(err);
-          callback(err);
-        }
-      })
-      .fail(function(err) {
+        promise.resolve(len);
+        callback(null, len);
+      } else {
+        var err = new TypeError();
+
         promise.reject(err);
         callback(err);
-      });
+      }
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
@@ -1168,44 +1330,40 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.incr = function(key, callback) {
-    var self = this;
+  min.incr = function (key) {
+    var _this12 = this;
 
-    var promise = new Promise(function(value) {
-      self.emit('incr', key, value);
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (value) {
+      return _this12.emit('incr', key, value);
     });
-    callback = callback || utils.noop;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var p = new Promise();
+    this.get(key).then(function () {
+      var curr = arguments.length <= 0 || arguments[0] === undefined ? 0 : arguments[0];
 
-          p.resolve(0);
+      if (isNaN(parseInt(curr))) {
+        promise.reject('value wrong');
+        return callback('value wrong');
+      }
 
-          return p;
-        }
-      })
-      .then(function(curr) {
-        if (isNaN(parseInt(curr))) {
-          promise.reject('value wrong');
-          return callback('value wrong');
-        }
+      curr = parseInt(curr);
 
-        curr = parseInt(curr);
+      return _this12.set(key, ++curr);
+    }).then(function (_ref) {
+      var _ref2 = _slicedToArray(_ref, 2);
 
-        return self.set(key, ++curr);
-      })
-      .then(function(key, value) {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      var key = _ref2[0];
+      var value = _ref2[1];
+
+      promise.resolve(value);
+      callback(null, value);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
@@ -1217,146 +1375,157 @@ def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, mo
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.incrby = function(key, increment, callback) {
-    var self = this;
-    var promise = new Promise(function(value) {
-      self.emit('incrby', key, value);
+  min.incrby = function (key, increment) {
+    var _this13 = this;
+
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (value) {
+      return _this13.emit('incrby', key, increment, value);
     });
-    callback = callback || utils.noop;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var p = new Promise();
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this13.get(key);
+      } else {
+        var p = new _depsEventsJs.Promise();
 
-          p.resolve(0);
+        p.resolve(0);
 
-          return p;
-        }
-      })
-      .then(function(curr) {
-        if (isNaN(parseFloat(curr))) {
-          promise.reject('value wrong');
-          return callback('value wrong');
-        }
+        return p;
+      }
+    }).then(function (curr) {
+      if (isNaN(parseFloat(curr))) {
+        promise.reject('value wrong');
+        return callback('value wrong');
+      }
 
-        curr = parseFloat(curr);
+      curr = parseFloat(curr);
 
-        return self.set(key, curr + increment);
-      })
-      .then(function(key, value) {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      return _this13.set(key, curr + increment);
+    }).then(function (key, value) {
+      promise.resolve(value);
+      callback(null, value);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
 
   min.incrbyfloat = min.incrby;
 
-  min.decr = function(key, callback) {
-    var self = this;
-    var promise = new Promise(function(curr) {
-      self.emit('decr', key, curr);
+  min.decr = function (key) {
+    var _this14 = this;
+
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (curr) {
+      return _this14.emit('decr', key, curr);
     });
-    callback = callback || utils.noop;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var p = new Promise();
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this14.get(key);
+      } else {
+        var p = new _depsEventsJs.Promise();
 
-          p.resolve(0);
+        p.resolve(0);
 
-          return p;
-        }
-      })
-      .then(function(curr) {
-        if (isNaN(parseInt(curr))) {
-          promise.reject('value wrong');
-          return callback('value wrong');
-        }
+        return p;
+      }
+    }).then(function (curr) {
+      if (isNaN(parseInt(curr))) {
+        promise.reject('value wrong');
+        return callback('value wrong');
+      }
 
-        curr = parseInt(curr);
+      curr = parseInt(curr);
 
-        return self.set(key, --curr);
-      })
-      .then(function(key, value) {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      return _this14.set(key, --curr);
+    }).then(function (key, value) {
+      promise.resolve(value);
+      callback(null, value);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
 
-  min.decrby = function(key, decrement, callback) {
-    var self = this;
-    var promise = new Promise(function(curr) {
-      self.emit('decrby', key, decrement, curr);
+  min.decrby = function (key, decrement) {
+    var _this15 = this;
+
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+    promise.then(function (curr) {
+      return _this15.emit('decrby', key, decrement, curr);
     });
-    callback = callback || utils.noop;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var p = new Promise();
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this15.get(key);
+      } else {
+        var p = new _depsEventsJs.Promise();
 
-          p.resolve(0);
+        p.resolve(0);
 
-          return p;
-        }
-      })
-      .then(function(curr) {
-        if (isNaN(parseInt(curr))) {
-          promise.reject('value wrong');
-          return callback('value wrong');
-        }
+        return p;
+      }
+    }).then(function (curr) {
+      if (isNaN(parseInt(curr))) {
+        promise.reject('value wrong');
+        return callback('value wrong');
+      }
 
-        curr = parseInt(curr);
+      curr = parseInt(curr);
 
-        return self.set(key, curr - decrement);
-      })
-      .then(function(key, value) {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      return _this15.set(key, curr - decrement);
+    }).then(function (key, value) {
+      promise.resolve(value);
+      callback(null, value);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
-
-  return min;
 });
-def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
-  
-  if ('undefined' !== typeof define && define.amd) {
-    var utils = arguments[0];
-    var events = arguments[1];
+(function (global, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['exports', 'module', './utils.js', './deps/events.js'], factory);
+  } else if (typeof exports !== 'undefined' && typeof module !== 'undefined') {
+    factory(exports, module, require('./utils.js'), require('./deps/events.js'));
   } else {
-    var utils = require('min.utils');
-    var events = require('min.deps.events');
+    var mod = {
+      exports: {}
+    };
+    factory(mod.exports, mod, global.utils, global.events);
+    global.hash = mod.exports;
   }
+})(this, function (exports, module, _utilsJs, _depsEventsJs) {
+  'use strict';
 
-  var Promise = events.Promise;
+  var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
+
+  function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _utils = _interopRequireDefault(_utilsJs);
+
+  var self = undefined || window || global;
+
+  var noop = _utils['default'].noop;
 
   var min = {};
+  module.exports = min;
 
   /**
    * Set the field in the hash on the key with the value
@@ -1366,16 +1535,15 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise object
    */
-  min.hset = function(key, field, value, callback) {
-    var self = this;
-    var promise = new Promise(function() {
-      self.emit('hset', key, field, value);
-    });
+  min.hset = function (key, field, value) {
+    var _this = this;
 
-    callback = callback || utils.noop;
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise();
 
     // check the key status
-    self.exists(key, function(err, exists) {
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
@@ -1383,7 +1551,7 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
 
       if (exists) {
         // fetch the value
-        self.get(key, function(err, body) {
+        _this.get(key, function (err, body) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -1392,7 +1560,7 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
           // update the hash
           body[field] = value;
 
-          self.set(key, body, function(err, _key, _value) {
+          _this.set(key, body, function (err, _key, _value) {
             if (err) {
               promise.reject(err);
               return callback(err);
@@ -1408,19 +1576,21 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
 
         body[field] = value;
 
-        self.set(key, body, function(err, _key, _value) {
+        _this.set(key, body, function (err, _key, _value) {
           if (err) {
-            promise.reject(err);
+            reject(err);
             return callback(err);
           }
 
-          self._keys[key] = 1;
+          _this._keys[key] = 1;
 
-          promise.resolve(key, field, value);
+          promise.resolve([key, field, value]);
           callback(null, key, field, value);
         });
       }
-
+    });
+    promise.then(function (_) {
+      _this.emit('hset', key, field, value);
     });
 
     return promise;
@@ -1434,21 +1604,23 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}            promise
    */
-  min.hsetnx = function(key, field, value, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.hsetnx = function (key, field, value) {
+    var _this2 = this;
 
-    self.hexists(key, field, function(err, exists) {
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise();
+
+    this.hexists(key, field, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (!exists) {
-        self.hset(key, field, value, function(err) {
+        _this2.hset(key, field, value, function (err) {
           if (err) {
-            promise.reject(err);
+            reject(err);
             callback(err);
           }
 
@@ -1473,21 +1645,21 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.hmset = function(key, docs, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.hmset = function (key, docs) {
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
 
     var keys = Object.keys(docs);
     var replies = [];
 
-    var multi = self.multi();
+    var multi = this.multi();
 
-    keys.forEach(function(field) {
+    keys.forEach(function (field) {
       multi.hset(key, field, docs[field]);
     });
 
-    multi.exec(function(err, replies) {
+    multi.exec(function (err, replies) {
       callback(null, replies);
       promise.resolve(replies);
     });
@@ -1502,28 +1674,28 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.hget = function(key, field, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.hget = function (key, field) {
+    var _this3 = this;
 
-    self.hexists(key, field, function(err, exists) {
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+
+    this.hexists(key, field, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key)
-          .then(function(value) {
-            var data = value[field];
-            promise.resolve(data);
-            callback(null, data);
-          })
-          .fail(function(err) {
-            promise.reject(err);
-            callback(err);
-          });
+        _this3.get(key).then(function (value) {
+          var data = value[field];
+          promise.resolve(data);
+          callback(null, data);
+        }, function (err) {
+          promise.reject(err);
+          callback(err);
+        });
       } else {
         var err = new Error('no such field');
 
@@ -1542,26 +1714,26 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.hmget = function(key, fields, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.hmget = function (key, fields) {
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
 
     var values = [];
 
-    var multi = self.multi();
+    var multi = this.multi();
 
-    fields.forEach(function(field) {
+    fields.forEach(function (field) {
       multi.hget(key, field);
     });
 
-    multi.exec(function(err, replies) {
+    multi.exec(function (err, replies) {
       if (err) {
         callback(err);
         return promise.reject(err);
       }
 
-      values = replies.map(function(row) {
+      values = replies.map(function (row) {
         return row[0];
       });
 
@@ -1578,25 +1750,24 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.hgetall = function(key, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.hgetall = function (key) {
+    var _this4 = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise();
+
+    this.exists(key, function (err, exists) {
       if (err) {
         callback(err);
         return promise.reject(err);
       }
 
       if (exists) {
-        self.get(key)
-          .then(function(data) {
-            promise.resolve(data);
-            callback(null, data);
-          })
-          .fail(function(err) {
-          });
+        _this4.get(key).then(function (data) {
+          promise.resolve(data);
+          callback(null, data);
+        }, function (err) {});
       } else {
         var err = new Error('no such key');
 
@@ -1615,38 +1786,44 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.hdel = function(key, field, callback) {
-    var self = this;
-    var promise = new Promise(function(key, field, value) {
-      self.emit('hdel', key, field, value);
-    });
-    callback = callback || utils.noop;
+  min.hdel = function (key, field) {
+    var _this5 = this;
 
-    self.hexists(key. field, function(err, exists) {
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (_ref) {
+      var _ref2 = _slicedToArray(_ref, 3);
+
+      var key = _ref2[0];
+      var field = _ref2[1];
+      var value = _ref2[2];
+
+      _this5.emit('hdel', key, field, value);
+    });
+
+    this.hexists(key.field, function (err, exists) {
       if (err) {
         callback(err);
         return promise.reject(err);
       }
 
       if (exists) {
-        self.get(key)
-          .then(function(data) {
-            var removed = data[field];
-            delete data[field];
+        _this5.get(key).then(function (data) {
+          var removed = data[field];
+          delete data[field];
 
-            self.set(key, data)
-              .then(function() {
-                promise.resolve(key, field, removed);
-                callback(null, key, field, removed);
-              })
-              .fail(function(err) {
-                promise.reject(err);
-                callback(err);
-              });
-          })
-          .fail(function(err) {
+          _this5.set(key, data).then(function (_) {
+            promise.resolve([key, field, removed]);
+            callback(null, key, field, removed);
+          }, function (err) {
+            promise.reject(err);
             callback(err);
-          })
+          });
+        }, function (err) {
+          callback(err);
+        });
       } else {
         var err = new Error('no such key');
 
@@ -1664,29 +1841,29 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.hlen = function(key, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.hlen = function (key) {
+    var _this6 = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise();
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key)
-          .then(function(data) {
-            var length = Object.keys(data).length;
+        _this6.get(key).then(function (data) {
+          var length = Object.keys(data).length;
 
-            promise.resolve(length);
-            callback(null, length);
-          })
-          .fail(function(err) {
-            promise.reject(err);
-            callback(err);
-          });
+          promise.resolve(length);
+          callback(null, length);
+        }, function (err) {
+          promise.reject(err);
+          callback(err);
+        });
       } else {
         promise.resolve(0);
         callback(null, 0);
@@ -1702,29 +1879,29 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.hkeys = function(key, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.hkeys = function (key) {
+    var _this7 = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise();
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key)
-          .then(function(data) {
-            var keys = Object.keys(data);
+        _this7.get(key).then(function (data) {
+          var keys = Object.keys(data);
 
-            promise.resolve(keys);
-            callback(null, keys);
-          })
-          .fail(function(err) {
-            promise.reject(err);
-            callback(err);
-          });
+          promise.resolve(keys);
+          callback(null, keys);
+        }, function (err) {
+          promise.reject(err);
+          callback(err);
+        });
       } else {
         promise.resolve(0);
         callback(null, 0);
@@ -1741,221 +1918,228 @@ def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise object
    */
-  min.hexists = function(key, field, callback) {
-    var promise = new Promise();
-    var self = this;
+  min.hexists = function (key, field) {
+    var _this8 = this;
 
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          promise.resolve(false);
-          callback(null, false);
-        }
-      })
-      .then(function(value) {
-        if (value.hasOwnProperty(field)) {
-          promise.resolve(true);
-          callback(null, true);
-        } else {
-          promise.resolve(false);
-          callback(null, false);
-        }
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+    var promise = new _depsEventsJs.Promise();
+
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this8.get(key);
+      } else {
+        promise.resolve(false);
+        callback(null, false);
+      }
+    }).then(function (value) {
+      if (value.hasOwnProperty(field)) {
+        promise.resolve(true);
+        callback(null, true);
+      } else {
+        promise.resolve(false);
+        callback(null, false);
+      }
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
 
-  min.hincr = function(key, field, callback) {
-    var self = this;
-    var promise = new Promise(function(curr) {
-      self.emit('hincr', key, field, curr);
+  min.hincr = function (key, field) {
+    var _this9 = this;
+
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (curr) {
+      _this9.emit('hincr', key, field, curr);
     });
-    callback = callback || utils.noop;
 
-    self.hexists(key, field)
-      .then(function(exists) {
-        if (exists) {
-          return self.hget(exists);
-        } else {
-          var p = new Promise();
+    this.hexists(key, field).then(function (exists) {
+      if (exists) {
+        return _this9.hget(exists);
+      } else {
+        var p = new _depsEventsJs.Promise();
 
-          p.resolve(0);
+        p.resolve(0);
 
-          return p;
-        }
-      })
-      .then(function(curr) {
-        if (isNaN(parseFloat(curr))) {
-          promise.reject('value wrong');
-          return callback('value wrong');
-        }
+        return p;
+      }
+    }).then(function (curr) {
+      if (isNaN(parseFloat(curr))) {
+        promise.reject('value wrong');
+        return callback('value wrong');
+      }
 
-        curr = parseFloat(curr);
+      curr = parseFloat(curr);
 
-        return self.hset(key, field, ++curr);
-      })
-      .then(function(key, field, value) {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(null, err);
-      });
+      return _this9.hset(key, field, ++curr);
+    }).then(function (key, field, value) {
+      promise.resolve(value);
+      callback(null, value);
+    }, function (err) {
+      promise.reject(err);
+      callback(null, err);
+    });
 
     return promise;
   };
 
-  min.hincrby = function(key, field, increment, callback) {
-    var self = this;
-    var promise = new Promise(function(curr) {
-      self.emit('hincr', key, field, curr);
+  min.hincrby = function (key, field, increment) {
+    var _this10 = this;
+
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (curr) {
+      _this10.emit('hincr', key, field, curr);
     });
-    callback = callback || utils.noop;
 
-    self.hexists(key, field)
-      .then(function(exists) {
-        if (exists) {
-          return self.hget(exists);
-        } else {
-          var p = new Promise();
+    this.hexists(key, field).then(function (exists) {
+      if (exists) {
+        return _this10.hget(exists);
+      } else {
+        var p = new _depsEventsJs.Promise();
 
-          p.resolve(0);
+        p.resolve(0);
 
-          return p;
-        }
-      })
-      .then(function(curr) {
-        if (isNaN(parseFloat(curr))) {
-          promise.reject('value wrong');
-          return callback('value wrong');
-        }
+        return p;
+      }
+    }).then(function (curr) {
+      if (isNaN(parseFloat(curr))) {
+        promise.reject('value wrong');
+        return callback('value wrong');
+      }
 
-        curr = parseFloat(curr);
+      curr = parseFloat(curr);
 
-        return self.hset(key, field, curr + increment);
-      })
-      .then(function(key, field, value) {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(null, err);
-      });
+      return _this10.hset(key, field, curr + increment);
+    }).then(function (key, field, value) {
+      promise.resolve(value);
+      callback(null, value);
+    }, function (err) {
+      promise.reject(err);
+      callback(null, err);
+    });
 
     return promise;
   };
 
   min.hincrbyfloat = min.hincrby;
 
-  min.hdecr = function(key, field, callback) {
-    var self = this;
-    var promise = new Promise(function(curr) {
-      self.emit('hdecr', key, field, curr);
+  min.hdecr = function (key, field) {
+    var _this11 = this;
+
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (curr) {
+      _this11.emit('hdecr', key, field, curr);
     });
-    callback = callback || utils.noop;
 
-    self.hexists(key, field)
-      .then(function(exists) {
-        if (exists) {
-          return self.hget(key, field);
-        } else {
-          var p = new Promise();
+    this.hexists(key, field).then(function (exists) {
+      if (exists) {
+        return _this11.hget(key, field);
+      } else {
+        var p = new _depsEventsJs.Promise();
 
-          p.resolve(0);
+        p.resolve(0);
 
-          return p;
-        }
-      })
-      .then(function(curr) {
-        if (isNaN(parseFloat(curr))) {
-          promise.reject('value wrong');
-          return callback('value wrong');
-        }
+        return p;
+      }
+    }).then(function (curr) {
+      if (isNaN(parseFloat(curr))) {
+        promise.reject('value wrong');
+        return callback('value wrong');
+      }
 
-        curr = parseFloat(curr);
+      curr = parseFloat(curr);
 
-        return self.hset(key, field, --curr);
-      })
-      .then(function(key, field, value) {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      return _this11.hset(key, field, --curr);
+    }).then(function (key, field, value) {
+      promise.resolve(value);
+      callback(null, value);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
 
-  min.hdecrby = function(key, field, decrement, callback) {
-    var self = this;
-    var promise = new Promise(function(curr) {
-      self.emit('hincr', key, field, curr);
+  min.hdecrby = function (key, field, decrement) {
+    var _this12 = this;
+
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (curr) {
+      _this12.emit('hincr', key, field, curr);
     });
-    callback = callback || utils.noop;
 
-    self.hexists(key, field)
-      .then(function(exists) {
-        if (exists) {
-          return self.hget(exists);
-        } else {
-          var p = new Promise();
+    this.hexists(key, field).then(function (exists) {
+      if (exists) {
+        return _this12.hget(exists);
+      } else {
+        var p = new _depsEventsJs.Promise();
 
-          p.resolve(0);
+        p.resolve(0);
 
-          return p;
-        }
-      })
-      .then(function(curr) {
-        if (isNaN(parseFloat(curr))) {
-          promise.reject('value wrong');
-          return callback('value wrong');
-        }
+        return p;
+      }
+    }).then(function (curr) {
+      if (isNaN(parseFloat(curr))) {
+        promise.reject('value wrong');
+        return callback('value wrong');
+      }
 
-        curr = parseFloat(curr);
+      curr = parseFloat(curr);
 
-        return self.hset(key, field, curr - decrement);
-      })
-      .then(function(key, field, value) {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(null, err);
-      });
+      return _this12.hset(key, field, curr - decrement);
+    }).then(function (key, field, value) {
+      promise.resolve(value);
+      callback(null, value);
+    }, function (err) {
+      promise.reject(err);
+      callback(null, err);
+    });
 
     return promise;
   };
-
-  return min;
 });
-def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
-  
-  if ('undefined' !== typeof define && define.amd) {
-    var utils = arguments[0];
-    var events = arguments[1];
+(function (global, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['exports', 'module', './utils.js', './deps/events.js'], factory);
+  } else if (typeof exports !== 'undefined' && typeof module !== 'undefined') {
+    factory(exports, module, require('./utils.js'), require('./deps/events.js'));
   } else {
-    var utils = require('min.utils');
-    var events = require('min.deps.events');
+    var mod = {
+      exports: {}
+    };
+    factory(mod.exports, mod, global.utils, global.events);
+    global.list = mod.exports;
   }
+})(this, function (exports, module, _utilsJs, _depsEventsJs) {
+  'use strict';
 
-  var Promise = events.Promise;
+  var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
 
+  function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _utils = _interopRequireDefault(_utilsJs);
+
+  var self = undefined || window || global;
+
+  var noop = _utils['default'].noop;
   var min = {};
-
+  module.exports = min;
 
   /******************************
   **           List            **
@@ -1968,21 +2152,25 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.lpush = function(key, value, callback) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit('lpush', key, len);
-    });
-    callback = callback || utils.noop;
+  min.lpush = function (key, value) {
+    var _this = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (len) {
+      return _this.emit('lpush', key, value, len);
+    });
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key, function(err, data) {
+        _this.get(key, function (err, data) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -1990,7 +2178,7 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
 
           data.unshift(value);
 
-          self.set(key, data, function(err) {
+          _this.set(key, data, function (err) {
             if (err) {
               promise.reject(err);
               return callback(err);
@@ -2003,15 +2191,15 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
           });
         });
       } else {
-        var data = [ value ];
+        var data = [value];
 
-        self.set(key, data, function(err) {
+        _this.set(key, data, function (err) {
           if (err) {
             promise.reject(err);
             return callback(err);
           }
 
-          self._keys[key] = 2;
+          _this._keys[key] = 2;
 
           promise.resolve(1);
           callback(null, 1);
@@ -2029,19 +2217,25 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.lpushx = function(key, value, callback) {
-    var promise = new Promise();
-    callback = callback || utils.noop;
-    var self = this;
+  min.lpushx = function (key, value) {
+    var _this2 = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (len) {
+      return _this2.emit('lpush', key, value, len);
+    });
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key, function(err, data) {
+        _this2.get(key, function (err, data) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -2056,7 +2250,7 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
 
           data.unshift(value);
 
-          self.set(key, data, function(err) {
+          _this2.set(key, data, function (err) {
             if (err) {
               promise.reject(err);
               return callback(err);
@@ -2086,21 +2280,23 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.rpush = function(key, value, callback) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit('rpush', key, len);
-    });
-    callback = callback || utils.noop;
+  min.rpush = function (key, value, callback) {
+    var _this3 = this;
 
-    self.exists(key, function(err, exists) {
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (len) {
+      return _this3.emit('rpush', key, value, len);
+    });
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key, function(err, data) {
+        _this3.get(key, function (err, data) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -2108,7 +2304,7 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
 
           data.push(value);
 
-          self.set(key, data, function(err) {
+          _this3.set(key, data, function (err) {
             if (err) {
               promise.reject(err);
               return callback(err);
@@ -2121,9 +2317,9 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
           });
         });
       } else {
-        var data = [ value ];
+        var data = [value];
 
-        self.set(key, data, function(err) {
+        _this3.set(key, data, function (err) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -2145,19 +2341,25 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.lpushx = function(key, value, callback) {
-    var promise = new Promise();
-    callback = callback || utils.noop;
-    var self = this;
+  min.rpushx = function (key, value) {
+    var _this4 = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (len) {
+      return _this4.emit('rpush', key, value, len);
+    });
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key, function(err, data) {
+        _this4.get(key, function (err, data) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -2172,7 +2374,7 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
 
           data.push(value);
 
-          self.set(key, data, function(err) {
+          _this4.set(key, data, function (err) {
             if (err) {
               promise.reject(err);
               return callback(err);
@@ -2201,36 +2403,34 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.lpop = function(key, callback) {
-    var self = this;
-    var promise = new Promise(function(value) {
-      self.emit('lpop', key, value);
-    });
-    callback = callback || utils.noop;
+  min.lpop = function (key, callback) {
+    var _this5 = this;
+
+    var promise = new _depsEventsJs.Promise();
     var val = null;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          promise.resolve(null);
-          callback(null, null);
-        }
-      })
-      .then(function(data) {
-        val = data.shift();
+    promise.then(function (value) {
+      return _this5.emit('lpop', key, value);
+    });
 
-        return self.set(key,data);
-      })
-      .then(function() {
-        promise.resolve(val);
-        callback(null, val);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this5.get(key);
+      } else {
+        promise.resolve(null);
+        callback(null, null);
+      }
+    }).then(function (data) {
+      val = data.shift();
+
+      return _this5.set(key, data);
+    }).then(function (_) {
+      promise.resolve(val);
+      callback(null, val);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
@@ -2241,37 +2441,37 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback Callback
    * @return {Promise}           promise
    */
-  min.rpop = function(key, callback) {
-    var self = this;
-    var promise = new Promise(function(value) {
-      self.emit('rpop', key, value);
+  min.rpop = function (key) {
+    var _this6 = this;
+
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (value) {
+      return _this6.emit('rpop', key, value);
     });
-    callback = callback || utils.noop;
 
     var value = null;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          promise.resolve(null);
-          callback(null, null);
-        }
-      })
-      .then(function(data) {
-        value = data.pop();
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return self.get(key);
+      } else {
+        promise.resolve(null);
+        callback(null, null);
+      }
+    }).then(function (data) {
+      value = data.pop();
 
-        return self.set(key, data);
-      })
-      .then(function() {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      return self.set(key, data);
+    }).then(function (_) {
+      promise.resolve(value);
+      callback(null, value);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
@@ -2282,19 +2482,21 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.llen = function(key, callback) {
-    var promise = new Promise();
-    callback = callback || utils.noop;
-    var self = this;
+  min.llen = function (key) {
+    var _this7 = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise();
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key, function(err, data) {
+        _this7.get(key, function (err, data) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -2322,19 +2524,21 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.lrange = function(key, start, stop, callback) {
-    var promise = new Promise();
-    callback = callback || utils.noop;
-    var self = this;
+  min.lrange = function (key, start, stop) {
+    var _this8 = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise();
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key, function(err, data) {
+        _this8.get(key, function (err, data) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -2362,21 +2566,25 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.lrem = function(key, count, value, callback) {
-    var self = this;
-    var promise = new Promise(function(removeds) {
-      self.emit('lrem', key, removeds);
-    });
-    callback = callback || utils.noop;
+  min.lrem = function (key, count, value) {
+    var _this9 = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (removeds) {
+      return _this9.emit('lrem', key, count, value, removeds);
+    });
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key, function(err, data) {
+        _this9.get(key, function (err, data) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -2434,21 +2642,25 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.lset = function(key, index, value, callback) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit('lset', key, len);
-    });
-    callback = callback || utils.noop;
+  min.lset = function (key, index, value) {
+    var _this10 = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (len) {
+      return _this10.emit('lset', key, index, value, len);
+    });
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key, function(err, data) {
+        _this10.get(key, function (err, data) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -2463,7 +2675,7 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
 
           data[index] = value;
 
-          self.set(key, data, function(err) {
+          _this10.set(key, data, function (err) {
             if (err) {
               promise.reject(err);
               return callback(err);
@@ -2494,19 +2706,21 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.ltrim = function(key, start, stop, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.ltrim = function (key, start, stop) {
+    var _this11 = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise();
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key, function(err, data) {
+        _this11.get(key, function (err, data) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -2533,19 +2747,21 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.lindex = function(key, index, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.lindex = function (key, index) {
+    var _this12 = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key, function(err, data) {
+        _this12.get(key, function (err, data) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -2573,19 +2789,23 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.linsertBefore = function(key, pivot, value, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.linsertBefore = function (key, pivot, value, callback) {
+    var _this13 = this;
 
-    self.exists(key, function(err, exists) {
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (len) {
+      return _this13.emit('linsertBefore', key, pivot, value, len);
+    });
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key, function(err, data) {
+        _this13.get(key, function (err, data) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -2600,7 +2820,7 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
 
           data.splice(index, 1, value, pivot);
 
-          self.set(key, data, function(err) {
+          _this13.set(key, data, function (err) {
             if (err) {
               promise.reject(err);
               return callback(err);
@@ -2629,19 +2849,25 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.linsertAfter = function(key, pivot, value, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.linsertAfter = function (key, pivot, value) {
+    var _this14 = this;
 
-    self.exists(key, function(err, exists) {
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise();
+
+    promise.then(function (len) {
+      return _this14.emit('linsertAfter', key, pivot, value, len);
+    });
+
+    this.exists(key, function (err, exists) {
       if (err) {
         promise.reject(err);
         return callback(err);
       }
 
       if (exists) {
-        self.get(key, function(err, data) {
+        _this14.get(key, function (err, data) {
           if (err) {
             promise.reject(err);
             return callback(err);
@@ -2656,7 +2882,7 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
 
           data.splice(index, 0, value);
 
-          self.set(key, data, function(err) {
+          _this14.set(key, data, function (err) {
             if (err) {
               promise.reject(err);
               return callback(err);
@@ -2684,399 +2910,479 @@ def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.rpoplpush = function(src, dest, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.rpoplpush = function (src, dest) {
+    var _this15 = this;
 
-    self.rpop(src)
-      .then(function(value) {
-        return self.lpush(dest, value)
-      })
-      .then(function(length) {
-        promise.resolve(value, length);
-        callback(null, value, length);
-      })
-      .fail(function(err) {
-        callback(err);
-        promise.reject(err);
-      });
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+    var value = null;
+
+    promise.then(function (_ref) {
+      var _ref2 = _slicedToArray(_ref, 2);
+
+      var value = _ref2[0];
+      var len = _ref2[1];
+      return _this15.emit('rpoplpush', src, dest, value, len);
+    });
+
+    this.rpop(src).then(function (_) {
+      return _this15.lpush(dest, value = _);
+    }).then(function (length) {
+      promise.resolve([value, length]);
+      callback(null, value, length);
+    }, function (err) {
+      callback(err);
+      promise.reject(err);
+    });
 
     return promise;
   };
 
-  return min;
-});
-def('min.sset', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
-  
-  if ('undefined' !== typeof define && define.amd) {
-    var utils = arguments[0];
-    var events = arguments[1];
-  } else {
-    var utils = require('min.utils');
-    var events = require('min.deps.events');
-  }
+  /**
+   * Remove the last element in a list, append it to another list and return it
+   * @param  {String}   src      source
+   * @param  {String}   dest     destination
+   * @param  {Function} callback callback
+   * @return {Promise}           promise
+   */
+  min.lpoprpush = function (src, dest) {
+    var _this16 = this;
 
-  var Promise = events.Promise;
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise();
+    var value = null;
+
+    promise.then(function (value, len) {
+      return _this16.emit('lpoprpush', src, dest, value, len);
+    });
+
+    this.lpop(src).then(function (_) {
+      return _this16.rpush(dest, value = _);
+    }).then(function (length) {
+      promise.resolve(value, length);
+      callback(null, value, length);
+    }, function (err) {
+      callback(err);
+      promise.reject(err);
+    });
+
+    return promise;
+  };
+});
+(function (global, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['exports', 'module', './utils.js', './deps/events.js'], factory);
+  } else if (typeof exports !== 'undefined' && typeof module !== 'undefined') {
+    factory(exports, module, require('./utils.js'), require('./deps/events.js'));
+  } else {
+    var mod = {
+      exports: {}
+    };
+    factory(mod.exports, mod, global.utils, global.events);
+    global.set = mod.exports;
+  }
+})(this, function (exports, module, _utilsJs, _depsEventsJs) {
+  'use strict';
+
+  var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
+
+  function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _utils = _interopRequireDefault(_utilsJs);
+
+  var self = undefined || window || global;
+
+  var noop = _utils['default'].noop;
 
   var min = {};
-
+  module.exports = min;
 
   /******************************
   **           Set             **
   ******************************/
-  min.sadd = function(key, members) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit('sadd', key, len);
+  min.sadd = function (key) {
+    var _this = this,
+        _arguments = arguments;
+
+    for (var _len = arguments.length, members = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+      members[_key - 1] = arguments[_key];
+    }
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    promise.then(function (len) {
+      return _this.emit('sadd', key, len);
     });
 
-    members = Array.isArray(members) ? members : [].slice.call(arguments, 1);
     var added = 0;
 
     if (!(members[members.length - 1] instanceof Function)) {
-      var callback = utils.noop;
+      var callback = noop;
     } else {
       var callback = members.splice(members.length - 1, 1)[0];
     }
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var data = utils.arrayUnique(members);
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this.get(key);
+      } else {
+        var data = _utils['default'].arrayUnique(members);
 
-          return self.set(key, data);
-        }
-      })
-      .then(function() {
-        if (Array.isArray(arguments[0])) {
-          var data = arguments[0];
+        return _this.set(key, data);
+      }
+    }).then(function (_) {
+      if (Array.isArray(_arguments[0])) {
+        var data = _arguments[0];
 
-          for (var i = 0; i < members.length; i++) {
-            (function(index) {
-              var curr = members[index];
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
 
-              if (data.indexOf(curr) >= 0) {
-                return;
-              } else {
-                data.push(curr);
-                added++;
-              }
-            })(i);
+        try {
+          for (var _iterator = members[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+            var curr = _step.value;
+
+            if (data.indexOf(curr) >= 0) {
+              return;
+            } else {
+              data.push(curr);
+              added++;
+            }
           }
-
-          return self.set(key, data);
-        } else if (typeof arguments[0] === 'string') {
-          added += members.length;
-
-          self._keys[key] = 3;
-
-          promise.resolve(added);
-          callback(null, added);
+        } catch (err) {
+          _didIteratorError = true;
+          _iteratorError = err;
+        } finally {
+          try {
+            if (!_iteratorNormalCompletion && _iterator['return']) {
+              _iterator['return']();
+            }
+          } finally {
+            if (_didIteratorError) {
+              throw _iteratorError;
+            }
+          }
         }
-      })
-      .then(function() {
 
-        self._keys[key] = 3;
+        return _this.set(key, data);
+      } else if (typeof _arguments[0] === 'string') {
+        added += members.length;
+
+        _this._keys[key] = 3;
 
         promise.resolve(added);
         callback(null, added);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      }
+    }).then(function (_) {
+      _this._keys[key] = 3;
+
+      promise.resolve(added);
+      callback(null, added);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
 
-  min.srem = function(key, members, callback) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit('srem', key, len);
+  min.srem = function (key) {
+    var _this2 = this;
+
+    for (var _len2 = arguments.length, members = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+      members[_key2 - 1] = arguments[_key2];
+    }
+
+    var promise = new _depsEventsJs.Promise(noop);
+    var callback = noop;
+
+    promise.then(function (len) {
+      return _this2.emit('srem', key, members, len);
     });
 
-    members = [].slice.call(arguments, 1);
     var removeds = 0;
 
-    if (!(members[members.length - 1] instanceof Function)) {
-      callback = utils.noop;
+    if (members[members.length - 1] instanceof Function) {
+      callback = members.pop();
     }
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          return new Error('no such key');
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this2.get(key);
+      } else {
+        return new Error('no such key');
+      }
+    }).then(function (data) {
+      var _iteratorNormalCompletion2 = true;
+      var _didIteratorError2 = false;
+      var _iteratorError2 = undefined;
+
+      try {
+        for (var _iterator2 = members[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+          var curr = _step2.value;
+
+          var i = data.indexOf(curr);
+          if (i >= 0) {
+            data.splice(i, 1);
+            removeds++;
+          }
         }
-      })
-      .then(function(data) {
-        for (var i = 0; i < members.length; i++) {
-          (function(index) {
-            var curr = members[index];
-
-            var i = data.indexOf(curr);
-            if (i >= 0) {
-              data.splice(i, 1);
-              removeds++;
-            }
-          })(i);
+      } catch (err) {
+        _didIteratorError2 = true;
+        _iteratorError2 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion2 && _iterator2['return']) {
+            _iterator2['return']();
+          }
+        } finally {
+          if (_didIteratorError2) {
+            throw _iteratorError2;
+          }
         }
+      }
 
-        return self.set(key, data);
-      })
-      .then(function() {
+      return _this2.set(key, data);
+    }).then(function (_) {
 
-        self._keys[key] = 3;
+      _this2._keys[key] = 3;
 
-        promise.resolve(removeds);
-        callback(null, removeds);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
-    return promise;
-  };
-
-  min.smembers = function(key, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
-
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          return new Error('no such key');
-        }
-      })
-      .then(function(members) {
-        promise.resolve(members);
-        callback(null, members);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
-    return promise;
-  };
-
-  min.sismember = function(key, value, callback) {
-    var self = this;
-    var promise = new Promise();
-
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          return new Error('no such key');
-        }
-      })
-      .then(function(members) {
-        var res = members.indexOf(value) >= 0 ? 1 : 0;
-
-        promise.resolve(res);
-        callback(null, res);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
-    return promise;
-  };
-
-  min.scard = function(key, callback) {
-    var promise = new Promise();
-    callback = callback || utils.noop;
-    var self = this;
-
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          return new Error('no such key');
-        }
-      })
-      .then(function(data) {
-        var length = data.length;
-
-        promise.resolve(length);
-        callback(null, length);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
-    return promise;
-  };
-
-  min.smove = function(src, dest, member, callback) {
-    var self = this;
-    var promise = new Promise(function(ok) {
-      self.emit('smove', src, dest, member, ok);
+      promise.resolve(removeds);
+      callback(null, removeds);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
     });
 
-    members = [].slice.call(arguments, 1);
-
-    if (!(members[members.length - 1] instanceof Function)) {
-      callback = utils.noop;
-    }
-
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.sismember(src, member);
-        } else {
-          return new Error('no such key');
-        }
-      })
-      .then(function(isMember) {
-        if (isMember) {
-          return self.srem(src, member);
-        } else {
-          return new Error('no such member');
-        }
-      })
-      .then(function() {
-        return self.sismember(dest, member);
-      })
-      .then(function(isMember) {
-        if (!isMember) {
-          return self.sadd(dest, member);
-        } else {
-
-          self._keys[key] = 3;
-
-          promise.resolve(0);
-          callback(null, 0);
-        }
-      })
-      .then(function() {
-        self._keys[key] = 3;
-        promise.resolve(1);
-        callback(null, 1);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
     return promise;
   };
 
-  min.srandmember = function(key, callback) {
-    var promise = new Promise();
-    var self = this;
-    callback = callback || utils.noop;
+  min.smembers = function (key) {
+    var _this3 = this;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          promise.resolve(null);
-          callback(null, null);
-        }
-      })
-      .then(function(members) {
-        var index = Math.random() * members.length | 0;
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
-        var member = members[index];
+    var promise = new _depsEventsJs.Promise(noop);
 
-        promise.resolve(member);
-        callback(null, member);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
-    return promise;
-  };
-
-  min.spop = function(key, callback) {
-    var self = this;
-    var promise = new Promise(function(value) {
-      self.emit('spop', key, value);
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this3.get(key);
+      } else {
+        return new Error('no such key');
+      }
+    }).then(function (members) {
+      promise.resolve(members);
+      callback(null, members);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
     });
-    callback = callback || utils.noop;
+
+    return promise;
+  };
+
+  min.sismember = function (key, value) {
+    var _this4 = this;
+
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this4.get(key);
+      } else {
+        return new Error('no such key');
+      }
+    }).then(function (members) {
+      var res = members.indexOf(value) >= 0 ? 1 : 0;
+
+      promise.resolve(res);
+      callback(null, res);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
+
+    return promise;
+  };
+
+  min.scard = function (key) {
+    var _this5 = this;
+
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this5.get(key);
+      } else {
+        return new Error('no such key');
+      }
+    }).then(function (data) {
+      var length = data.length;
+
+      promise.resolve(length);
+      callback(null, length);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
+
+    return promise;
+  };
+
+  min.smove = function (src, dest, member) {
+    var _this6 = this;
+
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    promise.then(function (ok) {
+      return _this6.emit('smove', src, dest, member, ok);
+    });
+
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this6.sismember(src, member);
+      } else {
+        return new Error('no such key');
+      }
+    }).then(function (isMember) {
+      if (isMember) {
+        return _this6.srem(src, member);
+      } else {
+        return new Error('no such member');
+      }
+    }).then(function (_) {
+      return _this6.sismember(dest, member);
+    }).then(function (isMember) {
+      if (!isMember) {
+        return _this6.sadd(dest, member);
+      } else {
+
+        _this6._keys[key] = 3;
+
+        promise.resolve(0);
+        callback(null, 0);
+      }
+    }).then(function (_) {
+      _this6._keys[key] = 3;
+      promise.resolve(1);
+      callback(null, 1);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
+
+    return promise;
+  };
+
+  min.srandmember = function (key) {
+    var _this7 = this;
+
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this7.get(key);
+      } else {
+        promise.resolve(null);
+        callback(null, null);
+      }
+    }).then(function (members) {
+      var index = Math.random() * members.length || 0;
+
+      var member = members[index];
+
+      promise.resolve(member);
+      callback(null, member);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
+
+    return promise;
+  };
+
+  min.spop = function (key) {
+    var _this8 = this;
+
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    promise.then(function (value) {
+      return _this8.emit('spop', key, value);
+    });
 
     var member = null;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.srandmember(key);
-        } else {
-          promise.resolve(null);
-          callback(null, null);
-        }
-      })
-      .then(function(_member) {
-        member = _member;
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this8.srandmember(key);
+      } else {
+        promise.resolve(null);
+        callback(null, null);
+      }
+    }).then(function (_member) {
+      member = _member;
 
-        return self.srem(key, member);
-      })
-      .then(function() {
-        promise.resolve(member);
-        callback(null, member);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      return _this8.srem(key, member);
+    }).then(function (_) {
+      promise.resolve(member);
+      callback(null, member);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
 
-  min.sunion = function(keys, callback) {
-    var promise = new Promise();
-    var self = this;
+  min.sunion = function () {
+    var _this9 = this;
 
-    keys = [].slice.call(arguments);
-
-    if (!(keys[keys.length - 1] instanceof Function)) {
-      callback = utils.noop;
+    for (var _len3 = arguments.length, keys = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+      keys[_key3] = arguments[_key3];
     }
 
-    var members = [];
+    var promise = new _depsEventsJs.Promise(noop);
+    var callback = noop;
+    var loop = null;
 
-    (function loop(index) {
+    if (keys[keys.length - 1] instanceof Function) {
+      callback = keys.pop();
+    }
+
+    var members = [](loop = function (index) {
       var curr = keys[index];
 
       if (curr) {
-        self.exists(curr)
-          .then(function(exists) {
-            if (exists) {
-              return self.get(curr);
-            } else {
-              loop(++index);
-            }
-          })
-          .then(function(data) {
-            if (Array.isArray(data)) {
-              members = members.concat(data);
-            }
-
+        _this9.exists(curr).then(function (exists) {
+          if (exists) {
+            return _this9.get(curr);
+          } else {
             loop(++index);
-          })
-          .fail(function(err) {
-            promise.reject(err);
-            return callback(err);
-          });
+          }
+        }).then(function (data) {
+          if (Array.isArray(data)) {
+            members = members.concat(data);
+          }
+
+          loop(++index);
+        }, function (err) {
+          promise.reject(err);
+          return callback(err);
+        });
       } else {
-        members = utils.arrayUnique(members);
+        members = _utils['default'].arrayUnique(members);
         promise.resolve(members);
         callback(null, members);
       }
@@ -3085,88 +3391,95 @@ def('min.sset', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
     return promise;
   };
 
-  min.sunionstore = function(dest, keys, callback) {
-    var promise = new Promise();
-    var self = this;
+  min.sunionstore = function (dest) {
+    var _this10 = this;
 
-    keys = [].slice.call(arguments, 2);
+    for (var _len4 = arguments.length, keys = Array(_len4 > 1 ? _len4 - 1 : 0), _key4 = 1; _key4 < _len4; _key4++) {
+      keys[_key4 - 1] = arguments[_key4];
+    }
 
-    if (!(keys[keys.length - 1] instanceof Function)) {
-      callback = utils.noop;
+    var promise = new _depsEventsJs.Promise(noop);
+    var callback = noop;
+
+    promise.then(function (_ref) {
+      var _ref2 = _slicedToArray(_ref, 2);
+
+      var length = _ref2[0];
+      var members = _ref2[1];
+      return _this10.emit('sunionstore', dest, keys, length, members);
+    });
+
+    if (keys[keys.length - 1] instanceof Function) {
+      callback = keys.pop();
     }
 
     var members = null;
 
-    self.sunion(keys)
-      .then(function(_members) {
-        members = _members;
+    this.sunion(keys).then(function (_members) {
+      members = _members;
 
-        return self.exists(dest);
-      })
-      .then(function(exists) {
-        if (exists) {
-          return self.del(dest);
-        } else {
-          return self.sadd(dest, members);
-        }
-      })
-      .then(function(length) {
-        if (typeof length == 'number') {
-          promise.resolve(length, members);
-          callback(null, length, members);
-        } else {
-          return self.sadd(dest, members);
-        }
-      })
-      .then(function(length) {
-        promise.resolve(length, members);
+      return _this10.exists(dest);
+    }).then(function (exists) {
+      if (exists) {
+        return _this10.del(dest);
+      } else {
+        return _this10.sadd(dest, members);
+      }
+    }).then(function (length) {
+      if (typeof length == 'number') {
+        promise.resolve([length, members]);
         callback(null, length, members);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      } else {
+        return _this10.sadd(dest, members);
+      }
+    }).then(function (length) {
+      promise.resolve(length, members);
+      callback(null, length, members);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
 
-  min.sinter = function(keys, callback) {
-    var promise = new Promise();
-    var self = this;
+  min.sinter = function () {
+    var _this11 = this;
 
-    keys = [].slice.call(arguments);
-
-    if (!(keys[keys.length - 1] instanceof Function)) {
-      callback = utils.noop;
+    for (var _len5 = arguments.length, keys = Array(_len5), _key5 = 0; _key5 < _len5; _key5++) {
+      keys[_key5] = arguments[_key5];
     }
 
-    var memberRows = [];
+    var promise = new _depsEventsJs.Promise(noop);
+    var callback = noop;
+    var loop = null;
 
-    (function loop(index) {
+    if (keys[keys.length - 1] instanceof Function) {
+      callback = keys.pop();
+    }
+
+    var memberRows = [](loop = function (index) {
       var curr = keys[index];
 
       if (curr) {
-        self.exists(curr)
-          .then(function(exists) {
-            if (exists) {
-              return self.get(curr);
-            } else {
-              loop(++index);
-            }
-          })
-          .then(function(data) {
-            if (Array.isArray(data)) {
-              memberRows.push(data);
-            }
-
+        _this11.exists(curr).then(function (exists) {
+          if (exists) {
+            return _this11.get(curr);
+          } else {
             loop(++index);
-          })
-          .fail(function(err) {
-            promise.reject(err);
-            return callback(err);
-          });
+          }
+        }).then(function (data) {
+          if (Array.isArray(data)) {
+            memberRows.push(data);
+          }
+
+          loop(++index);
+        }, function (err) {
+          promise.reject(err);
+          return callback(err);
+        });
       } else {
-        var members = utils.arrayInter.apply(utils, memberRows);
+        var members = _utils['default'].arrayInter.apply(_utils['default'], memberRows);
 
         promise.resolve(members);
         callback(null, members);
@@ -3176,89 +3489,88 @@ def('min.sset', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
     return promise;
   };
 
-  min.sinterstore = function(dest, keys, callback) {
-    var promise = new Promise();
-    var self = this;
+  min.sinterstore = function (dest) {
+    var _this12 = this;
 
-    keys = [].slice.call(arguments, 1);
+    var promise = new _depsEventsJs.Promise(noop);
+    var callback = noop;
 
-    if (!(keys[keys.length - 1] instanceof Function)) {
-      callback = utils.noop;
+    for (var _len6 = arguments.length, keys = Array(_len6 > 1 ? _len6 - 1 : 0), _key6 = 1; _key6 < _len6; _key6++) {
+      keys[_key6 - 1] = arguments[_key6];
+    }
+
+    if (keys[keys.length - 1] instanceof Function) {
+      callback = keys.pop();
     }
 
     var members = null;
 
-    self.sinter.apply(self, keys)
-      .then(function(_members) {
-        members = _members;
+    this.sinter.apply(this, keys).then(function (_members) {
+      members = _members;
 
-        return self.exists(dest);
-      })
-      .then(function(exists) {
-        if (exists) {
-          return self.del(dest);
-        } else {
-          members.unshift(dest);
-          return self.sadd.apply(self, members);
-        }
-      })
-      .then(function(key) {
-        if (typeof key == 'string') {
-          promise.resolve(members.length, members);
-          callback(null, members.length, members);
-        } else {
-          return self.sadd(dest, members);
-        }
-      })
-      .then(function() {
+      return _this12.exists(dest);
+    }).then(function (exists) {
+      if (exists) {
+        return _this12.del(dest);
+      } else {
+        members.unshift(dest);
+        return _this12.sadd.apply(_this12, members);
+      }
+    }).then(function (key) {
+      if (typeof key == 'string') {
         promise.resolve(members.length, members);
         callback(null, members.length, members);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      } else {
+        return _this12.sadd(dest, members);
+      }
+    }).then(function (_) {
+      promise.resolve(members.length, members);
+      callback(null, members.length, members);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
 
-  min.sdiff = function(keys, callback) {
-    var promise = new Promise();
-    var self = this;
+  min.sdiff = function () {
+    var _this13 = this;
 
-    keys = [].slice.call(arguments, 1);
-
-    if (!(keys[keys.length - 1] instanceof Function)) {
-      callback = utils.noop;
+    for (var _len7 = arguments.length, keys = Array(_len7), _key7 = 0; _key7 < _len7; _key7++) {
+      keys[_key7] = arguments[_key7];
     }
 
-    var memberRows = [];
+    var promise = new _depsEventsJs.Promise(noop);
+    var callback = noop;
+    var loop = null;
 
-    (function loop(index) {
+    if (keys[keys.length - 1] instanceof Function) {
+      callback = keys.pop();
+    }
+
+    var memberRows = [](loop = function (index) {
       var curr = keys[index];
 
       if (curr) {
-        self.exists(curr)
-          .then(function(exists) {
-            if (exists) {
-              return self.get(curr);
-            } else {
-              loop(++index);
-            }
-          })
-          .then(function(data) {
-            if (Array.isArray(data)) {
-              memberRows.push(data);
-            }
-
+        _this13.exists(curr).then(function (exists) {
+          if (exists) {
+            return _this13.get(curr);
+          } else {
             loop(++index);
-          })
-          .fail(function(err) {
-            promise.reject(err);
-            return callback(err);
-          });
+          }
+        }).then(function (data) {
+          if (Array.isArray(data)) {
+            memberRows.push(data);
+          }
+
+          loop(++index);
+        }, function (err) {
+          promise.reject(err);
+          return callback(err);
+        });
       } else {
-        var members = utils.arrayDiff.apply(utils, memberRows);
+        var members = _utils['default'].arrayDiff.apply(_utils['default'], memberRows);
 
         promise.resolve(members);
         callback(null, members);
@@ -3268,404 +3580,414 @@ def('min.sset', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
     return promise;
   };
 
-  min.sdiffstore = function(dest, keys, callback) {
-    var promise = new Promise();
-    var self = this;
+  min.sdiffstore = function (dest) {
+    var _this14 = this;
 
-    keys = [].slice.call(arguments, 2);
+    var promise = new _depsEventsJs.Promise(noop);
+    var callback = noop;
 
-    if (!(keys[keys.length - 1] instanceof Function)) {
-      callback = utils.noop;
+    for (var _len8 = arguments.length, keys = Array(_len8 > 1 ? _len8 - 1 : 0), _key8 = 1; _key8 < _len8; _key8++) {
+      keys[_key8 - 1] = arguments[_key8];
+    }
+
+    if (keys[keys.length - 1] instanceof Function) {
+      callback = keys.pop();
     }
 
     var members = null;
 
-    self.sdiff(keys)
-      .then(function(_members) {
-        members = _members;
+    this.sdiff(keys).then(function (_members) {
+      members = _members;
 
-        return self.exists(dest);
-      })
-      .then(function(exists) {
-        if (exists) {
-          return self.del(dest);
-        } else {
-          return self.sadd(dest, members);
-        }
-      })
-      .then(function(length) {
-        if (typeof length == 'number') {
-          promise.resolve(length, members);
-          callback(null, length, members);
-        } else {
-          return self.sadd(dest, members);
-        }
-      })
-      .then(function(length) {
+      return _this14.exists(dest);
+    }).then(function (exists) {
+      if (exists) {
+        return _this14.del(dest);
+      } else {
+        return _this14.sadd(dest, members);
+      }
+    }).then(function (length) {
+      if (typeof length == 'number') {
         promise.resolve(length, members);
         callback(null, length, members);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      } else {
+        return _this14.sadd(dest, members);
+      }
+    }).then(function (length) {
+      promise.resolve(length, members);
+      callback(null, length, members);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
-  
-
-  return min;
 });
-def('min.zset', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
-  
-  if ('undefined' !== typeof define && define.amd) {
-    var utils = arguments[0];
-    var events = arguments[1];
+(function (global, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['exports', 'module', './utils.js', './deps/events.js'], factory);
+  } else if (typeof exports !== 'undefined' && typeof module !== 'undefined') {
+    factory(exports, module, require('./utils.js'), require('./deps/events.js'));
   } else {
-    var utils = require('min.utils');
-    var events = require('min.deps.events');
+    var mod = {
+      exports: {}
+    };
+    factory(mod.exports, mod, global.utils, global.events);
+    global.zset = mod.exports;
   }
+})(this, function (exports, module, _utilsJs, _depsEventsJs) {
+  'use strict';
 
-  var Promise = events.Promise;
+  function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _utils = _interopRequireDefault(_utilsJs);
+
+  var self = undefined || window || global;
+
+  var noop = _utils['default'].noop;
 
   var min = {};
+  module.exports = min;
 
   /******************************
   **         Sorted Set        **
   ******************************/
-  min.zadd = function(key, score, member, callback) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit('zadd', len);
+  min.zadd = function (key, score, member) {
+    var _this = this;
+
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    promise.then(function (len) {
+      return _this.emit('zadd', key, score, member, len);
     });
-    callback = callback || utils.noop;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var score2HashsMap = {};
-          score2HashsMap[score] = [ 0 ];
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this.get(key);
+      } else {
+        var score2HashsMap = {};
+        score2HashsMap[score] = [0];
 
-          return self.set(key, {
-            // members
-            ms: [ member ],
-            // mapping hash to score
-            hsm: { 0: score },
-            // mapping score to hash
-            shm: score2HashsMap
-          });
-        }
-      })
-      .then(function(_key) {
-        if ('string' === typeof _key) {
-          self._keys[key] = 4;
-
-          promise.resolve(1, 1);
-          callback(null, 1, 1);
-        } else if ('object' === typeof _key) {
-          var data = _key;
-
-          if (data.ms.indexOf(member) >= 0) {
-            var len = data.ms.length;
-
-            promise.resolve(0, len);
-            return callback(null, 0, len);
-          }
-
-          // new hash
-          var hash = data.ms.length;
-          // append the new member
-          data.ms.push(member);
-
+        return _this.set(key, {
+          // members
+          ms: [member],
           // mapping hash to score
-          data.hsm[hash] = score;
-
+          hsm: { 0: score },
           // mapping score to hash
-          if (Array.isArray(data.shm[score])) {
-            data.shm[score].push(hash);
-          } else {
-            data.shm[score] = [ hash ];
-          }
-
-          return self.set(key, data);
-        }
-      })
-      .then(function(key, data) {
-        self._keys[key] = 4;
-
-        var len = data.ms.length;
-
-        promise.resolve(1, len);
-        callback(null, 1, len);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
-    return promise;
-  };
-
-  min.zcard = function(key, callback) {
-    var self = this;
-    var promise = new Promise();
-    callback = callback || utils.noop;
-
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var err = new Error('no such key');
-
-          promise.reject(err);
-          callback(err);
-        }
-      })
-      .then(function(data) {
-        var len = data.ms.filter(Boolean).length;
-
-        promise.resolve(len);
-        callback(null, len);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
-    return promise;
-  };
-
-  min.zcount = function(key, min, max, callback) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit(len);
-    });
-    callback = callback || utils.noop;
-
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var err = new Error('no such key');
-
-          promise.reject(err);
-          callback(err);
-        }
-      })
-      .then(function(data) {
-        var hashs = Object
-          .keys(data.shm)
-          .filter(function(score) {
-            return (min <= score && score <= max);
-          })
-          .map(function(score) {
-            return data.shm[score];
-          });
-
-        var len = 0;
-
-        hashs.forEach(function(hash) {
-          len += hash.length;
+          shm: score2HashsMap
         });
+      }
+    }).then(function (_key) {
+      if ('string' === typeof _key) {
+        _this._keys[key] = 4;
 
-        promise.resolve(len);
-        callback(null, len);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+        promise.resolve(1, 1);
+        callback(null, 1, 1);
+      } else if ('object' === typeof _key) {
+        var data = _key;
+
+        if (data.ms.indexOf(member) >= 0) {
+          var len = data.ms.length;
+
+          promise.resolve(0, len);
+          return callback(null, 0, len);
+        }
+
+        // new hash
+        var hash = data.ms.length;
+        // append the new member
+        data.ms.push(member);
+
+        // mapping hash to score
+        data.hsm[hash] = score;
+
+        // mapping score to hash
+        if (Array.isArray(data.shm[score])) {
+          data.shm[score].push(hash);
+        } else {
+          data.shm[score] = [hash];
+        }
+
+        return _this.set(key, data);
+      }
+    }).then(function (key, data) {
+      _this._keys[key] = 4;
+
+      var len = data.ms.length;
+
+      promise.resolve(1, len);
+      callback(null, 1, len);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
 
-  min.zrem = function(key) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit('zrem', len);
+  min.zcard = function (key) {
+    var _this2 = this;
+
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this2.get(key);
+      } else {
+        var err = new Error('no such key');
+
+        promise.reject(err);
+        callback(err);
+      }
+    }).then(function (data) {
+      var len = data.ms.filter(Boolean).length;
+
+      promise.resolve(len);
+      callback(null, len);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
     });
-    var callback = arguments[arguments.length - 1];
 
-    var members = [].slice.call(arguments, 1);
+    return promise;
+  };
 
-    if ('function' !== typeof callback) {
-      callback = utils.noop;
-    } else {
-      members.pop();
+  min.zcount = function (key, min, max) {
+    var _this3 = this;
+
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    promise.then(function (len) {
+      return _this3.emit('zcount', key, min, max, value);
+    });
+
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this3.get(key);
+      } else {
+        var err = new Error('no such key');
+
+        promise.reject(err);
+        callback(err);
+      }
+    }).then(function (data) {
+      var hashs = Object.keys(data.shm).filter(function (score) {
+        return min <= score && score <= max;
+      }).map(function (score) {
+        return data.shm[score];
+      });
+
+      var len = hashs.map(function (hash) {
+        return hash.length;
+      }).reduce(function (a, b) {
+        return a + b;
+      });
+
+      promise.resolve(len);
+      callback(null, len);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
+
+    return promise;
+  };
+
+  min.zrem = function (key) {
+    var _this4 = this;
+
+    for (var _len = arguments.length, members = Array(_len > 1 ? _len - 1 : 0), _key2 = 1; _key2 < _len; _key2++) {
+      members[_key2 - 1] = arguments[_key2];
     }
+
+    var promise = new _depsEventsJs.Promise(noop);
+    var callback = noop;
+
+    if (members[members.length - 1] instanceof Function) {
+      callback = members.pop();
+    }
+
+    promise.then(function (removeds) {
+      return _this4.emit('zrem', key, members, removeds);
+    });
 
     var removeds = 0;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var err = new Error('no such key');
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this4.get(key);
+      } else {
+        var err = new Error('no such key');
 
-          promise.reject(err);
-          callback(err);
-        }
-      })
-      .then(function(data) {
-        var n = members.length;
-
-        var p = new Promise();
-
-        for (var i = 0; i < members.length; i++) {
-          (function(index) {
-            var hash = data.ms.indexOf(members[index]);
-
-            if (hash >= 0) {
-              data.ms[hash] = 0;
-              var score = data.hsm[hash]
-              delete data.hsm[hash];
-
-              var ii = data.shm[score].indexOf(hash);
-              if (ii >= 0) {
-                data.shm[score].splice(ii, 1);
-              }
-
-              removeds++;
-
-              --n || p.resolve(data);
-            } else {
-              n--;
-            }
-          })(i);
-        }
-
-        return p;
-      })
-      .then(function(data) {
-        return self.set(key, data);
-      })
-      .then(function() {
-        promise.resolve(removeds);
-        callback(null, removeds);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(null, err);
-      });
-
-    return promise;
-  };
-
-  min.zscore = function(key, member, callback) {
-    var self = this;
-    var promise = new Promise();
-    callback = callback || utils.noop;
-
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var err = new Error('no such key');
-
-          promise.reject(err);
-          callback(err);
-        }
-      })
-      .then(function(data) {
-        var hash = data.ms.indexOf(member);
-
-        if (hash >= 0) {
-          var score = data.hsm[hash];
-
-          promise.resolve(score);
-          callback(null, score);
-        } else {
-          var err = new Error('This member does not be in the set');
-
-          promise.reject(err);
-          callback(err);
-        }
-      })
-
-    return promise;
-  };
-
-  min.zrange = function(key, min, max, callback) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit(len);
-    });
-    callback = callback || utils.noop;
-
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var err = new Error('no such key');
-
-          promise.reject(err);
-          callback(err);
-        }
-      })
-      .then(function(data) {
-        var hashs = Object
-          .keys(data.shm)
-          .filter(function(score) {
-            return (min <= score && score <= max);
-          })
-          .map(function(score) {
-            return data.shm[score];
-          });
-
-        var members = [];
-
-        hashs.forEach(function(hash) {
-          members = members.concat(hash.map(function(row) {
-            return data.ms[row];
-          }));;
-        });
-
-        promise.resolve(members);
-        callback(null, members);
-      })
-      .fail(function(err) {
         promise.reject(err);
         callback(err);
+      }
+    }).then(function (data) {
+      var n = members.length;
+
+      var p = new _depsEventsJs.Promise(noop);
+
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+
+      try {
+        for (var _iterator = members[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var hash = _step.value;
+
+          var i = data.ms.indexOf(hash);
+
+          if (i >= 0) {
+            data.ms[hash] = 0;
+            var score = data.hsm[hash];
+            delete data.hsm[hash];
+
+            var ii = data.shm[score].indexOf(hash);
+            if (ii >= 0) data.shm[score].splice(ii, 1);
+
+            removeds++;
+          }
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator['return']) {
+            _iterator['return']();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
+        }
+      }
+
+      p.resolve(data);
+
+      return p;
+    }).then(function (data) {
+      return _this4.set(key, data);
+    }).then(function (_) {
+      promise.resolve(removeds);
+      callback(null, removeds);
+    }, function (err) {
+      promise.reject(err);
+      callback(null, err);
+    });
+
+    return promise;
+  };
+
+  min.zscore = function (key, member) {
+    var _this5 = this;
+
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this5.get(key);
+      } else {
+        var err = new Error('no such key');
+
+        promise.reject(err);
+        callback(err);
+      }
+    }).then(function (data) {
+      var hash = data.ms.indexOf(member);
+
+      if (hash >= 0) {
+        var score = data.hsm[hash];
+
+        promise.resolve(score);
+        callback(null, score);
+      } else {
+        var err = new Error('This member does not be in the set');
+
+        promise.reject(err);
+        callback(err);
+      }
+    });
+
+    return promise;
+  };
+
+  min.zrange = function (key, min, max) {
+    var _this6 = this;
+
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return this.get(key);
+      } else {
+        var err = new Error('no such key');
+
+        promise.reject(err);
+        callback(err);
+      }
+    }).then(function (data) {
+      var hashs = Object.keys(data.shm).filter(function (score) {
+        return min <= score && score <= max;
+      }).map(function (score) {
+        return data.shm[score];
       });
 
-    promise.withScore = function(callback) {
-      var p = new Promise();
-      callback = callback || utils.noop;
+      var members = _utils['default'].flatten(hashs.map(function (hash) {
+        return hash.map(function (row) {
+          return data.ms[row];
+        });
+      })).reduce(function (a, b) {
+        return a.concat(b);
+      });
 
-      promise
-        .then(function(members) {
-          var multi = self.multi();
+      promise.resolve(members);
+      callback(null, members);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
-          members.forEach(function(member) {
-            multi.zscore(key, member);
+    promise.withScore = function () {
+      var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
+
+      var p = new _depsEventsJs.Promise(noop);
+
+      promise.then(function (members) {
+        var multi = _this6.multi();
+
+        members.forEach(function (member) {
+          return multi.zscore(key, member);
+        });
+
+        multi.exec(function (err, replies) {
+          if (err) {
+            callback(err);
+            return p.reject(err);
+          }
+
+          var rtn = replies.map(function (reply, ii) {
+            return {
+              member: members[ii],
+              score: reply[0]
+            };
           });
 
-          multi.exec(function(err, replies) {
-            if (err) {
-              callback(err);
-              return p.reject(err);
-            }
-
-            var rtn = [];
-
-            replies.forEach(function(reply, ii) {
-              rtn.push({
-                member: members[ii],
-                score: reply[0]
-              });
-            });
-
-            p.resolve(rtn);
-            callback(null, rtn);
-          });
-        })
+          p.resolve(rtn);
+          callback(null, rtn);
+        });
+      });
 
       return p;
     };
@@ -3673,82 +3995,73 @@ def('min.zset', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
     return promise;
   };
 
-  min.zrevrange = function(key, min, max, callback) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit(len);
-    });
-    callback = callback || utils.noop;
+  min.zrevrange = function (key, min, max) {
+    var _this7 = this;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var err = new Error('no such key');
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
 
-          promise.reject(err);
-          callback(err);
-        }
-      })
-      .then(function(data) {
-        var hashs = Object
-          .keys(data.shm)
-          .reverse()
-          .filter(function(score) {
-            return (min <= score && score <= max);
-          })
-          .map(function(score) {
-            return data.shm[score];
-          });
+    var promise = new _depsEventsJs.Promise(noop);
 
-        var members = [];
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this7.get(key);
+      } else {
+        var err = new Error('no such key');
 
-        hashs.forEach(function(hash) {
-          members = members.concat(hash.map(function(row) {
-            return data.ms[row];
-          }));;
-        });
-
-        promise.resolve(members);
-        callback(null, members);
-      })
-      .fail(function(err) {
         promise.reject(err);
         callback(err);
+      }
+    }).then(function (data) {
+      var hashs = Object.keys(data.shm).reverse().filter(function (score) {
+        return min <= score && score <= max;
+      }).map(function (score) {
+        return data.shm[score];
       });
 
-    promise.withScore = function(callback) {
-      var p = new Promise();
-      callback = callback || utils.noop;
+      var members = _utils['default'].flatten(hashs.map(function (hash) {
+        return hash.map(function (row) {
+          return data.ms[row];
+        });
+      })).reduce(function (a, b) {
+        return a.concat(b);
+      });
 
-      promise
-        .then(function(members) {
-          var multi = self.multi();
+      promise.resolve(members);
+      callback(null, members);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
-          members.forEach(function(member) {
-            multi.zscore(key, member);
+    promise.withScore = function () {
+      var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
+
+      var p = new _depsEventsJs.Promise(noop);
+
+      promise.then(function (members) {
+        var multi = _this7.multi();
+
+        members.forEach(function (member) {
+          return multi.zscore(key, member);
+        });
+
+        multi.exec(function (err, replies) {
+          if (err) {
+            callback(err);
+            return p.reject(err);
+          }
+
+          var rtn = replies.map(function (reply, ii) {
+            return {
+              member: members[ii],
+              score: reply[0]
+            };
           });
 
-          multi.exec(function(err, replies) {
-            if (err) {
-              callback(err);
-              return p.reject(err);
-            }
-
-            var rtn = [];
-
-            replies.forEach(function(reply, ii) {
-              rtn.push({
-                member: members[ii],
-                score: reply[0]
-              });
-            });
-
-            p.resolve(rtn);
-            callback(null, rtn);
-          });
-        })
+          p.resolve(rtn);
+          callback(null, rtn);
+        });
+      });
 
       return p;
     };
@@ -3756,823 +4069,836 @@ def('min.zset', [ 'min.utils', 'min.deps.events' ], function(require, exports, m
     return promise;
   };
 
-  min.zincrby = function(key, increment, member, callback) {
-    var self = this;
-    var promise = new Promise(function(score) {
-      self.emit('zincrby', key, increment, member, score);
+  min.zincrby = function (key, increment, member) {
+    var _this8 = this;
+
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    promise.then(function (score) {
+      return _this8.emit('zincrby', key, increment, member, score);
     });
-    callback = callback || utils.noop;
 
     var newScore = null;
 
-    self.exists(key)
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this8.zscore(key, member);
+      } else {
+        _this8.zadd(key, increment, member, callback).then(promise.resolve.bind(promise), promise.reject.bind(promise));
+      }
+    }).then(function (_) {
+      return _this8.get(key);
+    }).then(function (data) {
+      var hash = data.ms.indexOf(member);
+      var score = data.hsm[hash];
 
-      .then(function(exists) {
-        if (exists) {
-          return self.zscore(key, member);
-        } else {
-          self.zadd(key, increment, member, callback)
-            .then(promise.resolve.bind(promise))
-            .fail(promise.reject.bind(promise));
-        }
-      })
-      .then(function(score) {
-        return self.get(key);
-      })
-      .then(function(data) {
-        var hash = data.ms.indexOf(member);
-        var score = data.hsm[hash];
+      newScore = score + increment;
 
-        newScore = score + increment;
+      var ii = data.shm[score].indexOf(hash);
+      data.shm[score].splice(ii, 1);
 
-        var ii = data.shm[score].indexOf(hash);
-        data.shm[score].splice(ii, 1);
+      data.hsm[hash] = newScore;
+      if (data.shm[newScore]) {
+        data.shm[newScore].push(hash);
+      } else {
+        data.shm[newScore] = [hash];
+      }
 
-        data.hsm[hash] = newScore;
-        if (data.shm[newScore]) {
-          data.shm[newScore].push(hash);
-        } else {
-          data.shm[newScore] = [ hash ];
-        }
-
-        return self.set(key, data);
-      })
-      .then(function() {
-        promise.resolve(newScore);
-        callback(null, newScore);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      return _this8.set(key, data);
+    }).then(function (_) {
+      promise.resolve(newScore);
+      callback(null, newScore);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
 
-  min.zdecrby = function(key, decrement, member, callback) {
-    var self = this;
-    var promise = new Promise(function(score) {
-      self.emit('zdecrby', key, decrement, member, score);
+  min.zdecrby = function (key, decrement, member) {
+    var _this9 = this;
+
+    var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    promise.then(function (score) {
+      return _this9.emit('zdecrby', keys, decrement, member, score);
     });
-    callback = callback || utils.noop;
 
     var newScore = null;
 
-    self.exists(key)
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this9.zscore(key, member);
+      } else {
+        var err = new Error('no such key');
 
-      .then(function(exists) {
-        if (exists) {
-          return self.zscore(key, member);
-        } else {
-          var err = new Error('no such key');
-
-          promise.reject(err);
-          return callback(err);
-        }
-      })
-      .then(function(score) {
-        return self.get(key);
-      })
-      .then(function(data) {
-        var hash = data.ms.indexOf(member);
-        var score = data.hsm[hash];
-
-        newScore = score - decrement;
-
-        var ii = data.shm[score].indexOf(hash);
-        data.shm[score].splice(ii, 1);
-
-        data.hsm[hash] = newScore;
-        if (data.shm[newScore]) {
-          data.shm[newScore].push(hash);
-        } else {
-          data.shm[newScore] = [ hash ];
-        }
-
-        return self.set(key, data);
-      })
-      .then(function() {
-        promise.resolve(newScore);
-        callback(null, newScore);
-      })
-      .fail(function(err) {
         promise.reject(err);
         callback(err);
-      });
+      }
+    }).then(function (_) {
+      return _this9.get(key);
+    }).then(function (data) {
+      var hash = data.ms.indexOf(member);
+      var score = data.hsm[hash];
+
+      newScore = score - decrement;
+
+      var ii = data.shm[score].indexOf(hash);
+      data.shm[score].splice(ii, 1);
+
+      data.hsm[hash] = newScore;
+      if (data.shm[newScore]) {
+        data.shm[newScore].push(hash);
+      } else {
+        data.shm[newScore] = [hash];
+      }
+
+      return _this9.set(key, data);
+    }).then(function (_) {
+      promise.resolve(newScore);
+      callback(null, newScore);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
 
-  min.zrank = function(key, member, callback) {
-    var self = this;
-    var promise = new Promise();
-    callback = callback || utils.noop;
+  min.zrank = function (key, member) {
+    var _this10 = this;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var err = new Error('no such key');
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
-          promise.reject(err);
-          return callback(err);
-        }
-      })
-      .then(function(data) {
-        var scores = Object.keys(data.shm);
-        var score = data.hsm[data.ms.indexOf(member)];
+    var promise = new _depsEventsJs.Promise(noop);
 
-        var rank = scores.indexOf(score);
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this10.get(key);
+      } else {
+        var err = new Error('no such key');
 
-        promise.resolve(rank);
-        callback(null, rank);
-      })
-      .fail(function(err) {
         promise.reject(err);
         callback(err);
-      });
+      }
+    }).then(function (data) {
+      var scores = Object.keys(data.shm);
+      var score = data.hsm[data.ms.indexOf(member)];
+
+      var rank = scores.indexOf(score);
+
+      promise.resolve(rank);
+      callback(null, rank);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
 
-  min.zrevrank = function(key, member, callback) {
-    var self = this;
-    var promise = new Promise();
-    callback = callback || utils.noop;
+  min.zrevrank = function (key, member) {
+    var _this11 = this;
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var err = new Error('no such key');
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
-          promise.reject(err);
-          return callback(err);
-        }
-      })
-      .then(function(data) {
-        var scores = Object.keys(data.shm);
-        var score = data.hsm[data.ms.indexOf(member)];
+    var promise = new _depsEventsJs.Promise(noop);
 
-        var rank = scores.reverse().indexOf(score);
+    this.exists(key).then(function (exists) {
+      if (exists) {
+        return _this11.get(key);
+      } else {
+        var err = new Error('no such key');
 
-        promise.resolve(rank);
-        callback(null, rank);
-      })
-      .fail(function(err) {
         promise.reject(err);
         callback(err);
-      });
+      }
+    }).then(function (data) {
+      var scores = Object.keys(data.shm);
+      var score = data.hsm[data.ms.indexOf(member)];
+
+      var rank = scores.reverse().indexOf(score);
+
+      promise.resolve(rank);
+      callback(null, rank);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
-
-  return min;
 });
-def('min.mise', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
-  
-  if ('undefined' !== typeof define && define.amd) {
-    var utils = arguments[0];
-    var events = arguments[1];
+(function (global, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['exports', 'module', './utils.js', './deps/events.js'], factory);
+  } else if (typeof exports !== 'undefined' && typeof module !== 'undefined') {
+    factory(exports, module, require('./utils.js'), require('./deps/events.js'));
   } else {
-    var utils = require('min.utils');
-    var events = require('min.deps.events');
+    var mod = {
+      exports: {}
+    };
+    factory(mod.exports, mod, global.utils, global.events);
+    global.mise = mod.exports;
   }
+})(this, function (exports, module, _utilsJs, _depsEventsJs) {
+  'use strict';
 
-  var Promise = events.Promise;
+  var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
+  function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+  var _utils = _interopRequireDefault(_utilsJs);
+
+  var self = undefined || window || global;
+
+  var noop = _utils['default'].noop;
 
   var min = {};
+  module.exports = min;
 
   /******************************
   **            Mise           **
   ******************************/
-  function Multi(_nano) {
-    var self = this;
-    this.queue = [];
-    this.last = null;
-    this.state = 0;
-    this.min = _nano;
 
-    for (var prop in _nano) {
-      if (_nano.hasOwnProperty(prop) && 'function' === typeof _nano[prop]) {
-        (function(method) {
-          self[method] = function() {
-            self.queue.push({
-              method: method,
-              args: arguments
-            });
+  var Multi = (function () {
+    function Multi(_min) {
+      var _this = this,
+          _arguments = arguments;
 
-            return self;
-          };
-        })(prop);
+      _classCallCheck(this, Multi);
+
+      this.queue = [];
+      this.last = null;
+      this.state = 0;
+      this.min = _min;
+
+      for (var prop in _nano) {
+        if (_nano.hasOwnProperty(prop) && 'function' === typeof _nano[prop]) {
+          (function (method) {
+            _this[method] = function () {
+              _this.queue.push({
+                method: method,
+                args: _arguments
+              });
+
+              return _this;
+            };
+          })(prop);
+        }
       }
     }
-  }
-  Multi.prototype.exec = function(callback) {
-    var self = this;
-    var results = [];
 
-    (function loop(task) {
-      if (task) {
-        self.min[task.method].apply(self.min, task.args)
-          .then(function() {
-            results.push(arguments);
-            loop(self.queue.shift());
-          })
-          .fail(function(err) {
-            callback(err, results);
-          });
-      } else {
-        callback(null, results);
+    _createClass(Multi, [{
+      key: 'exec',
+      value: function exec() {
+        var _this2 = this,
+            _arguments2 = arguments;
+
+        var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
+
+        var results = [];
+        var loop = null(loop = function (task) {
+          if (task) {
+            _this2.min[task.method].apply(_this2.min, task.args).then(function (_) {
+              results.push(_arguments2);
+              loop(_this2.queue.shift());
+            }, function (err) {
+              callback(err, results);
+            });
+          } else {
+            callback(null, results);
+          }
+        })(this.queue.shift());
       }
-    })(self.queue.shift());
+    }]);
+
+    return Multi;
+  })();
+
+  min.multi = function () {
+    return new Multi(undefined);
   };
 
-  min.multi = function() {
-    return new Multi(this);
-  };
+  var Sorter = (function () {
+    function Sorter(key, _min) {
+      var _this3 = this,
+          _arguments3 = arguments;
 
-  function Sorter(key, _min, callback) {
-    var self = this;
-    self.min = _min;
-    self.callback = callback;
-    self.result = [];
-    self.keys = {};
-    self.promise = new Promise();
-    self.sortFn = function(a, b) {
-      if (utils.isNumber(a) && utils.isNumber(b)) {
-        return a - b;
-      } else {
-        return JSON.stringify(a) > JSON.stringify(b);
-      }
-    };
+      var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
-    var run = function() {
-      self.min.exists(key)
-        .then(function(exists) {
+      _classCallCheck(this, Sorter);
+
+      var loop = null;
+
+      this.min = _min;
+      this.callback = callback;
+      this.result = [];
+      this.keys = {};
+      this.promise = new _depsEventsJs.Promise(noop);
+      this.sortFn = function (a, b) {
+        if (_utils['default'].isNumber(a) && _utils['default'].isNumber(b)) {
+          return a - b;
+        } else {
+          return JSON.stringify(a) > JSON.stringify(b);
+        }
+      };
+
+      var run = (function (_) {
+        _this3.min.exists(key).then(function (exists) {
           if (exists) {
-            return self.min.get(key);
+            return _this3.min.get(key);
           } else {
             return new Error('no such key');
           }
-        })
-        .then(function(value) {
-          var p = new Promise();
+        }).then(function (value) {
+          var p = new _depsEventsJs.Promise(noop);
 
           switch (true) {
             case Array.isArray(value):
               p.resolve(value);
               break;
-            case (value.ms && Array.isArray(value.ms)):
+            case value.ms && Array.isArray(value.ms):
               p.resolve(value.ms);
               break;
-            
+
             default:
               return new Error('content type wrong');
           }
 
           return p;
-        })
-        .then(function(data) {
-          self.result = data.sort(self.sortFn);
+        }).then(function (data) {
+          _this3.result = data.sort(_this3.sortFn);
 
-          self.result.forEach(function(chunk) {
-            self.keys[chunk] = chunk;
+          _this3.result.forEach(function (chunk) {
+            _this3.keys[chunk] = chunk;
           });
 
-          self.promise.resolve(self.result);
-          self.callback(null, self.result);
-        })
-        .fail(function(err) {
-          self.promise.reject(err);
-          self.callback(err);
+          _this3.promise.resolve(_this3.result);
+          _this3.callback(null, _this3.result);
+        }, function (err) {
+          _this3.promise.reject(err);
+          _this3.callback(err);
         });
-    };
-
-    // Promise Shim
-    (function loop(methods) {
-      var curr = methods.shift();
-
-      if (curr) {
-        self[curr] = function() {
-          return self.promise[curr].apply(self.promise, arguments);
-        };
-
-        loop(methods);
-      } else {
-        run();
       }
-    })([ 'then', 'fail', 'done']);
-  }
-  Sorter.prototype.by = function(pattern, callback) {
-    var self = this;
-    callback = callback || utils.noop;
 
-    var src2ref = {};
-    var refs = {};
-    var aviKeys = [];
+      // Promise Shim
+      )(loop = function (methods) {
+        var curr = methods.shift();
 
-    // TODO: Sort by hash field
-    var field = null;
+        if (curr) {
+          _this3[curr] = function () {
+            return _this3.promise[curr].apply(_this3.promise, _arguments3);
+          };
 
-    if (pattern.indexOf('->') > 0) {
-      var i = pattern.indexOf('->');
-      field = pattern.substr(i + 2);
-      pattern = pattern.substr(0, pattern.length - i);
+          loop(methods);
+        } else {
+          run();
+        }
+      })(['then', 'done']);
     }
-    var isHash = !!field;
 
-    self.min.keys(pattern)
-      .then(function(keys) {
-        var filter = new RegExp(pattern
-          .replace('?', '(.)')
-          .replace('*', '(.*)'));
+    _createClass(Sorter, [{
+      key: 'by',
+      value: function by(pattern) {
+        var _this4 = this;
 
-        for (var i = 0; i < keys.length; i++) {
-          var symbol = filter.exec(keys[i])[1];
+        var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
-          if (self.result.indexOf(symbol) >= 0) {
-            src2ref[keys[i]] = symbol;
+        var src2ref = {};
+        var refs = {};
+        var aviKeys = [];
+
+        // TODO: Sort by hash field
+        var field = null;
+
+        if (pattern.indexOf('->') > 0) {
+          var i = pattern.indexOf('->');
+          field = pattern.substr(i + 2);
+          pattern = pattern.substr(0, pattern.length - i);
+        }
+        var isHash = !!field;
+
+        this.min.keys(pattern).then(function (keys) {
+          var filter = new RegExp(pattern.replace('?', '(.)').replace('*', '(.*)'));
+
+          for (var i = 0; i < keys.length; i++) {
+            var symbol = filter.exec(keys[i])[1];
+
+            if (_this4.result.indexOf(symbol) >= 0) {
+              src2ref[keys[i]] = symbol;
+            }
           }
-        }
 
-        aviKeys = Object.keys(src2ref);
+          aviKeys = Object.keys(src2ref);
 
-        return self.min.mget(aviKeys.slice());
-      })
-      .then(function(values) {
-        var reverse = {};
+          return _this4.min.mget(aviKeys.slice());
+        }).then(function (values) {
+          var reverse = {};
 
-        for (var i = 0; i < values.length; i++) {
-          reverse[JSON.stringify(values[i])] = aviKeys[i];
-        }
+          for (var i = 0; i < values.length; i++) {
+            reverse[JSON.stringify(values[i])] = aviKeys[i];
+          }
 
-        values.sort(self.sortFn);
+          values.sort(_this4.sortFn);
 
-        var newResult = values
-          .map(function(value) {
+          var newResult = values.map(function (value) {
             return reverse[JSON.stringify(value)];
-          })
-          .map(function(key) {
+          }).map(function (key) {
             return src2ref[key];
           });
 
-        self.result = newResult;
+          _this4.result = newResult;
 
-        self.promise.resolve(newResult);
-        callback(null, newResult);
-      })
-      .fail(function(err) {
-        self.promise.reject(err);
-        callback(err);
-        self.callback(err);
-      });
-    
-    return this;
-  };
-  Sorter.prototype.asc = function(callback) {
-    var self = this;
-    callback = callback || utils.noop;
-
-    self.sortFn = function(a, b) {
-      if (utils.isNumber(a) && utils.isNumber(b)) {
-        return a - b;
-      } else {
-        return JSON.stringify(a) > JSON.stringify(b); 
-      }
-    };
-
-    var handle = function(result) {
-      self.result = result.sort(self.sortFn);
-
-      self.promise.resolve(self.result);
-      callback(null, self.result);
-    };
-
-    if (self.promise.ended) {
-      handle(self.result);
-    } else {
-      self.promise.once('resolve', handle);
-    }
-
-    return self;
-  };
-  Sorter.prototype.desc = function(callback) {
-    var self = this;
-    callback = callback || utils.noop;
-
-    self.sortFn = function(a, b) {
-      if (utils.isNumber(a) && utils.isNumber(b)) {
-        return b - a;
-      } else {
-        return JSON.stringify(a) < JSON.stringify(b); 
-      }
-    };
-
-    var handle = function(result) {
-      self.result = result.sort(self.sortFn);
-
-      self.promise.resolve(self.result);
-      callback(null, self.result);
-    };
-
-    if (self.promise.ended) {
-      handle(self.result);
-    } else {
-      self.promise.once('resolve', handle);
-    }
-
-    return self;
-  };
-  Sorter.prototype.get = function(pattern, callback) {
-    var self = this;
-    callback = callback || utils.noop;
-
-    var handle = function(_result) {
-      var result = [];
-
-      (function loop(res) {
-        var curr = res.shift();
-
-        if (!utils.isUndefined(curr)) {
-          if (Array.isArray(curr)) {
-            var key = self.keys[curr[0]];
-
-            self.min.get(pattern.replace('*', key))
-              .then(function(value) {
-                curr.push(value);
-                result.push(curr);
-
-                loop(res);
-              })
-              .fail(function(err) {
-                self.promise.reject(err);
-                callback(err);
-              });
-
-          } else if (curr.substr || utils.isNumber(curr)) {
-            var key = self.keys[curr];
-
-            self.min.get(pattern.replace('*', key))
-              .then(function(value) {
-                result.push([ value ]);
-                if (value.substr || utils.isNumber(value)) {
-                  self.keys[value] = key;
-                } else {
-                  self.keys[JSON.stringify(value)] = key;
-                }
-
-                loop(res);
-              })
-              .fail(function(err) {
-                self.promise.reject(err);
-                callback(err);
-              });
-          }
-        } else {
-          self.result = result;
-
-          self.promise.resolve(result);
-          callback(null, result);
-        }
-      })(_result.slice());
-    };
-
-    if (self.promise.ended) {
-      handle(self.result);
-    } else {
-      self.promise.once('resolve', handle);
-    }
-
-    return this;
-  };
-  Sorter.prototype.hget = function(pattern, field, callback) {
-    callback = callback || utils.noop;
-    var self = this;
-
-    var handle = function(_result) {
-      var result = [];
-
-      (function loop(res) {
-        var curr = res.shift();
-
-        if (!utils.isUndefined(curr)) {
-          if (Array.isArray(curr)) {
-            var key = self.keys[curr[0]];
-
-            self.min.hget(pattern.replace('*', key), field)
-              .then(function(value) {
-                curr.push(value);
-                result.push(curr);
-
-                loop(res);
-              })
-              .fail(function(err) {
-                self.promise.reject(err);
-                callback(err);
-              });
-
-          } else if (curr.substr || utils.isNumber(curr)) {
-            var key = self.keys[curr];
-
-            self.min.hget(pattern.replace('*', key))
-              .then(function(value) {
-                result.push([ value ]);
-                if (value.substr || utils.isNumber(value)) {
-                  self.keys[value] = key;
-                } else {
-                  self.keys[JSON.stringify(value)] = key;
-                }
-
-                loop(res);
-              })
-              .fail(function(err) {
-                self.promise.reject(err);
-                callback(err);
-              });
-          }
-        } else {
-          self.result = result;
-
-          self.promise.resolve(result);
-          callback(null, result);
-        }
-      })(_result.slice());
-    };
-
-    if (self.promise.ended) {
-      handle(self.result);
-    } else {
-      self.promise.once('resolve', handle);
-    }
-
-    return this;
-  };
-  Sorter.prototype.limit = function(offset, count, callback) {
-    callback = callback || utils.noop;
-    var self = this;
-
-    var handle = function(result) {
-      self.result = result.splice(offset, count);
-
-      self.promise.resolve(self.result);
-      callback(null, self.result);
-    };
-
-    if (self.promise.ended) {
-      handle(self.result);
-    } else {
-      self.promise.once('resolve', handle);
-    }
-
-    return this;
-  };
-  Sorter.prototype.flatten = function(callback) {
-    callback = callback || utils.noop;
-    var self = this;
-
-    if (self.promise.ended) {
-      var rtn = [];
-
-      for (var i = 0; i < self.result.length; i++) {
-        for (var j = 0; j < self.result[i].length; j++) {
-          rtn.push(self.result[i][j]);
-        }
-      }
-
-      self.result = rtn;
-
-      self.promise.resolve(rtn);
-      callback(null, rtn);
-    } else {
-      self.promise.once('resolve', function(result) {
-        var rtn = [];
-
-        for (var i = 0; i < result.length; i++) {
-          for (var j = 0; j < result[i].length; j++) {
-            rtn.push(result[i][j]);
-          }
-        }
-
-        self.result = rtn;
-
-        self.promise.resolve(rtn);
-        callback(null, rtn);
-      });
-    }
-
-    return this;
-  };
-  Sorter.prototype.store = function(dest, callback) {
-    var self = this;
-    callback = callback || utils.noop;
-
-    if (self.promise.ended) {
-      self.min.set(dest, self.result)
-        .then(function() {
-          self.promise.resolve(self.result);
-          callback(null, self.result);
-        })
-        .fail(function(err) {
-          self.promise.reject(err);
+          _this4.promise.resolve(newResult);
+          callback(null, newResult);
+        }, function (err) {
+          _this4.promise.reject(err);
           callback(err);
+          _this4.callback(err);
         });
-    } else {
-      self.promise.once('resolve', function(result) {
-        self.min.set(dest, result)
-          .then(function() {
-            self.promise.resolve(result);
-            callback(null, result);
-          })
-          .fail(function(err) {
-            self.promise.reject(err);
+
+        return this;
+      }
+    }, {
+      key: 'asc',
+      value: function asc() {
+        var _this5 = this;
+
+        var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
+
+        this.sortFn = function (a, b) {
+          if (_utils['default'].isNumber(a) && _utils['default'].isNumber(b)) {
+            return a - b;
+          } else {
+            return JSON.stringify(a) > JSON.stringify(b);
+          }
+        };
+
+        var handle = function handle(result) {
+          _this5.result = result.sort(_this5.sortFn);
+
+          _this5.promise.resolve(_this5.result);
+          callback(null, _this5.result);
+        };
+
+        if (this.promise.ended) {
+          handle(this.result);
+        } else {
+          this.promise.once('resolve', handle);
+        }
+
+        return this;
+      }
+    }, {
+      key: 'desc',
+      value: function desc() {
+        var _this6 = this;
+
+        var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
+
+        this.sortFn = function (a, b) {
+          if (_utils['default'].isNumber(a) && _utils['default'].isNumber(b)) {
+            return b - a;
+          } else {
+            return JSON.stringify(a) < JSON.stringify(b);
+          }
+        };
+
+        var handle = function handle(result) {
+          _this6.result = result.sort(_this6.sortFn);
+
+          _this6.promise.resolve(_this6.result);
+          callback(null, _this6.result);
+        };
+
+        if (this.promise.ended) {
+          handle(this.result);
+        } else {
+          this.promise.once('resolve', handle);
+        }
+
+        return this;
+      }
+    }, {
+      key: 'get',
+      value: function get(pattern) {
+        var _this7 = this;
+
+        var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+        var handle = function handle(_result) {
+          var result = [];
+          var loop = null(loop = function (res) {
+            var curr = res.shift();
+
+            if (!_utils['default'].isUndefined(curr)) {
+              if (Array.isArray(curr)) {
+                var key = _this7.keys[curr[0]];
+
+                _this7.min.get(pattern.replace('*', key)).then(function (value) {
+                  curr.push(value);
+                  result.push(curr);
+
+                  loop(res);
+                }, function (err) {
+                  _this7.promise.reject(err);
+                  callback(err);
+                });
+              } else if (curr.substr || _utils['default'].isNumber(curr)) {
+                var key = _this7.keys[curr];
+
+                _this7.min.get(pattern.replace('*', key)).then(function (value) {
+                  result.push([value]);
+                  if (value.substr || _utils['default'].isNumber(value)) {
+                    _this7.keys[value] = key;
+                  } else {
+                    _this7.keys[JSON.stringify(value)] = key;
+                  }
+
+                  loop(res);
+                }, function (err) {
+                  _this7.promise.reject(err);
+                  callback(err);
+                });
+              }
+            } else {
+              _this7.result = result;
+
+              _this7.promise.resolve(result);
+              callback(null, result);
+            }
+          })(_result.slice());
+        };
+
+        if (this.promise.ended) {
+          handle(this.result);
+        } else {
+          this.promise.once('resolve', handle);
+        }
+
+        return this;
+      }
+    }, {
+      key: 'hget',
+      value: function hget(pattern, field) {
+        var _this8 = this;
+
+        var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+        var handle = function handle(_result) {
+          var result = [];
+          var loop = null(loop = function (res) {
+            var curr = res.shift();
+
+            if (!_utils['default'].isUndefined(curr)) {
+              if (Array.isArray(curr)) {
+                var key = _this8.keys[curr[0]];
+
+                _this8.min.hget(pattern.replace('*', key), field).then(function (value) {
+                  curr.push(value);
+                  result.push(curr);
+
+                  loop(res);
+                }, function (err) {
+                  _this8.promise.reject(err);
+                  callback(err);
+                });
+              } else if (curr.substr || _utils['default'].isNumber(curr)) {
+                var key = _this8.keys[curr];
+
+                _this8.min.hget(pattern.replace('*', key)).then(function (value) {
+                  result.push([value]);
+                  if (value.substr || _utils['default'].isNumber(value)) {
+                    _this8.keys[value] = key;
+                  } else {
+                    _this8.keys[JSON.stringify(value)] = key;
+                  }
+
+                  loop(res);
+                }, function (err) {
+                  _this8.promise.reject(err);
+                  callback(err);
+                });
+              }
+            } else {
+              _this8.result = result;
+
+              _this8.promise.resolve(result);
+              callback(null, result);
+            }
+          })(_result.slice());
+        };
+
+        if (this.promise.ended) {
+          handle(this.result);
+        } else {
+          this.promise.once('resolve', handle);
+        }
+
+        return this;
+      }
+    }, {
+      key: 'limit',
+      value: function limit(offset, count) {
+        var _this9 = this;
+
+        var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+        var handle = function handle(result) {
+          _this9.result = result.splice(offset, count);
+
+          _this9.promise.resolve(_this9.result);
+          callback(null, _this9.result);
+        };
+
+        if (this.promise.ended) {
+          handle(this.result);
+        } else {
+          this.promise.once('resolve', handle);
+        }
+
+        return this;
+      }
+    }, {
+      key: 'flatten',
+      value: function flatten() {
+        var _this10 = this;
+
+        var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
+
+        if (this.promise.ended) {
+          var rtn = [];
+
+          for (var i = 0; i < this.result.length; i++) {
+            for (var j = 0; j < this.result[i].length; j++) {
+              rtn.push(this.result[i][j]);
+            }
+          }
+
+          this.result = rtn;
+
+          this.promise.resolve(rtn);
+          callback(null, rtn);
+        } else {
+          this.promise.once('resolve', function (result) {
+            var rtn = [];
+
+            for (var i = 0; i < result.length; i++) {
+              for (var j = 0; j < result[i].length; j++) {
+                rtn.push(result[i][j]);
+              }
+            }
+
+            _this10.result = rtn;
+
+            _this10.promise.resolve(rtn);
+            callback(null, rtn);
+          });
+        }
+
+        return this;
+      }
+    }, {
+      key: 'store',
+      value: function store(dest) {
+        var _this11 = this;
+
+        var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+        if (this.promise.ended) {
+          this.min.set(dest, this.result).then(function (_) {
+            _this11.promise.resolve(_this11.result);
+            callback(null, _this11.result);
+          }, function (err) {
+            _this11.promise.reject(err);
             callback(err);
           });
-      });
+        } else {
+          this.promise.once('resolve', function (result) {
+            _this11.min.set(dest, result).then(function (_) {
+              _this11.promise.resolve(result);
+              callback(null, result);
+            }, function (err) {
+              _this11.promise.reject(err);
+              callback(err);
+            });
+          });
+        }
+
+        return this;
+      }
+    }]);
+
+    return Sorter;
+  })();
+
+  min.sort = function (key) {
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+    return new Sorter(key, undefined, callback);
+  };
+
+  var Scanner = (function () {
+    function Scanner(cursor, pattern, count, min) {
+      _classCallCheck(this, Scanner);
+
+      pattern = pattern || '*';
+
+      this.cursor = cursor || 0;
+      this.pattern = new RegExp(pattern.replace('*', '(.*)'));
+      this.limit = count > -1 ? count : 10;
+      this.end = this.cursor;
+
+      this.parent = min;
     }
 
-    return this;
-  };
+    _createClass(Scanner, [{
+      key: 'scan',
+      value: function scan() {
+        var _this12 = this;
 
-  min.sort = function(key, callback) {
-    callback = callback || utils.noop;
+        var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
 
-    return new Sorter(key, this, callback);
-  };
+        var rtn = [];
 
-  function Scanner(cursor, pattern, count, min) {
-    pattern = pattern || '*';
+        this.parent.get('min_keys').then(function (data) {
+          data = JSON.parse(data);
+          var scan = null;
 
-    this.cursor = cursor || 0;
-    this.pattern = new RegExp(pattern.replace('*', '(.*)'));
-    this.limit = count > -1 ? count : 10;
-    this.end = this.cursor;
+          var keys = Object.keys(data)(scan = function (ii) {
+            var key = keys[ii];
 
-    this.parent = min;
-  }
-  Scanner.prototype.scan = function(callback) {
-    var self = this;
+            if (key && _this12.pattern.test(key) && key !== 'min_keys') {
+              rtn.push(key);
 
-    var rtn = [];
-
-    self.parent.get('min_keys')
-      .then(function(data) {
-        data = JSON.parse(data);
-
-        var keys = Object.keys(data);
-
-        (function scan(ii) {
-          var key = keys[ii];
-
-          if (key && self.pattern.test(key) && key !== 'min_keys') {
-            rtn.push(key);
-
-            if ((++self.end - self.cursor) >= self.limit) {
-              return callback(null, rtn, self.end);
+              if (++_this12.end - _this12.cursor >= _this12.limit) {
+                return callback(null, rtn, _this12.end);
+              }
+            } else if (!key) {
+              _this12.end = 0;
+              return callback(null, rtn, _this12.end);
             }
-          } else if (!key) {
-            self.end = 0;
-            return callback(null, rtn, self.end);
-          }
 
-          return scan(++ii);
-        })(self.cursor);
-      }, function(err) {
-        callback(err);
-      });
+            return scan(++ii);
+          })(_this12.cursor);
+        }, function (err) {
+          callback(err);
+        });
 
-    return this;
-  };
-  Scanner.prototype.match = function(pattern, callback) {
-    this.pattern = new RegExp(pattern.replace('*', '(.*)'));
-    this.end = this.cursor;
+        return this;
+      }
+    }, {
+      key: 'match',
+      value: function match(pattern) {
+        var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
-    return this.scan(callback || utils.noop);
-  };
-  Scanner.prototype.count = function(count, callback) {
-    this.limit = count;
-    this.end = this.cursor;
+        this.pattern = new RegExp(pattern.replace('*', '(.*)'));
+        this.end = this.cursor;
 
-    return this.scan(callback || utils.noop);
-  };
+        return this.scan(callback);
+      }
+    }, {
+      key: 'count',
+      value: function count(_count) {
+        var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
-  min.scan = function(cursor, callback) {
-    var self = this;
-    callback = callback || utils.noop;
+        this.limit = _count;
+        this.end = this.cursor;
 
-    var scanner = new Scanner(cursor, null, -1, self);
+        return this.scan(callback);
+      }
+    }]);
+
+    return Scanner;
+  })();
+
+  min.scan = function (cursor) {
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var scanner = new Scanner(cursor, null, -1, undefined);
 
     scanner.scan(callback);
 
     return scanner;
   };
-
-  return min;
 });
-def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 'min.sset', 'min.zset', 'min.mise' ], function(require, exports, module) {
-
-  if ('undefined' !== typeof define && define.amd) {
-    var utils = arguments[0];
-    var events = arguments[1];
-    var mix = arguments[2];
-    var hash = arguments[3];
-    var list = arguments[4];
-    var sset = arguments[5];
-    var zset = arguments[6];
-    var mise = arguments[7];
+(function (global, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['exports', 'module', './utils.js', './deps/events.js', './mix.js', './hash.js', './list.js', './set.js', './zset.js', './mise.js', './stores.js'], factory);
+  } else if (typeof exports !== 'undefined' && typeof module !== 'undefined') {
+    factory(exports, module, require('./utils.js'), require('./deps/events.js'), require('./mix.js'), require('./hash.js'), require('./list.js'), require('./set.js'), require('./zset.js'), require('./mise.js'), require('./stores.js'));
   } else {
-    var utils = require('min.utils');
-    var events = require('min.deps.events');
-    var mix = require('min.mix');
-    var hash = require('min.hash');
-    var list = require('min.list');
-    var sset = require('min.sset');
-    var zset = require('min.zset');
-    var mise = require('min.mise');
+    var mod = {
+      exports: {}
+    };
+    factory(mod.exports, mod, global.utils, global.events, global.mix, global.hash, global.list, global.set, global.zset, global.mise, global.stores);
+    global.min = mod.exports;
   }
+})(this, function (exports, module, _utilsJs, _depsEventsJs, _mixJs, _hashJs, _listJs, _setJs, _zsetJs, _miseJs, _storesJs) {
+  'use strict';
 
-  var Promise = events.Promise;
+  var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
+
+  function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+  var _utils = _interopRequireDefault(_utilsJs);
+
+  var _mix = _interopRequireDefault(_mixJs);
+
+  var _hash = _interopRequireDefault(_hashJs);
+
+  var _list = _interopRequireDefault(_listJs);
+
+  var _set = _interopRequireDefault(_setJs);
+
+  var _zset = _interopRequireDefault(_zsetJs);
+
+  var _mise = _interopRequireDefault(_miseJs);
+
+  var self = undefined || window || global;
+
+  var noop = _utils['default'].noop;
 
   var min = {};
-  utils.extend(min, new events.EventEmitter());
+  module.exports = min;
 
-  // Default Store Interfaces
-  function memStore () {}
-  memStore.prototype.get = function(key) {
-    if (sessionStorage) {
-      return sessionStorage.getItem(key);
-    } else {
-      return false;
-    }
-  };
-  memStore.prototype.set = function(key, value) {
-    if (sessionStorage) {
-      return sessionStorage.setItem(key, value);
-    } else {
-      return false;
-    }
-  };
-  memStore.prototype.remove = function(key) {
-    if (sessionStorage) {
-      return sessionStorage.removeItem(key);
-    } else {
-      return false;
-    }
-  };
+  _utils['default'].extend(min, _depsEventsJs.EventEmitter.prototype);
+  min.EventEmitter = _depsEventsJs.EventEmitter;
+  min.Promise = _depsEventsJs.Promise;
 
-  function localStore () {}
-  localStore.prototype.get = function(key) {
-    if (localStorage) {
-      return localStorage.getItem(key);
-    } else {
-      return false;
-    }
-  };
-  localStore.prototype.set = function(key, value) {
-    if (localStorage) {
-      return localStorage.setItem(key, value);
-    } else {
-      return false;
-    }
-  };
-  localStore.prototype.remove = function(key) {
-    if (localStorage) {
-      return localStorage.removeItem(key);
-    } else {
-      return false;
-    }
-  };
+  min.memStore = _storesJs.memStore;
+  min.localStore = _storesJs.localStore;
 
-  min.memStore = memStore;
-  min.localStore = localStore;
+  min.store = new _storesJs.localStore();
 
-  // Default StoreInterface
-  min.store = new min.localStore();
-
-  // Default variables
   var _keys = min._keys = {};
   var _keysTimer = null;
   var _types = {
-    0 : 'mix',
-    1 : 'hash',
-    2 : 'list',
-    3 : 'set',
-    4 : 'zset'  // Sorted Set
+    0: 'mix',
+    1: 'hash',
+    2: 'list',
+    3: 'set',
+    4: 'zset' // Sorted Set
   };
 
-    /**
+  /**
    * Fork a new MinDB object
    * @return {Object} new min object
    */
-  min.fork = function() {
+  min.fork = function () {
     var rtn = {};
-    var self = this;
+    var self = undefined;
 
-    for (var prop in this) {
-      if (this.hasOwnProperty(prop)) {
-        rtn[prop] = this[prop];
+    for (var prop in undefined) {
+      if (undefined.hasOwnProperty(prop)) {
+        rtn[prop] = undefined[prop];
       }
     }
 
@@ -4589,43 +4915,42 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
    * @param  {Function} callback Callback
    * @return {Promise}           Promise Object
    */
-  min.del = function(key, callback) {
-    var self = this;
+  min.del = function (key) {
+    var _this = this;
+
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
     // Promise Object
-    var promise = new Promise(function() {
-      self.emit('del', key);
+    var promise = new _depsEventsJs.Promise(noop);
+
+    promise.then(function () {
+      _this.emit('del', key);
       if (_keysTimer) {
         clearTimeout(_keysTimer);
       }
 
-      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
+      _keysTimer = setTimeout(_this.save.bind(_this), 1000);
     });
 
     // Store
     var store = this.store;
-
-    // Callback and Promise's shim
-    if ('undefined' == typeof callback) {
-      callback = utils.noop;
-    }
 
     // Key prefix
     var $key = 'min-' + key;
 
     if (store.async) {
       // Async Store Operating
-      
-      var load = function() {
+
+      var load = function load() {
         // Value processing
-        store.remove($key, function(err) {
+        store.remove($key, function (err) {
           if (err) {
             // Error!
             promise.reject(err);
             return callback(err);
           }
 
-          delete self._keys[key];
+          delete _this._keys[key];
 
           // Done
           promise.resolve(key);
@@ -4642,12 +4967,12 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
       try {
         store.remove($key);
 
-        delete self._keys[key];
+        delete this._keys[key];
 
         // Done
         promise.resolve(key);
         callback(null, key);
-      } catch(err) {
+      } catch (err) {
         // Error!
         promise.reject(err);
         callback(err);
@@ -4666,19 +4991,14 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
    * @param  {Function} callback Callback
    * @return {Promise}           Promise Object
    */
-  min.exists = function(key, callback) {
-    // Promise Object
-    var promise = new Promise();
+  min.exists = function (key) {
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
-    callback = callback || utils.noop;
+    // Promise Object
+    var promise = new _depsEventsJs.Promise(noop);
 
     try {
-      this.get(key, function(err, value) {
-        if (err) {
-          promise.resolve(false);
-          callback(null, false);
-        }
-
+      this.get(key).then(function (value) {
         if ('undefined' == typeof value) {
           promise.resolve(false);
           return callback(null, false);
@@ -4686,8 +5006,11 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
           promise.resolve(true);
           return callback(null, true);
         }
+      }, function (err) {
+        promise.resolve(false);
+        callback(null, false);
       });
-    } catch(err) {
+    } catch (err) {
       promise.reject(err);
       return callback(err);
     }
@@ -4702,26 +5025,26 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
    * @param  {Function} callback Callback
    * @return {Promise}           Promise Object
    */
-  min.renamenx = function(key, newKey, callback) {
-    var self = this;
+  min.renamenx = function (key, newKey) {
+    var _this2 = this;
+
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
     // Promise object
-    var promise = new Promise(function() {
+    var promise = new _depsEventsJs.Promise(noop);
+
+    promise.then(function (_) {
+      _this2.emit('rename', key, newKey);
       if (_keysTimer) {
         clearTimeout(_keysTimer);
       }
 
-      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
+      _keysTimer = setTimeout(_this2.save.bind(_this2), 5 * 1000);
     });
-
-    // Callback and Promise's shim
-    if ('undefined' == typeof callback) {
-      callback = utils.noop;
-    }
 
     try {
       // Error handle
-      var reject = function(err) {
+      var reject = function reject(err) {
         promise.reject(err);
         callback(err);
       };
@@ -4729,33 +5052,27 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
       var type = null;
       var value = null;
 
-      min.exists(key)
-        .then(function(exists) {
-          if (!exists) {
-            var err = new Error('no such key');
+      this.exists(key).then(function (exists) {
+        if (!exists) {
+          var err = new Error('no such key');
 
-            reject(err);
-          } else {
-            return min.get(key);
-          }
-        })
-        .then(function(_value) {
-          type = self._keys[key];
-          value = _value;
+          reject(err);
+        } else {
+          return _this2.get(key);
+        }
+      }).then(function (_value) {
+        type = _this2._keys[key];
+        value = _value;
 
-          return min.del(key);
-        })
-        .then(function() {
-          return min.set(newKey, value, callback);
-        })
-        .then(function() {
-          self._keys[newKey] = type;
-          promise.resolve('OK');
-          callback(null, 'OK');
-        })
-        .fail(reject);
-
-    } catch(err) {
+        return _this2.del(key);
+      }).then(function (_) {
+        return _this2.set(newKey, value, callback);
+      }).then(function (_) {
+        _this2._keys[newKey] = type;
+        promise.resolve('OK');
+        callback(null, 'OK');
+      }, reject);
+    } catch (err) {
       reject(err);
     }
 
@@ -4770,35 +5087,34 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
    * @param  {Function} callback Callback
    * @return {Promise}           Promise Object
    */
-  min.rename = function(key, newKey, callback) {
-    var self = this;
+  min.rename = function (key, newKey) {
+    var _this3 = this;
+
+    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
     // Promise object
-    var promise = new Promise(function() {
+    var promise = new _depsEventsJs.Promise(noop);
+
+    promise.then(function (_) {
+      _this3.emit('rename', key, newKey);
       if (_keysTimer) {
         clearTimeout(_keysTimer);
       }
 
-      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
+      _keysTimer = setTimeout(_this3.save.bind(_this3), 5 * 1000);
     });
 
     // Error handle
-    var reject = function(err) {
+    var reject = function reject(err) {
       promise.reject(err);
       callback(err);
     };
-    
-    // Callback and Promise's shim
-    if ('undefined' == typeof callback) {
-      callback = utils.noop;
-    }
 
     if (key == newKey) {
       // The origin key is equal to the new key
       reject(new Error('The key is equal to the new key.'));
     } else {
-      self.renamenx.apply(self, arguments)
-        .then(promise.resolve.bind(promise))
-        .fail(promise.reject.bind(promise));
+      this.renamenx.apply(this, arguments).then(promise.resolve.bind(promise), promise.reject.bind(promise));
     }
     return promise;
   };
@@ -4809,21 +5125,17 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
    * @param  {Function} callback Callback
    * @return {Promise}           Promise Object
    */
-  min.keys = function(pattern, callback) {
+  min.keys = function (pattern) {
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
     // Promise object
-    var promise = new Promise();
+    var promise = new _depsEventsJs.Promise();
 
     // Stored keys
     var keys = Object.keys(this._keys);
 
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-
     // Filter
-    var filter = pattern
-      .replace('?', '(.)')
-      .replace('*', '(.*)');
+    var filter = pattern.replace('?', '(.)').replace('*', '(.*)');
     filter = new RegExp(filter);
 
     var ret = [];
@@ -4835,7 +5147,9 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
     }
 
     // Done
-    promise.resolve(ret);
+    setTimeout(function (_) {
+      return promise.resolve(ret);
+    }, 100);
     callback(null, ret);
 
     return promise;
@@ -4846,18 +5160,14 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
    * @param  {Function} callback Callback
    * @return {Promise}           Promise Object
    */
-  min.randomkey = function(callback) {
-    
+  min.randomkey = function () {
+    var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
+
     // Promise Object
-    var promise = new Promise();
+    var promise = new _depsEventsJs.Promise(noop);
 
     // Stored keys
     var keys = Object.keys(this._keys);
-
-    // Callback and Promise's shim
-    if ('undefined' == typeof callback) {
-      callback = utils.noop;
-    }
 
     // Random Key
     var index = Math.round(Math.random() * (keys.length - 1));
@@ -4876,13 +5186,11 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
    * @param  {Function} callback Callback
    * @return {Promise}           Promise Object
    */
-  min.type = function(key, callback) {
+  min.type = function (key) {
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
     // Promise Object
-    var promise = new Promise();
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
+    var promise = new _depsEventsJs.Promise(noop);
 
     if (this._keys.hasOwnProperty(key)) {
       promise.resolve(_types[this._keys[key]]);
@@ -4900,24 +5208,27 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
    * @param  {Function} callback Callback
    * @return {Object}            min
    */
-  min.empty = function(callback) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit('empty', len);
+  min.empty = function () {
+    var _this4 = this;
+
+    var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
+
+    var promise = new _depsEventsJs.Promise(noop);
+    var keys = Object.keys(this._keys);
+    var last = null;
+    var loop = null;
+    var removeds = 0;
+
+    promise.then(function (len) {
+      _this4.emit('empty', len);
       if (_keysTimer) {
         clearTimeout(_keysTimer);
       }
 
-      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
-    });
-    var keys = Object.keys(this._keys);
-    var last = null;
-    var removeds = 0;
-    callback = callback || utils.noop;
-
-    (function loop(key) {
+      _keysTimer = setTimeout(_this4.save.bind(_this4), 5 * 1000);
+    })(loop = function (key) {
       if (key) {
-        self.del(key, function(err) {
+        _this4.del(key, function (err) {
           if (!err) {
             removeds++;
           }
@@ -4938,25 +5249,31 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.save = function(callback) {
-    var self = this;
-    var promise = new Promise(function(dump, strResult) {
-      self.emit('save', dump, strResult);
-    });
-    callback = callback || utils.noop;
+  min.save = function () {
+    var _this5 = this;
 
-    self.set('min_keys', JSON.stringify(self._keys))
-      .then(function() {
-        return self.dump();
-      })
-      .then(function(dump, strResult) {
-        promise.resolve(dump, strResult);
-        callback(dump, strResult);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+    var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
+
+    var promise = new _depsEventsJs.Promise(noop);
+
+    promise.then(function (_ref) {
+      var _ref2 = _slicedToArray(_ref, 2);
+
+      var dump = _ref2[0];
+      var strResult = _ref2[1];
+
+      _this5.emit('save', dump, strResult);
+    });
+
+    this.set('min_keys', JSON.stringify(this._keys)).then(function (_) {
+      return _this5.dump();
+    }).then(function (dump, strResult) {
+      promise.resolve([dump, strResult]);
+      callback(dump, strResult);
+    }, function (err) {
+      promise.reject(err);
+      callback(err);
+    });
 
     return promise;
   };
@@ -4966,37 +5283,38 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.dump = function(callback) {
-    var self = this;
-    var promise = new Promise();
-    callback = callback || utils.noop;
+  min.dump = function () {
+    var _this6 = this;
+
+    var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
+
+    var loop = null;
+    var promise = new _depsEventsJs.Promise();
 
     var rtn = {};
 
-    self.keys('*')
-      .then(function(keys) {
-        (function loop(key) {
-          if (key) {
-            self.get(key)
-              .then(function(value) {
-                rtn[key] = value;
-                loop(keys.shift());
-              })
-              .fail(function(err) {
-                promise.reject(err);
-                callback(err);
-              });
-          } else {
-            var strResult = JSON.stringify(rtn);
-            promise.resolve(rtn, strResult);
-            callback(null, rtn, strResult);
-          }
-        })(keys.shift());
-      })
-      .fail(function(err) {
+    this.keys('*', function (err, keys) {
+      if (err) {
         promise.reject(err);
-        callback(err);
-      });
+        return callback(err);
+      }
+
+      (loop = function (key) {
+        if (key) {
+          _this6.get(key).then(function (value) {
+            rtn[key] = value;
+            loop(keys.shift());
+          }, function (err) {
+            promise.reject(err);
+            callback(err);
+          });
+        } else {
+          var strResult = JSON.stringify(rtn);
+          promise.resolve([rtn, strResult]);
+          callback(null, rtn, strResult);
+        }
+      })(keys.shift());
+    });
 
     return promise;
   };
@@ -5007,70 +5325,122 @@ def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 
    * @param  {Function} callback callback
    * @return {Promise}           promise
    */
-  min.restore = function(dump, callback) {
-    var self = this;
-    var promise = new Promise(function() {
-      self.save(function() {
-        self.emit('restore');
+  min.restore = function (dump) {
+    var _this7 = this;
+
+    var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+
+    var promise = new _depsEventsJs.Promise(noop);
+    var loop = null;
+
+    promise.then(function (_) {
+      _this7.save(function (_) {
+        _this7.emit('restore');
       });
     });
-    callback = callback || utils.noop;
 
-    var keys = Object.keys(dump);
-
-    (function loop(key, done) {
+    var keys = Object.keys(dump)(loop = function (key, done) {
       if (key) {
-        self.set(key, dump[key])
-          .then(function() {
-            loop(keys.shift(), done);
-          })
-          .fail(function(err) {
-            promise.reject(err);
-            callback(err);
-          });
+        _this7.set(key, dump[key]).then(function (_) {
+          loop(keys.shift(), done);
+        }, function (err) {
+          promise.reject(err);
+          callback(err);
+        });
       } else {
         done();
       }
-    })(keys.shift(), function() {
-      self
-        .exists('min_keys')
-        .then(function(exists) {
-          if (exists) {
-            return self.get('min_keys');
-          } else {
-            promise.resolve();
-            callback();
-          }
-        })
-        .then(function(keys) {
-          _keys = JSON.parse(keys);
-
+    })(keys.shift(), function (_) {
+      _this7.exists('min_keys').then(function (exists) {
+        if (exists) {
+          return _this7.get('min_keys');
+        } else {
           promise.resolve();
           callback();
-        });
+        }
+      }).then(function (keys) {
+        _keys = JSON.parse(keys);
+
+        promise.resolve();
+        callback();
+      });
     });
 
     return promise;
   };
 
+  var watchers = {};
+
+  /**
+   * Watch the command actions of the key
+   * @param  {String}   key      key to watch
+   * @param  {String}   command  command to watch
+   * @param  {Function} callback callback
+   * @return {Promise}           promise
+   */
+  min.watch = function (key, callback) {
+    var _this8 = this;
+
+    var command = arguments.length <= 2 || arguments[2] === undefined ? 'set' : arguments[2];
+
+    var watcherId = Math.random().toString(32).substr(2);
+
+    if (!watchers[key]) watchers[key] = {};
+
+    watchers[key][watcherId] = function (_key) {
+      for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key2 = 1; _key2 < _len; _key2++) {
+        args[_key2 - 1] = arguments[_key2];
+      }
+
+      if (_key !== key) return;
+      callback.call.apply(callback, [_this8].concat(args));
+    };
+
+    watchers[key][watcherId].command = command;
+
+    this.on(command, watchers[key][watcherId]);
+
+    return watcherId;
+  };
+
+  /**
+   * Unbind the watcher
+   * @param  {String} key       key to unwatch
+   * @param  {String} watcherId watcher's id
+   * @param  {String} command   command
+   */
+  min.unwatch = function (key, watcherId) {
+    var command = arguments.length <= 2 || arguments[2] === undefined ? 'set' : arguments[2];
+
+    this.removeListener(command, watchers[key][watcherId]);
+  };
+
+  /**
+   * Unbind all the watcher of the key
+   * @param  {String} key key to unwatch
+   */
+  min.unwatchForKey = function (key) {
+    var watchersList = watchers[key];
+
+    for (var id in watchersList) {
+      var watcher = watchersList[id];
+      this.removeListener(watcher.command, watcher);
+    }
+  };
+
   // Methods
-  utils.extend(min, hash);
-  utils.extend(min, list);
-  utils.extend(min, sset);
-  utils.extend(min, zset);
-  utils.extend(min, mise);
-  utils.extend(min, mix);
+  _utils['default'].extend(min, _hash['default']);
+  _utils['default'].extend(min, _list['default']);
+  _utils['default'].extend(min, _set['default']);
+  _utils['default'].extend(min, _zset['default']);
+  _utils['default'].extend(min, _mise['default']);
+  _utils['default'].extend(min, _mix['default']);
 
   // Apply
-  min.exists('min_keys')
-    .then(function(exists) {
-      if (exists) {
-        return min.get('min_keys');
-      }
-    })
-    .then(function(keys) {
-      min._keys = JSON.parse(keys);
-    });
-
-  return min;
+  min.exists('min_keys').then(function (exists) {
+    if (exists) return min.get('min_keys');
+  }).then(function (keys) {
+    min._keys = JSON.parse(keys);
+  });
 });
+//# sourceMappingURL=maps/min-debug.js.map

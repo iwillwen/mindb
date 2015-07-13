@@ -1,3 +1,4 @@
+.DS_Store
 lib-cov
 *.seed
 *.log
@@ -18,3 +19,4 @@ coverage.html
 **.txt
 npm_debug.log
 .git
+.dropbox

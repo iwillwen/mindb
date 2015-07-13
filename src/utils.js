@@ -1,93 +1,102 @@
-def('min.utils', [], function() {
-  // Utils
-  var utils = {
-    noop: function() {
-      return false;
-    },
-    // Class Inherits
-    inherits: function (ctor, superCtor) {
-      ctor.super_ = superCtor;
-      ctor.prototype = Object.create(superCtor.prototype, {
-        constructor: {
-          value: ctor,
-          enumerable: false,
-          writable: true,
-          configurable: true
-        }
-      });
-    },
-    // Object Extend
-    extend: function() {
-      var target = arguments[0];
-
-      var objs = [].slice.call(arguments, 1);
-
-      for (var i = 0, l = objs.length; i < l; i++) {
-        for (var key in objs[i]) {
-          target[key] = objs[i][key];
-        }
+// Utils
+export default {
+  noop() {
+    return false
+  },
+  // Class Inherits
+  inherits(ctor, superCtor) {
+    ctor.super_ = superCtor
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
       }
+    })
+  },
+  // Object Extend
+  extend() {
+    var target = arguments[0]
 
-      return target;
-    },
-    isNumber: function(obj) {
-      return toString.call(obj) == '[object Number]';
-    },
-    isUndefined: function(val) {
-      return val === void 0;
-    },
-    isObject: function (obj) {
-      return obj === Object(obj);
-    },
-    arrayUnique: function(array) {
-      var u = {};
-      var ret = [];
-      for (var i = 0, l = array.length; i < l; ++i) {
-        if (u.hasOwnProperty(array[i]) && !utils.isObject(array[i])) {
-           continue;
-        }
-        ret.push(array[i]);
-        u[array[i]] = 1;
+    var objs = [].slice.call(arguments, 1)
+
+    for (var i = 0, l = objs.length; i < l; i++) {
+      var keys = Object.getOwnPropertyNames(objs[i] || {})
+
+      for (var key of keys) {
+        target[key] = objs[i][key]
       }
-      return ret;
-    },
-    arrayInter: function(array) {
-      var rest = [].slice.call(arguments, 1);
-      return utils.arrayUnique(array).filter(function(item) {
-        var ret = true;
-
-        for (var i = 0; i < rest.length; i++) {
-          (function(index) {
-            var other = rest[index];
-
-            if (other.indexOf(item) < 0) {
-              ret = false;
-            }
-          })(i);
-        }
-
-        return ret;
-      });
-    },
-    arrayDiff: function(array) {
-      var rest = [].slice.call(arguments, 1);
-      return array.filter(function(item) {
-        var ret = true;
-
-        for (var i = 0; i < rest.length; i++) {
-          (function(index) {
-            var other = rest[index];
-
-            if (other.indexOf(item) >= 0) {
-              ret = false;
-            }
-          })(i);
-        }
-
-        return ret;
-      });
     }
-  };
 
-  return utils;
-});
+    return target
+  },
+  isNumber(obj) {
+    return toString.call(obj) == '[object Number]'
+  },
+  isUndefined(val) {
+    return val === void 0
+  },
+  isObject(obj) {
+    return obj === Object(obj)
+  },
+  arrayUnique(array) {
+    var u = {}
+    var ret = []
+    for (var i = 0, l = array.length; i < l; ++i) {
+      if (u.hasOwnProperty(array[i]) && !utils.isObject(array[i])) {
+         continue
+      }
+      ret.push(array[i])
+      u[array[i]] = 1
+    }
+    return ret
+  },
+  arrayInter(array) {
+    var rest = [].slice.call(arguments, 1)
+    return utils.arrayUnique(array).filter(function(item) {
+      var ret = true
+
+      for (let other of rest) {
+        if (other.indexOf(item) < 0) {
+          ret = false
+        }
+      }
+
+      return ret
+    })
+  },
+  arrayDiff(array) {
+    var rest = [].slice.call(arguments, 1)
+    return array.filter(function(item) {
+      var ret = true
+
+      for (let other of rest) {
+        if (other.indexOf(item) >= 0) {
+          ret = false
+        }
+      }
+
+      return ret
+    })
+  },
+
+  flatten(input, shallow, strict, startIndex) {
+    var output = [], idx = 0
+    for (var i = startIndex || 0, length = getLength(input); i < length; i++) {
+      var value = input[i]
+      if (isArrayLike(value) && (_.isArray(value) || _.isArguments(value))) {
+        //flatten current level of array or arguments object
+        if (!shallow) value = flatten(value, shallow, strict)
+        var j = 0, len = value.length
+        output.length += len
+        while (j < len) {
+          output[idx++] = value[j++]
+        }
+      } else if (!strict) {
+        output[idx++] = value
+      }
+    }
+    return output
+  }
+}

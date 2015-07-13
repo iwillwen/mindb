@@ -1,805 +1,715 @@
-def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
-  
-  if ('undefined' !== typeof define && define.amd) {
-    var utils = arguments[0];
-    var events = arguments[1];
+import utils from './utils.js'
+import { Promise } from './deps/events.js'
+
+var self = this || window || global
+
+var noop = utils.noop
+
+var min = {}
+export default min
+
+var _keysTimer = null
+
+/******************************
+** Mix(String/Number/Object) **
+******************************/
+
+/**
+ * Set the value of a key
+ * @param  {String}   key      Key
+ * @param  {Mix}      value    Value
+ * @param  {Function} callback Callback
+ * @return {Promise}           Promise Object
+ */
+min.set = function(key, value, callback) {
+  // Promise Object
+  var promise = new Promise()
+
+  promise.then(_ => {
+    this.emit('set', key, value)
+
+    if (_keysTimer) {
+      clearTimeout(_keysTimer)
+    }
+
+    _keysTimer = setTimeout(this.save.bind(this), 1000)
+  })
+
+  // Store
+  var store = this.store
+
+  // Callback and Promise's shim
+  callback = callback || utils.noop
+
+  // Key prefix
+  var $key = `min-${key}`
+
+  if (store.async) {
+    // Async Store Operating
+    var load = _ => {
+      // Value processing
+      var $value = JSON.stringify(value)
+      store.set($key, $value, err => {
+        if (err) {
+          // Error!
+          promise.reject(err)
+          return callback(err)
+        }
+
+        this._keys[key] = 0
+
+        // Done
+        promise.resolve([key, value])
+        callback(null, key, value)
+      })
+    }
+    if (store.ready) {
+      load()
+    } else {
+      store.on('ready', load)
+    }
   } else {
-    var utils = require('min.utils');
-    var events = require('min.deps.events');
+    try {
+      // Value processing
+      var $value = JSON.stringify(value)
+      store.set($key, $value)
+      this._keys[key] = 0
+
+      // Done
+      promise.resolve([key, value])
+      callback(null, key, value)
+    } catch(err) {
+      // Error!
+      promise.reject(err)
+      callback(err)
+    }
   }
 
-  var Promise = events.Promise;
+  return promise
+}
 
-  var min = {};
+/**
+ * Set the value of a key, only if the key does not exist
+ * @param  {String}   key      the key
+ * @param  {Mix}      value    Value
+ * @param  {Function} callback Callback
+ * @return {Promise}           Promise Object
+ */
+min.setnx = function(key, value, callback = noop) {
+  // Promise Object
+  var promise = new Promise()
 
-  var _keysTimer = null;
+  this.exists(key, (err, exists) => {
+    if (err) {
+      callback(err)
+      promise.reject(err)
+    }
 
-  /******************************
-  ** Mix(String/Number/Object) **
-  ******************************/
-
-  /**
-   * Set the value of a key
-   * @param  {String}   key      Key
-   * @param  {Mix}      value    Value
-   * @param  {Function} callback Callback
-   * @return {Promise}           Promise Object
-   */
-  min.set = function(key, value, callback) {
-    var self = this;
-
-    // Promise Object
-    var promise = new Promise(function() {
-      if (_keysTimer) {
-        clearTimeout(_keysTimer);
-      }
-
-      _keysTimer = setTimeout(self.save.bind(self), 1000);
-    });
-
-    // Store
-    var store = this.store;
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-
-    // Key prefix
-    var $key = 'min-' + key;
-
-    if (store.async) {
-      // Async Store Operating
-      var load = function() {
-        // Value processing
-        var $value = JSON.stringify(value);
-        store.set($key, $value, function(err) {
-          if (err) {
-            // Error!
-            promise.reject(err);
-            return callback(err);
-          }
-
-          self._keys[key] = 0;
-
-          // Done
-          promise.resolve(key, value);
-          callback(null, key, value);
-        });
-      };
-      if (store.ready) {
-        load();
-      } else {
-        store.on('ready', load);
-      }
+    if (exists) {
+      // The key is exists
+      return promise.reject(new Error('The key is exists.'))
     } else {
-      try {
-        // Value processing
-        var $value = JSON.stringify(value);
-        store.set($key, $value);
-        self._keys[key] = 0;
-
-        // Done
-        promise.resolve(key, value);
-        callback(null, key, value);
-      } catch(err) {
-        // Error!
-        promise.reject(err);
-        callback(err);
-      }
-    }
-
-    // Event emitting
-    this.emit('set', key, value);
-
-    return promise;
-  };
-
-  /**
-   * Set the value of a key, only if the key does not exist
-   * @param  {String}   key      the key
-   * @param  {Mix}      value    Value
-   * @param  {Function} callback Callback
-   * @return {Promise}           Promise Object
-   */
-  min.setnx = function(key, value, callback) {
-
-    // Promise Object
-    var promise = new Promise();
-
-    var self = this;
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-
-    self.exists(key, function(err, exists) {
-      if (err) {
-        callback(err);
-        promise.reject(err);
-      }
-
-      if (exists) {
-        // The key is exists
-        return promise.reject(new Error('The key is exists.'));
-      } else {
-        self.set(key, value, callback)
-          .then(function(key, value) {
-            // Done
-            callback(null, key, value);
-            promise.resolve(key, value);
-          })
-          .fail(function(err) {
-            callback(err);
-            promise.reject(err);
-          });          
-      }
-    });
-
-    return promise;
-  };
-
-  /**
-   * Set the value and expiration of a key
-   * @param  {String}   key      key
-   * @param  {Number}   seconds  TTL
-   * @param  {Mix}      value    value
-   * @param  {Function} callback Callback
-   * @return {Promise}           promise object
-   */
-  min.setex = function(key, seconds, value, callback) {
-
-    // Promise Object
-    var promise = new Promise();
-
-    var self = this;
-
-    // TTL
-    function timeout() {
-      self.del(key, utils.noop);
-    }
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-
-    // Set
-    self.set(key, value, function(err, result) {
-      // Done
-      setTimeout(timeout, seconds * 1000);
-      callback(err, result);
-    })
-      .then(function(key, value) {
-        // Done
-        setTimeout(timeout, seconds * 1000);
-        promise.resolve(key, value);
-        callback(null, key, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
-    return promise;
-  };
-
-  /**
-   * Set the value and expiration in milliseconds of a key
-   * @param  {String}   key      key
-   * @param  {Number}   millionseconds  TTL
-   * @param  {Mix}      value    value
-   * @param  {Function} callback Callback
-   * @return {Promise}           promise object
-   */
-  min.psetex = function(key, milliseconds, value, callback) {
-
-    // Promise Object
-    var promise = new Promise();
-
-    var self = this;
-
-    // TTL
-    function timeout() {
-      self.del(key, utils.noop);
-    }
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-
-    // Set
-    self.set(key, value, function(err, result) {
-      // Done
-      setTimeout(timeout, milliseconds);
-      callback(err, result);
-    })
-      .then(function() {
-      // Done
-        setTimeout(timeout, milliseconds);
-        promise.resolve.apply(promise, arguments);
-      })
-      .fail(promise.reject.bind(promise));
-
-    return promise;
-  };
-
-  /**
-   * Set multiple keys to multiple values
-   * @param  {Object}   plainObject      Object to set
-   * @param  {Function} callback Callback
-   * @return {Promise}           promise object
-   */
-  min.mset = function(plainObject, callback) {
-    var promise = new Promise();
-
-    var self = this;
-
-    // keys
-    var keys = Object.keys(plainObject);
-    // counter
-    var i = 0;
-
-    // the results and errors to return
-    var results = [];
-    var errors = [];
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-
-    // Loop
-    function next(key, index) {
-      // remove the current element of the plainObject
-      delete keys[index];
-
-      self.set(key, plainObject[key])
-        .then(function() {
-          results.push(arguments);
-
-          i++;
-          if (keys[i]) {
-            next(keys[i], i);
-          } else {
-            out();
-          }
-        })
-        .fail(function(err) {
-          errors.push(err);
-
-          i++;
-          if (keys[i]) {
-            return next(keys[i], i);
-          } else {
-            return out();
-          }
-        });
-    }
-
-    function out() {
-      if (errors.length) {
-        callback(errors);
-        promise.reject(errors);
-      } else {
-        callback(null, results);
-        promise.resolve(results);
-      }
-    }
-
-    next(keys[i], i);
-
-    return promise;
-  };
-
-  /**
-   * Set multiple keys to multiple values, only if none of the keys exist
-   * @param  {Object}   plainObject      Object to set
-   * @param  {Function} callback Callback
-   * @return {Promise}           promise object
-   */
-  min.msetnx = function(plainObject, callback) {
-    var promise = new Promise();
-
-    var self = this;
-
-    var keys = Object.keys(plainObject);
-    var i = 0;
-
-    var results = [];
-    var errors = [];
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-
-    function next(key, index) {
-      delete keys[index];
-
-      self.setnx(key, plainObject[key])
-        .then(function() {
-          results.push(arguments);
-
-          i++;
-          if (keys[i]) {
-            next(keys[i], i);
-          } else {
-            out();
-          }
-        })
-        .fail(function(err) {
-          errors.push(err);
-          out();
-        });
-    }
-
-    function out() {
-      if (errors.length) {
-        callback(errors);
-        return promise.reject(errors);
-      } else {
-        callback(null, results);
-        promise.resolve(results);
-      }
-    }
-
-    next(keys[i], i);
-
-    return promise;
-  };
-
-  /**
-   * Append a value to a key
-   * @param  {String}   key      key
-   * @param  {String}   value    value
-   * @param  {Function} callback Callback
-   * @return {Promise}           promise
-   */
-  min.append = function(key, value, callback) {
-    var self = this;
-    var promise = new Promise();
-    callback = callback || utils.noop;
-
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var p = new Promise();
-
-          p.resolve('');
-
-          return p;
-        }
-      })
-      .then(function(currVal) {
-        return self.set(key, currVal + value);
-      })
-      .then(function(key, value) {
-        return self.strlen(key);
-      })
-      .then(function(len) {
-        promise.resolve(len);
-        callback(null, len);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
-    return promise;
-  };
-
-  /**
-   * Get the value of a key
-   * @param  {String}   key      Key
-   * @param  {Function} callback Callback
-   * @return {Promise}           Promise Object
-   */
-  min.get = function(key, callback) {
-    var self = this;
-
-    // Promise Object
-    var promise = new Promise(function(value) {
-      self.emit('get', key, value);
-    });
-
-    // Store
-    var store = this.store;
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-    // Key prefix
-    var $key = 'min-' + key;
-
-    if (store.async) {
-      // Async Store Operating
-      var load = function() {
-        // Value processing
-        store.get($key, function(err, value) {
-          if (err) {
-            var _err = new Error('no such key');
-            // Error!
-            promise.reject(_err);
-            return callback(_err);
-          }
-
-          if (value) {
-            // Done
-            var ret = JSON.parse(value);
-            promise.resolve(ret);
-            callback(null, ret);
-          } else {
-            var err = new Error('no such key');
-
-            promise.resolve(err);
-            callback(err);
-          }
-
-        });
-      };
-      if (store.ready) {
-        load();
-      } else {
-        store.on('ready', load);
-      }
-    } else {
-      try {
-        // Value processing
-        var _value = this.store.get($key);
-
-        if (_value) {
-          var value = JSON.parse(_value);
+      this.set(key, value, callback)
+        .then((key, value) => {
           // Done
-          promise.resolve(value);
-          callback(null, value);
-        } else {
-          var err = new Error('no such key');
-
-          promise.reject(err);
-          callback(err);
-        }
-      } catch(err) {
-        // Error!
-        promise.reject(err);
-        callback(err);
-      }
+          callback(null, key, value)
+          promise.resolve([key, value])
+        }, err => {
+          callback(err)
+          promise.reject(err)
+        });          
     }
+  })
 
-    return promise;
-  };
+  return promise
+}
 
-  min.getrange = function(key, start, end, callback) {
-    var self = this;
-    var promise = new Promise(function(value) {
-      self.emit('getrange', key, start, end, value);
-    });
-    callback = callback || utils.noop;
+/**
+ * Set the value and expiration of a key
+ * @param  {String}   key      key
+ * @param  {Number}   seconds  TTL
+ * @param  {Mix}      value    value
+ * @param  {Function} callback Callback
+ * @return {Promise}           promise object
+ */
+min.setex = function(key, seconds, value, callback = noop) {
 
-    var len = end - start + 1;
+  // Promise Object
+  var promise = new Promise()
 
-    self.get(key)
-      .then(function(value) {
-        var val = value.substr(start, len);
+  // TTL
+  var timeout = _ => {
+    this.del(key, noop)
+  }
 
-        promise.resolve(val);
-        callback(null, val);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+  // Set
+  this.set(key, value, (err, result) => {
+    // Done
+    setTimeout(timeout, seconds * 1000)
+    callback(err, result)
+  })
+    .then((key, value) => {
+      // Done
+      setTimeout(timeout, seconds * 1000)
+      promise.resolve([key, value])
+      callback(null, key, value)
+    }, err => {
+      promise.reject(err)
+      callback(err)
+    })
 
-    return promise;
-  };
+  return promise
+}
 
-  /**
-   * Get the values of a set of keys
-   * @param  {Array}   keys      the keys
-   * @param  {Function} callback Callback
-   * @return {Promise}           promise object
-   */
-  min.mget = function(keys, callback) {
+/**
+ * Set the value and expiration in milliseconds of a key
+ * @param  {String}   key      key
+ * @param  {Number}   millionseconds  TTL
+ * @param  {Mix}      value    value
+ * @param  {Function} callback Callback
+ * @return {Promise}           promise object
+ */
+min.psetex = function(key, milliseconds, value, callback = noop) {
 
-    // Promise Object
-    var promise = new Promise();
+  // Promise Object
+  var promise = new Promise()
 
-    var self = this;
+  // TTL
+  var timeout = _ => {
+    this.del(key, utils.noop)
+  }
 
-    var i = 0;
-    var results = [];
-    var errors = [];
+  // Set
+  this.set(key, value, (err, result) => {
+    // Done
+    setTimeout(timeout, milliseconds)
+    callback(err, result)
+  })
+    .then(_ => {
+      // Done
+      setTimeout(timeout, milliseconds)
+      promise.resolve.apply(promise, arguments)
+    }, promise.reject.bind(promise))
 
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
+  return promise
+}
 
-    function next(key, index) {
-      delete keys[index];
-      
-      if (!key) {
-        i++;
-        return next(keys[i], i);
-      }
-      self.get(key, function(err, value) {
-        if (err) {
-          errors.push(err);
-          results.push(null);
+/**
+ * Set multiple keys to multiple values
+ * @param  {Object}   plainObject      Object to set
+ * @param  {Function} callback Callback
+ * @return {Promise}           promise object
+ */
+min.mset = function(plainObject, callback = noop) {
+  var promise = new Promise()
 
-          i++;
-          if (keys[i]) {
-            return next(keys[i], i);
-          } else {
-            return out();
-          }
-        }
+  // keys
+  var keys = Object.keys(plainObject)
+  // counter
+  var i = 0
 
-        results.push(value);
+  // the results and errors to return
+  var results = []
+  var errors = []
 
-        i++;
+  // Loop
+  var next = (key, index) => {
+    // remove the current element of the plainObject
+    delete keys[index]
+
+    this.set(key, plainObject[key])
+      .then(_ => {
+        results.push(arguments)
+
+        i++
         if (keys[i]) {
-          next(keys[i], i);
+          next(keys[i], i)
         } else {
-          out();
+          out()
         }
-      });
-    }
+      }, err => {
+        errors.push(err)
 
-    function out() {
-      if (errors.length) {
-        callback(errors);
-        promise.reject(errors);
+        i++
+        if (keys[i]) {
+          return next(keys[i], i)
+        } else {
+          return out()
+        }
+      })
+  }
+
+  function out() {
+    if (errors.length) {
+      callback(errors)
+      promise.reject(errors)
+    } else {
+      callback(null, results)
+      promise.resolve(results)
+    }
+  }
+
+  next(keys[i], i)
+
+  return promise
+}
+
+/**
+ * Set multiple keys to multiple values, only if none of the keys exist
+ * @param  {Object}   plainObject      Object to set
+ * @param  {Function} callback Callback
+ * @return {Promise}           promise object
+ */
+min.msetnx = function(plainObject, callback = noop) {
+  var promise = new Promise()
+  var keys = Object.keys(plainObject)
+  var i = 0
+
+  var results = []
+  var errors = []
+
+  var next = (key, index) => {
+    delete keys[index]
+
+    this.setnx(key, plainObject[key])
+      .then(_ => {
+        results.push(arguments)
+
+        i++
+        if (keys[i]) {
+          next(keys[i], i)
+        } else {
+          out()
+        }
+      }, err => {
+        errors.push(err)
+        out()
+      })
+  }
+
+  function out() {
+    if (errors.length) {
+      callback(errors)
+      return promise.reject(errors)
+    } else {
+      callback(null, results)
+      promise.resolve(results)
+    }
+  }
+
+  next(keys[i], i)
+
+  return promise
+}
+
+/**
+ * Append a value to a key
+ * @param  {String}   key      key
+ * @param  {String}   value    value
+ * @param  {Function} callback Callback
+ * @return {Promise}           promise
+ */
+min.append = function(key, value, callback = noop) {
+  var promise = new Promise()
+
+  this.exists(key)
+    .then(exists => {
+      if (exists) {
+        return this.get(key)
       } else {
-        callback(null, results);
-        promise.resolve(results);
+        var p = new Promise()
+
+        p.resolve('')
+
+        return p
       }
+    })
+    .then(currVal => {
+      return this.set(key, currVal + value)
+    })
+    .then((key, value) => {
+      return this.strlen(key)
+    })
+    .then(len => {
+      promise.resolve(len)
+      callback(null, len)
+    }, err => {
+      promise.reject(err)
+      callback(err)
+    })
+
+  return promise
+}
+
+/**
+ * Get the value of a key
+ * @param  {String}   key      Key
+ * @param  {Function} callback Callback
+ * @return {Promise}           Promise Object
+ */
+min.get = function(key, callback = noop) {
+  // Promise Object
+  var promise = new Promise()
+
+  promise.then(value => this.emit('get', key, value))
+
+  // Store
+  var store = this.store
+
+  // Key prefix
+  var $key = `min-${key}`
+
+  if (store.async) {
+    // Async Store Operating
+    var load = _ => {
+      // Value processing
+      store.get($key, (err, value) => {
+        if (err) {
+          var _err = new Error('no such key')
+          // Error!
+          promise.reject(_err)
+          return callback(_err)
+        }
+
+        if (value) {
+          // Done
+          var ret = JSON.parse(value)
+          promise.resolve(ret)
+          callback(null, ret)
+        } else {
+          var err = new Error('no such key')
+
+          promise.resolve(err)
+          callback(err)
+        }
+
+      })
     }
-
-    next(keys[i], i);
-
-    return promise;
-  };
-
-  /**
-   * Set the value of a key and return its old value
-   * @param  {String}   key      key
-   * @param  {Mix}   value       value
-   * @param  {Function} callback Callback
-   * @return {Promise}           promise object
-   */
-  min.getset = function(key, value, callback) {
-    var self = this;
-    var promise = new Promise(function(old) {
-      self.emit('getset', key, value, old);
-    });
-
-    // Callback and Promise's shim
-    if ('undefined' == typeof callback) {
-      callback = utils.noop;
+    if (store.ready) {
+      load()
+    } else {
+      store.on('ready', load)
     }
+  } else {
+    try {
+      // Value processing
+      var _value = this.store.get($key)
 
-    var _value = null;
+      if (_value) {
+        var value = JSON.parse(_value)
+        // Done
+        setTimeout(_ => promise.resolve(value), 100)
+        callback(null, value)
+      } else {
+        var err = new Error('no such key')
 
-    self.get(key)
-      .then(function($value) {
-        _value = $value;
+        setTimeout(_ => promise.reject(err), 100)
+        callback(err)
+      }
+    } catch(err) {
+      // Error!
+      setTimeout(_ => promise.reject(err), 100)
+      callback(err)
+    }
+  }
 
-        return self.set(key, value);
-      })
-      .then(function() {
-        promise.resolve(_value);
-        callback(null, _value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+  return promise
+}
 
-    return promise;
-  };
+min.getrange = function(key, start, end, callback = noop) {
+  var promise = new Promise()
 
-  /**
-   * Get the length of a key
-   * @param  {String}   key      Key
-   * @param  {Function} callback Callback
-   * @return {Promise}           promise
-   */
-  min.strlen = function(key, callback) {
-    var self = this;
-    var promise = new Promise();
-    callback = callback || utils.noop;
+  promise.then(value => this.emit('getrange', key, start, end, value))
 
-    self.get(key)
-      .then(function(value) {
-        if ('string' === typeof value) {
-          var len = value.length;
+  var len = end - start + 1
 
-          promise.resolve(len);
-          callback(null, len);
+  this.get(key)
+    .then(value => {
+      var val = value.substr(start, len)
+
+      promise.resolve(val)
+      callback(null, val)
+    }, err => {
+      promise.reject(err)
+      callback(err)
+    })
+
+  return promise
+}
+
+/**
+ * Get the values of a set of keys
+ * @param  {Array}   keys      the keys
+ * @param  {Function} callback Callback
+ * @return {Promise}           promise object
+ */
+min.mget = function(keys, callback = noop) {
+
+  // Promise Object
+  var promise = new Promise()
+
+  var i = 0
+  var results = []
+  var errors = []
+
+  var next = (key, index) => {
+    delete keys[index]
+    
+    if (!key) {
+      i++
+      return next(keys[i], i)
+    }
+    this.get(key, (err, value) => {
+      if (err) {
+        errors.push(err)
+        results.push(null)
+
+        i++
+        if (keys[i]) {
+          return next(keys[i], i)
         } else {
-          var err = new TypeError();
-
-          promise.reject(err);
-          callback(err);
+          return out()
         }
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+      }
 
-    return promise;
-  };
+      results.push(value)
 
-  /**
-   * Increment the integer value of a key by one
-   * @param  {String}   key      key
-   * @param  {Function} callback callback
-   * @return {Promise}           promise
-   */
-  min.incr = function(key, callback) {
-    var self = this;
+      i++
+      if (keys[i]) {
+        next(keys[i], i)
+      } else {
+        out()
+      }
+    })
+  }
 
-    var promise = new Promise(function(value) {
-      self.emit('incr', key, value);
-    });
-    callback = callback || utils.noop;
+  function out() {
+    if (errors.length) {
+      callback(errors)
+      promise.reject(errors)
+    } else {
+      callback(null, results)
+      promise.resolve(results)
+    }
+  }
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var p = new Promise();
+  next(keys[i], i)
 
-          p.resolve(0);
+  return promise
+}
 
-          return p;
-        }
-      })
-      .then(function(curr) {
-        if (isNaN(parseInt(curr))) {
-          promise.reject('value wrong');
-          return callback('value wrong');
-        }
+/**
+ * Set the value of a key and return its old value
+ * @param  {String}   key      key
+ * @param  {Mix}   value       value
+ * @param  {Function} callback Callback
+ * @return {Promise}           promise object
+ */
+min.getset = function(key, value, callback = noop) {
+  var promise = new Promise()
 
-        curr = parseInt(curr);
+  promise.then(old => this.emit('getset', key, value, old))
 
-        return self.set(key, ++curr);
-      })
-      .then(function(key, value) {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+  var _value = null
 
-    return promise;
-  };
+  this.get(key)
+    .then($value => {
+      _value = $value
 
-  /**
-   * Increment the integer value of a key by the given amount
-   * @param  {String}   key      key
-   * @param  {Number}   increment increment
-   * @param  {Function} callback callback
-   * @return {Promise}           promise
-   */
-  min.incrby = function(key, increment, callback) {
-    var self = this;
-    var promise = new Promise(function(value) {
-      self.emit('incrby', key, value);
-    });
-    callback = callback || utils.noop;
+      return this.set(key, value)
+    })
+    .then(_ => {
+      promise.resolve(_value)
+      callback(null, _value)
+    }, err => {
+      promise.reject(err)
+      callback(err)
+    })
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var p = new Promise();
+  return promise
+}
 
-          p.resolve(0);
+/**
+ * Get the length of a key
+ * @param  {String}   key      Key
+ * @param  {Function} callback Callback
+ * @return {Promise}           promise
+ */
+min.strlen = function(key, callback = noop) {
+  var promise = new Promise()
 
-          return p;
-        }
-      })
-      .then(function(curr) {
-        if (isNaN(parseFloat(curr))) {
-          promise.reject('value wrong');
-          return callback('value wrong');
-        }
+  this.get(key)
+    .then(value => {
+      if ('string' === typeof value) {
+        var len = value.length
 
-        curr = parseFloat(curr);
+        promise.resolve(len)
+        callback(null, len)
+      } else {
+        var err = new TypeError()
 
-        return self.set(key, curr + increment);
-      })
-      .then(function(key, value) {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+        promise.reject(err)
+        callback(err)
+      }
+    }, err => {
+      promise.reject(err)
+      callback(err)
+    })
 
-    return promise;
-  };
+  return promise
+}
 
-  min.incrbyfloat = min.incrby;
+/**
+ * Increment the integer value of a key by one
+ * @param  {String}   key      key
+ * @param  {Function} callback callback
+ * @return {Promise}           promise
+ */
+min.incr = function(key, callback = noop) {
+  var promise = new Promise()
 
-  min.decr = function(key, callback) {
-    var self = this;
-    var promise = new Promise(function(curr) {
-      self.emit('decr', key, curr);
-    });
-    callback = callback || utils.noop;
+  promise.then(value => this.emit('incr', key, value))
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var p = new Promise();
+  this.get(key)
+    .then((curr = 0) => {
+      if (isNaN(parseInt(curr))) {
+        promise.reject('value wrong')
+        return callback('value wrong')
+      }
 
-          p.resolve(0);
+      curr = parseInt(curr)
 
-          return p;
-        }
-      })
-      .then(function(curr) {
-        if (isNaN(parseInt(curr))) {
-          promise.reject('value wrong');
-          return callback('value wrong');
-        }
+      return this.set(key, ++curr)
+    })
+    .then(([key, value]) => {
+      promise.resolve(value)
+      callback(null, value)
+    }, err => {
+      promise.reject(err)
+      callback(err)
+    })
 
-        curr = parseInt(curr);
+  return promise
+}
 
-        return self.set(key, --curr);
-      })
-      .then(function(key, value) {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+/**
+ * Increment the integer value of a key by the given amount
+ * @param  {String}   key      key
+ * @param  {Number}   increment increment
+ * @param  {Function} callback callback
+ * @return {Promise}           promise
+ */
+min.incrby = function(key, increment, callback = noop) {
+  var promise = new Promise()
 
-    return promise;
-  };
+  promise.then(value => this.emit('incrby', key, increment, value))
 
-  min.decrby = function(key, decrement, callback) {
-    var self = this;
-    var promise = new Promise(function(curr) {
-      self.emit('decrby', key, decrement, curr);
-    });
-    callback = callback || utils.noop;
+  this.exists(key)
+    .then(exists => {
+      if (exists) {
+        return this.get(key)
+      } else {
+        var p = new Promise()
 
-    self.exists(key)
-      .then(function(exists) {
-        if (exists) {
-          return self.get(key);
-        } else {
-          var p = new Promise();
+        p.resolve(0)
 
-          p.resolve(0);
+        return p
+      }
+    })
+    .then(curr => {
+      if (isNaN(parseFloat(curr))) {
+        promise.reject('value wrong')
+        return callback('value wrong')
+      }
 
-          return p;
-        }
-      })
-      .then(function(curr) {
-        if (isNaN(parseInt(curr))) {
-          promise.reject('value wrong');
-          return callback('value wrong');
-        }
+      curr = parseFloat(curr)
 
-        curr = parseInt(curr);
+      return this.set(key, curr + increment)
+    })
+    .then((key, value) => {
+      promise.resolve(value)
+      callback(null, value)
+    }, err => {
+      promise.reject(err)
+      callback(err)
+    })
 
-        return self.set(key, curr - decrement);
-      })
-      .then(function(key, value) {
-        promise.resolve(value);
-        callback(null, value);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
+  return promise
+}
 
-    return promise;
-  };
+min.incrbyfloat = min.incrby
 
-  return min;
-});
+min.decr = function(key, callback = noop) {
+  var promise = new Promise()
+
+  promise.then(curr => this.emit('decr', key, curr))
+
+  this.exists(key)
+    .then(exists => {
+      if (exists) {
+        return this.get(key)
+      } else {
+        var p = new Promise()
+
+        p.resolve(0)
+
+        return p
+      }
+    })
+    .then(curr => {
+      if (isNaN(parseInt(curr))) {
+        promise.reject('value wrong')
+        return callback('value wrong')
+      }
+
+      curr = parseInt(curr)
+
+      return this.set(key, --curr)
+    })
+    .then((key, value) => {
+      promise.resolve(value)
+      callback(null, value)
+    }, err => {
+      promise.reject(err)
+      callback(err)
+    })
+
+  return promise
+}
+
+min.decrby = function(key, decrement, callback = noop) {
+  var promise = new Promise()
+  promise.then(curr => this.emit('decrby', key, decrement, curr))
+
+  this.exists(key)
+    .then(exists => {
+      if (exists) {
+        return this.get(key)
+      } else {
+        var p = new Promise()
+
+        p.resolve(0)
+
+        return p
+      }
+    })
+    .then(curr => {
+      if (isNaN(parseInt(curr))) {
+        promise.reject('value wrong')
+        return callback('value wrong')
+      }
+
+      curr = parseInt(curr)
+
+      return this.set(key, curr - decrement)
+    })
+    .then((key, value) => {
+      promise.resolve(value)
+      callback(null, value)
+    }, err => {
+      promise.reject(err)
+      callback(err)
+    })
+
+  return promise
+};

@@ -4,7 +4,7 @@
  *
  * Database on JavaScript
  *
- *  Copyright (c) 2012-2013 Will Wen Gunn(willwengunn@gmail.com)
+ *  Copyright (c) 2012-2014 Will Wen Gunn(willwengunn@gmail.com)
  *  All rights reserved.
  *
  *  MIT License
@@ -48,32 +48,70 @@
       shamSrc.src = "//cdn.staticfile.org/es5-shim/2.1.0/es5-sham.min.js";
       head.insertBefore(shamSrc, s);
     }
+
+    if (!Object.create) {
+      Object.create = (function() {
+        function F() {}
+
+        return function(superCtor, ctor) {
+          F.prototype = {};
+          for (var key in superCtor) {
+            F.prototype[key] = superCtor[key];
+          }
+          for (var key in ctor) {
+            F.prototype[key] = ctor[key];
+          }
+          return new F();
+        }
+      })();
+    }
   }
 
 })((typeof(window) !== 'undefined' ? window : this), (typeof(document) !== 'undefined' ? document : null));
-
-// MinDB
-!(function(name, def) {
+function def(name, deps, factory) {
   var hasDefine  = 'undefined' !== typeof define;
   var hasExports = 'undefined' !== typeof exports;
 
+  if (!factory && deps instanceof Function) {
+    factory = deps;
+    deps = [];
+  }
+
   if (hasDefine) {
     // CommonJS: SeaJS, RequireJS etc.
-    define(name, [], def);
+    if (define.amd) {
+      // AMD
+      define(factory);
+    } else {
+      // CMD
+      define(name, deps, factory);
+    }
   } else if (hasExports) {
     // Node.js Module
-    exports = def(require, exports, module);
+    var _require = function(name) {
+      if ('undefined' !== typeof def.cache[name]) {
+        return def.cache[name];
+      } else {
+        return require(name);
+      }
+    }
+    def.cache[name] = module.exports = exports = factory(_require, exports, module);
   } else {
     // Normal
-    this[name] = def();
+    var _module = {
+      exports: {}
+    };
+    def.cache[name] = this[name] = _module.exports = factory(function(name) {
+      if (def.cache.hasOwnProperty(name)) {
+        return def.cache[name];
+      } else {
+        return null;
+      }
+    }, _module.exports, _module);
   }
-})('min', function(require, exports, module, undefined) {
-  // Strict Mode Enabled
-  'use strict';
-
-  // MinDB
-  var min = exports || {};
-
+}
+def.cache = {};
+def('min.utils', [], function() {
   // Utils
   var utils = {
     noop: function() {
@@ -105,11 +143,20 @@
 
       return target;
     },
+    isNumber: function(obj) {
+      return toString.call(obj) == '[object Number]';
+    },
+    isUndefined: function(val) {
+      return val === void 0;
+    },
+    isObject: function (obj) {
+      return obj === Object(obj);
+    },
     arrayUnique: function(array) {
       var u = {};
       var ret = [];
       for (var i = 0, l = array.length; i < l; ++i) {
-        if(u.hasOwnProperty(array[i])) {
+        if (u.hasOwnProperty(array[i]) && !utils.isObject(array[i])) {
            continue;
         }
         ret.push(array[i]);
@@ -155,55 +202,15 @@
     }
   };
 
-  // Navite Store Interfaces
-  function memStore () {}
-  memStore.prototype.get = function(key) {
-    if (sessionStorage) {
-      return sessionStorage.getItem(key);
-    } else {
-      return false;
-    }
-  };
-  memStore.prototype.set = function(key, value) {
-    if (sessionStorage) {
-      return sessionStorage.setItem(key, value);
-    } else {
-      return false;
-    }
-  };
-  memStore.prototype.remove = function(key) {
-    if (sessionStorage) {
-      return sessionStorage.removeItem(key);
-    } else {
-      return false;
-    }
-  };
+  return utils;
+});
+def('min.deps.events', [ 'min.utils' ], function(require, exports, module) {
 
-  function localStore () {}
-  localStore.prototype.get = function(key) {
-    if (localStorage) {
-      return localStorage.getItem(key);
-    } else {
-      return false;
-    }
-  };
-  localStore.prototype.set = function(key, value) {
-    if (localStorage) {
-      return localStorage.setItem(key, value);
-    } else {
-      return false;
-    }
-  };
-  localStore.prototype.remove = function(key) {
-    if (localStorage) {
-      return localStorage.removeItem(key);
-    } else {
-      return false;
-    }
-  };
-
-  min.memStore = memStore;
-  min.localStore = localStore;
+  if ('undefined' !== typeof define && define.amd) {
+    var utils = arguments[0];
+  } else {
+    var utils = require('min.utils');
+  }
 
   // EventEmitter(without `domain` module) From Node.js
   function EventEmitter() {
@@ -437,9 +444,9 @@
       ret = emitter._events[type].length;
     return ret;
   };
-  min.EventEmitter = EventEmitter;
-  utils.extend(min, new EventEmitter());
-
+  EventEmitter.inherits = function(ctor) {
+    utils.inherits(ctor, EventEmitter);
+  };
   function Promise(done) {
     this.results = null;
     this.errors  = null;
@@ -447,7 +454,7 @@
 
     // Done Callback
     if ('function' === typeof done) {
-      this.done(done);
+      this.then(done);
     }
   }
   utils.inherits(Promise, EventEmitter);
@@ -456,7 +463,7 @@
     var args = slice(arguments);
 
     // Done
-    this.emit('resolve', args);
+    this.emit('fulfill', args);
     this.ended   = true;
     this.results = args;
 
@@ -480,64 +487,53 @@
     onResolve = onResolve || utils.noop;
     onReject  = onReject  || utils.noop;
 
-    self
-      .done(function() {
-        var ret = onResolve.apply(self, arguments);
+    var handle = function(ret) {
+      if (!!ret && typeof ret.then === 'function') {
+        ret
+          .then(function() {
+            promise.resolve.apply(promise, arguments);
+          }, function(err) {
+            promise.reject(err);
+          });
+      } else if (ret instanceof Error) {
+        promise.reject(ret);
+      }
+    };
 
-        if (ret instanceof Promise) {
-          ret.then(
-            function() {
-              promise.resolve.apply(promise, arguments);
-            },
-            function(err) {
-              promise.reject(err);
-            }
-          );
-        } else if (ret instanceof Error) {
-          promise.reject(ret);
-        }
-      })
-      .fail(function(err) {
-        onReject.call(self, err);
+    if (self.ended && (self.results || self.errors)) {
+      if (self.results) {
+        handle(onResolve.apply(null, self.results));
+      }
 
-        promise.reject(err);
-      });
-
-    return promise;
-  };
-  Promise.prototype.done = function(callback) {
-    var self = this;
-
-    if (self.ended) {
-      // Done before
-      if (self.results !== null) {
-        callback.apply(self, self.results);
+      if (self.errors) {
+        onReject.apply(null, self.errors)
+        handle.apply(null, self.errors);
       }
     } else {
-      // Event listening
-      self.on('resolve', function(args) {
-        var ret = callback.apply(self, args);
-
-        if (ret instanceof Promise) {
-          ret.fail(self.reject.bind(self));
-        }
-      });
+      self
+        .once('fulfill', function(args) {
+          return handle(onResolve.apply(null, args));
+        })
+        .once('reject', function(err) {
+          onReject.call(null, err)
+          return handle(err);
+        });
     }
 
-    return self;
+    return promise;
   };
   Promise.prototype.fail = function(callback) {
     var self = this;
 
-    if (self.ended) {
+    if (self.ended && self.errors !== null) {
       // Reject Before
-      if (self.errors !== null) {
-        callback.apply(self, self.errors);
-      }
+      callback.apply(self, self.errors);
     } else {
       // Event listening
-      self.on('reject', function(args) {
+      self.once('reject', function(args) {
         callback.apply(self, args);
+
+        self.ended = false;
       });
     }
 
@@ -552,502 +548,27 @@
 
     return args;
   }
-  min.Promise = Promise;
 
-  // Default Store
-  min.store = new min.localStore();
+  return {
+    EventEmitter: EventEmitter,
+    Promise: Promise
+  };
+});
+def('min.mix', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
+  
+  if ('undefined' !== typeof define && define.amd) {
+    var utils = arguments[0];
+    var events = arguments[1];
+  } else {
+    var utils = require('min.utils');
+    var events = require('min.deps.events');
+  }
 
-  // Default variables
-  var _keys  = {};
+  var Promise = events.Promise;
+
+  var min = {};
+
   var _keysTimer = null;
-  var _types = {
-    0 : 'mix',
-    1 : 'hash',
-    2 : 'list',
-    3 : 'set',
-    4 : 'zset'  // Sorted Set
-  };
-
-  /**
-   * Fork a new MinDB object
-   * @return {Object} new min object
-   */
-  min.fork = function() {
-    var rtn = {};
-    var self = this;
-
-    for (var prop in this) {
-      if (this.hasOwnProperty(prop)) {
-        rtn[prop] = this[prop];
-      }
-    }
-
-    return rtn;
-  };
-
-  /*********
-  ** Keys **
-  *********/
-
-  /**
-   * Delete a key
-   * @param  {String}   key      Key
-   * @param  {Function} callback Callback
-   * @return {Promise}           Promise Object
-   */
-  min.del = function(key, callback) {
-    var self = this;
-
-    // Promise Object
-    var promise = new Promise(function() {
-      self.emit('del', key);
-      if (_keysTimer) {
-        clearTimeout(_keysTimer);
-      }
-
-      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
-    });
-
-    // Store
-    var store = this.store;
-
-    // Callback and Promise's shim
-    if ('undefined' == typeof callback) {
-      callback = utils.noop;
-    }
-
-    // Key prefix
-    var $key = 'min-' + key;
-
-    if (store.async) {
-      // Async Store Operating
-      
-      // Value processing
-      store.remove($key, function(err) {
-        if (err) {
-          // Error!
-          promise.reject(err);
-          return callback(err);
-        }
-
-        delete _keys[key];
-
-        // Done
-        promise.resolve(key);
-        callback(null, key);
-      });
-    } else {
-      try {
-        store.remove($key);
-
-        delete _keys[key];
-
-        // Done
-        promise.resolve(key);
-        callback(null, key);
-      } catch(err) {
-        // Error!
-        promise.reject(err);
-        callback(err);
-      }
-    }
-
-    // Event emitting
-    this.emit('del', key);
-
-    return promise;
-  };
-
-  /**
-   * Check a key is exists or not
-   * @param  {String}   key      Key
-   * @param  {Function} callback Callback
-   * @return {Promise}           Promise Object
-   */
-  min.exists = function(key, callback) {
-    // Promise Object
-    var promise = new Promise();
-
-    callback = callback || utils.noop;
-
-    try {
-      this.get(key, function(err, value) {
-        if (err) {
-          promise.resolve(false);
-          callback(null, false);
-        }
-
-        if ('undefined' == typeof value) {
-          promise.resolve(false);
-          return callback(null, false);
-        } else {
-          promise.resolve(true);
-          return callback(null, true);
-        }
-      });
-    } catch(err) {
-      promise.reject(err);
-      return callback(err);
-    }
-
-    return promise;
-  };
-
-  /**
-   * Rename a old key
-   * @param  {String}   key      the old key
-   * @param  {String}   newKey   the new key
-   * @param  {Function} callback Callback
-   * @return {Promise}           Promise Object
-   */
-  min.renamenx = function(key, newKey, callback) {
-    var self = this;
-
-    // Promise object
-    var promise = new Promise(function() {
-      if (_keysTimer) {
-        clearTimeout(_keysTimer);
-      }
-
-      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
-    });
-
-    // Callback and Promise's shim
-    if ('undefined' == typeof callback) {
-      callback = utils.noop;
-    }
-
-    try {
-      // Error handle
-      var reject = function(err) {
-        promise.reject(err);
-        callback(err);
-      };
-
-      var type = null;
-      var value = null;
-
-      min.exists(key)
-        .then(function(exists) {
-          if (!exists) {
-            var err = new Error('no such key');
-
-            reject(err);
-          } else {
-            return min.get(key);
-          }
-        })
-        .then(function(_value) {
-          type = _keys[key];
-          value = _value;
-
-          return min.del(key);
-        })
-        .then(function() {
-          return min.set(newKey, value, callback);
-        })
-        .then(function() {
-          _keys[newKey] = type;
-          promise.resolve('OK');
-          callback(null, 'OK');
-        })
-        .fail(reject);
-
-    } catch(err) {
-      reject(err);
-    }
-
-    return promise;
-  };
-
-  /**
-   * Rename a old key when the old key is not equal to the new key
-   * and the old key is exiest.
-   * @param  {String}   key      the old key
-   * @param  {String}   newKey   the new key
-   * @param  {Function} callback Callback
-   * @return {Promise}           Promise Object
-   */
-  min.rename = function(key, newKey, callback) {
-    var self = this;
-    // Promise object
-    var promise = new Promise(function() {
-      if (_keysTimer) {
-        clearTimeout(_keysTimer);
-      }
-
-      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
-    });
-
-    // Error handle
-    var reject = function(err) {
-      promise.reject(err);
-      callback(err);
-    };
-    
-    // Callback and Promise's shim
-    if ('undefined' == typeof callback) {
-      callback = utils.noop;
-    }
-
-    if (key == newKey) {
-      // The origin key is equal to the new key
-      reject(new Error('The key is equal to the new key.'));
-    } else {
-      self.renamenx.apply(self, arguments)
-        .done(promise.resolve.bind(promise))
-        .fail(promise.reject.bind(promise));
-    }
-    return promise;
-  };
-
-  /**
-   * Return the keys which match by the pattern
-   * @param  {String}   pattern  Pattern
-   * @param  {Function} callback Callback
-   * @return {Promise}           Promise Object
-   */
-  min.keys = function(pattern, callback) {
-
-    // Promise object
-    var promise = new Promise();
-
-    // Stored keys
-    var keys = Object.keys(_keys);
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-
-    // Filter
-    var filter = pattern
-      .replace('?', '(.)')
-      .replace('*', '(.*)');
-    filter = new RegExp(filter);
-
-    var ret = [];
-
-    for (var i = 0; i < keys.length; i++) {
-      if (keys[i].match(filter)) {
-        ret.push(keys[i]);
-      }
-    }
-
-    // Done
-    promise.resolve(ret);
-    callback(null, ret);
-
-    return promise;
-  };
-
-  /**
-   * Return a key randomly
-   * @param  {Function} callback Callback
-   * @return {Promise}           Promise Object
-   */
-  min.randomkey = function(callback) {
-    
-    // Promise Object
-    var promise = new Promise();
-
-    // Stored keys
-    var keys = Object.keys(_keys);
-
-    // Callback and Promise's shim
-    if ('undefined' == typeof callback) {
-      callback = utils.noop;
-    }
-
-    // Random Key
-    var index = Math.round(Math.random() * (keys.length - 1));
-
-    // Done
-    var $key = keys[index];
-    promise.resolve($key);
-    callback(null, $key);
-
-    return promise;
-  };
-
-  /**
-   * Return the value's type of the key
-   * @param  {String}   key      the key
-   * @param  {Function} callback Callback
-   * @return {Promise}           Promise Object
-   */
-  min.type = function(key, callback) {
-
-    // Promise Object
-    var promise = new Promise();
-
-    // Callback and Promise's shim
-    callback = callback || utils.noop;
-
-    if (_keys.hasOwnProperty(key)) {
-      promise.resolve(_types[_keys[key]]);
-      callback(null, callback);
-    } else {
-      promise.resolve(null);
-      callback(null, null);
-    }
-
-    return promise;
-  };
-
-  /**
-   * Remove all keys in the db
-   * @param  {Function} callback Callback
-   * @return {Object}            min
-   */
-  min.empty = function(callback) {
-    var self = this;
-    var promise = new Promise(function(len) {
-      self.emit('empty', len);
-      if (_keysTimer) {
-        clearTimeout(_keysTimer);
-      }
-
-      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
-    });
-    var keys = Object.keys(_keys);
-    var last = null;
-    var removeds = 0;
-    callback = callback || utils.noop;
-
-    (function loop(key) {
-      if (key) {
-        self.del(key, function(err) {
-          if (!err) {
-            removeds++;
-          }
-
-          loop(keys.shift());
-        });
-      } else {
-        promise.resolve(removeds);
-        callback(null, removeds);
-      }
-    })(keys.shift());
-
-    return promise;
-  };
-
-  /**
-   * Save the dataset to the Store Interface manually
-   * @param  {Function} callback callback
-   * @return {Promise}           promise
-   */
-  min.save = function(callback) {
-    var self = this;
-    var promise = new Promise(function(dump, strResult) {
-      self.emit('save', dump, strResult);
-    });
-    callback = callback || utils.noop;
-
-    self.set('min_keys', JSON.stringify(_keys))
-      .then(function() {
-        return self.dump();
-      })
-      .then(function(dump, strResult) {
-        promise.resolve(dump, strResult);
-        callback(dump, strResult);
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
-    return promise;
-  };
-
-  /**
-   * Return the dataset of MinDB
-   * @param  {Function} callback callback
-   * @return {Promise}           promise
-   */
-  min.dump = function(callback) {
-    var self = this;
-    var promise = new Promise();
-    callback = callback || utils.noop;
-
-    var rtn = {};
-
-    self.keys('*')
-      .then(function(keys) {
-        (function loop(key) {
-          if (key) {
-            self.get(key)
-              .then(function(value) {
-                rtn[key] = value;
-                loop(keys.shift());
-              })
-              .fail(function(err) {
-                promise.reject(err);
-                callback(err);
-              });
-          } else {
-            var strResult = JSON.stringify(rtn);
-            promise.resolve(rtn, strResult);
-            callback(null, rtn, strResult);
-          }
-        })(keys.shift());
-      })
-      .fail(function(err) {
-        promise.reject(err);
-        callback(err);
-      });
-
-    return promise;
-  };
-
-  /**
-   * Restore the dataset to MinDB
-   * @param  {Object}   dump     dump object
-   * @param  {Function} callback callback
-   * @return {Promise}           promise
-   */
-  min.restore = function(dump, callback) {
-    var self = this;
-    var promise = new Promise(function() {
-      self.emit('restore');
-    });
-    callback = callback || utils.noop;
-
-    var keys = Object.keys(dump);
-
-    (function loop(key, done) {
-      if (key) {
-        self.set(key, dump[key])
-          .then(function() {
-            loop(keys.shift(), done);
-          })
-          .fail(function(err) {
-            promise.reject(err);
-            callback(err);
-          });
-      } else {
-        done();
-      }
-    })(keys.shift(), function() {
-      self
-        .exists('min_keys')
-        .then(function(exists) {
-          if (exists) {
-            return self.get('min_keys');
-          } else {
-            promise.resolve();
-            callback();
-          }
-        })
-        .then(function(keys) {
-          _keys = JSON.parse(keys);
-
-          promise.resolve();
-          callback();
-        });
-    });
-
-    return promise;
-  };
 
   /******************************
   ** Mix(String/Number/Object) **
@@ -1069,7 +590,7 @@
         clearTimeout(_keysTimer);
       }
 
-      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
+      _keysTimer = setTimeout(self.save.bind(self), 1000);
     });
 
     // Store
@@ -1083,28 +604,34 @@
 
     if (store.async) {
       // Async Store Operating
-      
-      // Value processing
-      var $value = JSON.stringify(value);
-      store.set($key, $value, function(err) {
-        if (err) {
-          // Error!
-          promise.reject(err);
-          return callback(err);
-        }
+      var load = function() {
+        // Value processing
+        var $value = JSON.stringify(value);
+        store.set($key, $value, function(err) {
+          if (err) {
+            // Error!
+            promise.reject(err);
+            return callback(err);
+          }
 
-        _keys[key] = 0;
+          self._keys[key] = 0;
 
-        // Done
-        promise.resolve(key, value);
-        callback(null, key, value);
-      });
+          // Done
+          promise.resolve(key, value);
+          callback(null, key, value);
+        });
+      };
+      if (store.ready) {
+        load();
+      } else {
+        store.on('ready', load);
+      }
     } else {
       try {
         // Value processing
         var $value = JSON.stringify(value);
         store.set($key, $value);
-        _keys[key] = 0;
+        self._keys[key] = 0;
 
         // Done
         promise.resolve(key, value);
@@ -1150,7 +677,7 @@
         return promise.reject(new Error('The key is exists.'));
       } else {
         self.set(key, value, callback)
-          .done(function(key, value) {
+          .then(function(key, value) {
             // Done
             callback(null, key, value);
             promise.resolve(key, value);
@@ -1194,7 +721,7 @@
       setTimeout(timeout, seconds * 1000);
       callback(err, result);
     })
-      .done(function(key, value) {
+      .then(function(key, value) {
         // Done
         setTimeout(timeout, seconds * 1000);
         promise.resolve(key, value);
@@ -1237,7 +764,7 @@
       setTimeout(timeout, milliseconds);
       callback(err, result);
     })
-      .done(function() {
+      .then(function() {
       // Done
         setTimeout(timeout, milliseconds);
         promise.resolve.apply(promise, arguments);
@@ -1398,7 +925,7 @@
       .then(function(key, value) {
         return self.strlen(key);
       })
-      .done(function(len) {
+      .then(function(len) {
         promise.resolve(len);
         callback(null, len);
       })
@@ -1434,29 +961,35 @@
 
     if (store.async) {
       // Async Store Operating
-      
-      // Value processing
-      this.store.get($key, function(err, value) {
-        if (err) {
-          var _err = new Error('no such key');
-          // Error!
-          promise.reject(_err);
-          return callback(_err);
-        }
+      var load = function() {
+        // Value processing
+        store.get($key, function(err, value) {
+          if (err) {
+            var _err = new Error('no such key');
+            // Error!
+            promise.reject(_err);
+            return callback(_err);
+          }
 
-        if (value) {
-          // Done
-          var ret = JSON.parse(value);
-          promise.resolve(ret);
-          callback(null, ret);
-        } else {
-          var err = new Error('no such key');
+          if (value) {
+            // Done
+            var ret = JSON.parse(value);
+            promise.resolve(ret);
+            callback(null, ret);
+          } else {
+            var err = new Error('no such key');
 
-          promise.resolve(err);
-          callback(err);
-        }
+            promise.resolve(err);
+            callback(err);
+          }
 
-      });
+        });
+      };
+      if (store.ready) {
+        load();
+      } else {
+        store.on('ready', load);
+      }
     } else {
       try {
         // Value processing
@@ -1483,6 +1016,30 @@
     return promise;
   };
 
+  min.getrange = function(key, start, end, callback) {
+    var self = this;
+    var promise = new Promise(function(value) {
+      self.emit('getrange', key, start, end, value);
+    });
+    callback = callback || utils.noop;
+
+    var len = end - start + 1;
+
+    self.get(key)
+      .then(function(value) {
+        var val = value.substr(start, len);
+
+        promise.resolve(val);
+        callback(null, val);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
   /**
    * Get the values of a set of keys
    * @param  {Array}   keys      the keys
@@ -1505,7 +1062,11 @@
 
     function next(key, index) {
       delete keys[index];
-
+      
+      if (!key) {
+        i++;
+        return next(keys[i], i);
+      }
       self.get(key, function(err, value) {
         if (err) {
           errors.push(err);
@@ -1532,8 +1093,10 @@
 
     function out() {
       if (errors.length) {
+        callback(errors);
         promise.reject(errors);
       } else {
+        callback(null, results);
         promise.resolve(results);
       }
     }
@@ -1650,7 +1213,7 @@
 
         return self.set(key, ++curr);
       })
-      .done(function(key, value) {
+      .then(function(key, value) {
         promise.resolve(value);
         callback(null, value);
       })
@@ -1689,16 +1252,16 @@
         }
       })
       .then(function(curr) {
-        if (isNaN(parseInt(curr))) {
+        if (isNaN(parseFloat(curr))) {
           promise.reject('value wrong');
           return callback('value wrong');
         }
 
-        curr = parseInt(curr);
+        curr = parseFloat(curr);
 
         return self.set(key, curr + increment);
       })
-      .done(function(key, value) {
+      .then(function(key, value) {
         promise.resolve(value);
         callback(null, value);
       })
@@ -1712,9 +1275,103 @@
 
   min.incrbyfloat = min.incrby;
 
-  /******************************
-  **           Hash            **
-  ******************************/
+  min.decr = function(key, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('decr', key, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.exists(key)
+      .then(function(exists) {
+        if (exists) {
+          return self.get(key);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseInt(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseInt(curr);
+
+        return self.set(key, --curr);
+      })
+      .then(function(key, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.decrby = function(key, decrement, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('decrby', key, decrement, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.exists(key)
+      .then(function(exists) {
+        if (exists) {
+          return self.get(key);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseInt(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseInt(curr);
+
+        return self.set(key, curr - decrement);
+      })
+      .then(function(key, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  return min;
+});
+def('min.hash', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
+  
+  if ('undefined' !== typeof define && define.amd) {
+    var utils = arguments[0];
+    var events = arguments[1];
+  } else {
+    var utils = require('min.utils');
+    var events = require('min.deps.events');
+  }
+
+  var Promise = events.Promise;
+
+  var min = {};
 
   /**
    * Set the field in the hash on the key with the value
@@ -1772,7 +1429,7 @@
             return callback(err);
           }
 
-          _keys[key] = 1;
+          self._keys[key] = 1;
 
           promise.resolve(key, field, value);
           callback(null, key, field, value);
@@ -1839,25 +1496,16 @@
     var keys = Object.keys(docs);
     var replies = [];
 
-    (function loop(index) {
-      var currField = keys[index];
+    var multi = self.multi();
 
-      if (currField) {
-        self.hset(key, currField, docs[currField], function(err, reply) {
-          if (err) {
-            promise.reject(err);
-            return callback(err);
-          }
+    keys.forEach(function(field) {
+      multi.hset(key, field, docs[field]);
+    });
 
-          replies.push(reply);
-
-          loop(++index);
-        });
-      } else {
-        callback(null, replies);
-        promise.resolve(replies);
-      }
-    })(0);
+    multi.exec(function(err, replies) {
+      callback(null, replies);
+      promise.resolve(replies);
+    });
 
     return promise;
   };
@@ -1882,7 +1530,7 @@
 
       if (exists) {
         self.get(key)
-          .done(function(value) {
+          .then(function(value) {
             var data = value[field];
             promise.resolve(data);
             callback(null, data);
@@ -1916,26 +1564,25 @@
 
     var values = [];
 
-    (function loop(index) {
-      var currField = fields[index];
+    var multi = self.multi();
 
-      if (currField) {
-        self.hget(key, currField, function(err, value) {
-          if (err) {
-            callback(err);
-            return promise.reject(err);
-          }
+    fields.forEach(function(field) {
+      multi.hget(key, field);
+    });
 
-          values.push(values);
-
-          loop(++index);
-        });
-      } else {
-        promise.resolve(values);
-        callback(null, values);
+    multi.exec(function(err, replies) {
+      if (err) {
+        callback(err);
+        return promise.reject(err);
       }
 
-    })(0);
+      values = replies.map(function(row) {
+        return row[0];
+      });
+
+      promise.resolve(values);
+      callback(null, values);
+    });
 
     return promise;
   };
@@ -1959,7 +1606,7 @@
 
       if (exists) {
         self.get(key)
-          .done(function(data) {
+          .then(function(data) {
             promise.resolve(data);
             callback(null, data);
           })
@@ -1998,12 +1645,12 @@
 
       if (exists) {
         self.get(key)
-          .done(function(data) {
+          .then(function(data) {
             var removed = data[field];
             delete data[field];
 
             self.set(key, data)
-              .done(function() {
+              .then(function() {
                 promise.resolve(key, field, removed);
                 callback(null, key, field, removed);
               })
@@ -2045,7 +1692,7 @@
 
       if (exists) {
         self.get(key)
-          .done(function(data) {
+          .then(function(data) {
             var length = Object.keys(data).length;
 
             promise.resolve(length);
@@ -2083,7 +1730,7 @@
 
       if (exists) {
         self.get(key)
-          .done(function(data) {
+          .then(function(data) {
             var keys = Object.keys(data);
 
             promise.resolve(keys);
@@ -2142,6 +1789,189 @@
     return promise;
   };
 
+  min.hincr = function(key, field, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('hincr', key, field, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.hexists(key, field)
+      .then(function(exists) {
+        if (exists) {
+          return self.hget(exists);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseFloat(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseFloat(curr);
+
+        return self.hset(key, field, ++curr);
+      })
+      .then(function(key, field, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(null, err);
+      });
+
+    return promise;
+  };
+
+  min.hincrby = function(key, field, increment, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('hincr', key, field, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.hexists(key, field)
+      .then(function(exists) {
+        if (exists) {
+          return self.hget(exists);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseFloat(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseFloat(curr);
+
+        return self.hset(key, field, curr + increment);
+      })
+      .then(function(key, field, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(null, err);
+      });
+
+    return promise;
+  };
+
+  min.hincrbyfloat = min.hincrby;
+
+  min.hdecr = function(key, field, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('hdecr', key, field, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.hexists(key, field)
+      .then(function(exists) {
+        if (exists) {
+          return self.hget(key, field);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseFloat(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseFloat(curr);
+
+        return self.hset(key, field, --curr);
+      })
+      .then(function(key, field, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.hdecrby = function(key, field, decrement, callback) {
+    var self = this;
+    var promise = new Promise(function(curr) {
+      self.emit('hincr', key, field, curr);
+    });
+    callback = callback || utils.noop;
+
+    self.hexists(key, field)
+      .then(function(exists) {
+        if (exists) {
+          return self.hget(exists);
+        } else {
+          var p = new Promise();
+
+          p.resolve(0);
+
+          return p;
+        }
+      })
+      .then(function(curr) {
+        if (isNaN(parseFloat(curr))) {
+          promise.reject('value wrong');
+          return callback('value wrong');
+        }
+
+        curr = parseFloat(curr);
+
+        return self.hset(key, field, curr - decrement);
+      })
+      .then(function(key, field, value) {
+        promise.resolve(value);
+        callback(null, value);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(null, err);
+      });
+
+    return promise;
+  };
+
+  return min;
+});
+def('min.list', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
+  
+  if ('undefined' !== typeof define && define.amd) {
+    var utils = arguments[0];
+    var events = arguments[1];
+  } else {
+    var utils = require('min.utils');
+    var events = require('min.deps.events');
+  }
+
+  var Promise = events.Promise;
+
+  var min = {};
+
+
   /******************************
   **           List            **
   ******************************/
@@ -2196,7 +2026,7 @@
             return callback(err);
           }
 
-          _keys[key] = 2;
+          self._keys[key] = 2;
 
           promise.resolve(1);
           callback(null, 1);
@@ -2890,6 +2720,23 @@
     return promise;
   };
 
+  return min;
+});
+def('min.sset', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
+  
+  if ('undefined' !== typeof define && define.amd) {
+    var utils = arguments[0];
+    var events = arguments[1];
+  } else {
+    var utils = require('min.utils');
+    var events = require('min.deps.events');
+  }
+
+  var Promise = events.Promise;
+
+  var min = {};
+
+
   /******************************
   **           Set             **
   ******************************/
@@ -2899,7 +2746,7 @@
       self.emit('sadd', key, len);
     });
 
-    members = [].slice.call(arguments, 1);
+    members = Array.isArray(members) ? members : [].slice.call(arguments, 1);
     var added = 0;
 
     if (!(members[members.length - 1] instanceof Function)) {
@@ -2939,7 +2786,7 @@
         } else if (typeof arguments[0] === 'string') {
           added += members.length;
 
-          _keys[key] = 3;
+          self._keys[key] = 3;
 
           promise.resolve(added);
           callback(null, added);
@@ -2947,7 +2794,7 @@
       })
       .then(function() {
 
-        _keys[key] = 3;
+        self._keys[key] = 3;
 
         promise.resolve(added);
         callback(null, added);
@@ -2998,7 +2845,7 @@
       })
       .then(function() {
 
-        _keys[key] = 3;
+        self._keys[key] = 3;
 
         promise.resolve(removeds);
         callback(null, removeds);
@@ -3039,6 +2886,7 @@
   min.sismember = function(key, value, callback) {
     var self = this;
     var promise = new Promise();
+    callback = callback || utils.noop;
 
     self.exists(key)
       .then(function(exists) {
@@ -3124,14 +2972,14 @@
           return self.sadd(dest, member);
         } else {
 
-          _keys[key] = 3;
+          self._keys[key] = 3;
 
           promise.resolve(0);
           callback(null, 0);
         }
       })
       .then(function() {
-        _keys[key] = 3;
+        self._keys[key] = 3;
         promise.resolve(1);
         callback(null, 1);
       })
@@ -3480,10 +3328,23 @@
 
     return promise;
   };
+  
 
-  /**
-   * TODO: Sorted Set
-   */
+  return min;
+});
+def('min.zset', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
+  
+  if ('undefined' !== typeof define && define.amd) {
+    var utils = arguments[0];
+    var events = arguments[1];
+  } else {
+    var utils = require('min.utils');
+    var events = require('min.deps.events');
+  }
+
+  var Promise = events.Promise;
+
+  var min = {};
 
   /******************************
   **         Sorted Set        **
@@ -3515,7 +3376,7 @@
       })
       .then(function(_key) {
         if ('string' === typeof _key) {
-          _keys[key] = 4;
+          self._keys[key] = 4;
 
           promise.resolve(1, 1);
           callback(null, 1, 1);
@@ -3548,7 +3409,7 @@
         }
       })
       .then(function(key, data) {
-        _keys[key] = 4;
+        self._keys[key] = 4;
 
         var len = data.ms.length;
 
@@ -3790,6 +3651,41 @@
         callback(err);
       });
 
+    promise.withScore = function(callback) {
+      var p = new Promise();
+      callback = callback || utils.noop;
+
+      promise
+        .then(function(members) {
+          var multi = self.multi();
+
+          members.forEach(function(member) {
+            multi.zscore(key, member);
+          });
+
+          multi.exec(function(err, replies) {
+            if (err) {
+              callback(err);
+              return p.reject(err);
+            }
+
+            var rtn = [];
+
+            replies.forEach(function(reply, ii) {
+              rtn.push({
+                member: members[ii],
+                score: reply[0]
+              });
+            });
+
+            p.resolve(rtn);
+            callback(null, rtn);
+          });
+        })
+
+      return p;
+    };
+
     return promise;
   };
 
@@ -3838,9 +3734,236 @@
         callback(err);
       });
 
+    promise.withScore = function(callback) {
+      var p = new Promise();
+      callback = callback || utils.noop;
+
+      promise
+        .then(function(members) {
+          var multi = self.multi();
+
+          members.forEach(function(member) {
+            multi.zscore(key, member);
+          });
+
+          multi.exec(function(err, replies) {
+            if (err) {
+              callback(err);
+              return p.reject(err);
+            }
+
+            var rtn = [];
+
+            replies.forEach(function(reply, ii) {
+              rtn.push({
+                member: members[ii],
+                score: reply[0]
+              });
+            });
+
+            p.resolve(rtn);
+            callback(null, rtn);
+          });
+        })
+
+      return p;
+    };
+
     return promise;
   };
 
+  min.zincrby = function(key, increment, member, callback) {
+    var self = this;
+    var promise = new Promise(function(score) {
+      self.emit('zincrby', key, increment, member, score);
+    });
+    callback = callback || utils.noop;
+
+    var newScore = null;
+
+    self.exists(key)
+
+      .then(function(exists) {
+        if (exists) {
+          return self.zscore(key, member);
+        } else {
+          self.zadd(key, increment, member, callback)
+            .then(promise.resolve.bind(promise))
+            .fail(promise.reject.bind(promise));
+        }
+      })
+      .then(function(score) {
+        return self.get(key);
+      })
+      .then(function(data) {
+        var hash = data.ms.indexOf(member);
+        var score = data.hsm[hash];
+
+        newScore = score + increment;
+
+        var ii = data.shm[score].indexOf(hash);
+        data.shm[score].splice(ii, 1);
+
+        data.hsm[hash] = newScore;
+        if (data.shm[newScore]) {
+          data.shm[newScore].push(hash);
+        } else {
+          data.shm[newScore] = [ hash ];
+        }
+
+        return self.set(key, data);
+      })
+      .then(function() {
+        promise.resolve(newScore);
+        callback(null, newScore);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.zdecrby = function(key, decrement, member, callback) {
+    var self = this;
+    var promise = new Promise(function(score) {
+      self.emit('zdecrby', key, decrement, member, score);
+    });
+    callback = callback || utils.noop;
+
+    var newScore = null;
+
+    self.exists(key)
+
+      .then(function(exists) {
+        if (exists) {
+          return self.zscore(key, member);
+        } else {
+          var err = new Error('no such key');
+
+          promise.reject(err);
+          return callback(err);
+        }
+      })
+      .then(function(score) {
+        return self.get(key);
+      })
+      .then(function(data) {
+        var hash = data.ms.indexOf(member);
+        var score = data.hsm[hash];
+
+        newScore = score - decrement;
+
+        var ii = data.shm[score].indexOf(hash);
+        data.shm[score].splice(ii, 1);
+
+        data.hsm[hash] = newScore;
+        if (data.shm[newScore]) {
+          data.shm[newScore].push(hash);
+        } else {
+          data.shm[newScore] = [ hash ];
+        }
+
+        return self.set(key, data);
+      })
+      .then(function() {
+        promise.resolve(newScore);
+        callback(null, newScore);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.zrank = function(key, member, callback) {
+    var self = this;
+    var promise = new Promise();
+    callback = callback || utils.noop;
+
+    self.exists(key)
+      .then(function(exists) {
+        if (exists) {
+          return self.get(key);
+        } else {
+          var err = new Error('no such key');
+
+          promise.reject(err);
+          return callback(err);
+        }
+      })
+      .then(function(data) {
+        var scores = Object.keys(data.shm);
+        var score = data.hsm[data.ms.indexOf(member)];
+
+        var rank = scores.indexOf(score);
+
+        promise.resolve(rank);
+        callback(null, rank);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  min.zrevrank = function(key, member, callback) {
+    var self = this;
+    var promise = new Promise();
+    callback = callback || utils.noop;
+
+    self.exists(key)
+      .then(function(exists) {
+        if (exists) {
+          return self.get(key);
+        } else {
+          var err = new Error('no such key');
+
+          promise.reject(err);
+          return callback(err);
+        }
+      })
+      .then(function(data) {
+        var scores = Object.keys(data.shm);
+        var score = data.hsm[data.ms.indexOf(member)];
+
+        var rank = scores.reverse().indexOf(score);
+
+        promise.resolve(rank);
+        callback(null, rank);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  return min;
+});
+def('min.mise', [ 'min.utils', 'min.deps.events' ], function(require, exports, module) {
+  
+  if ('undefined' !== typeof define && define.amd) {
+    var utils = arguments[0];
+    var events = arguments[1];
+  } else {
+    var utils = require('min.utils');
+    var events = require('min.deps.events');
+  }
+
+  var Promise = events.Promise;
+
+  var min = {};
+
+  /******************************
+  **            Mise           **
+  ******************************/
   function Multi(_nano) {
     var self = this;
     this.queue = [];
@@ -3887,6 +4010,1075 @@
     return new Multi(this);
   };
 
+  function Sorter(key, _min, callback) {
+    var self = this;
+    self.min = _min;
+    self.callback = callback;
+    self.result = [];
+    self.keys = {};
+    self.promise = new Promise();
+    self.sortFn = function(a, b) {
+      if (utils.isNumber(a) && utils.isNumber(b)) {
+        return a - b;
+      } else {
+        return JSON.stringify(a) > JSON.stringify(b);
+      }
+    };
+
+    var run = function() {
+      self.min.exists(key)
+        .then(function(exists) {
+          if (exists) {
+            return self.min.get(key);
+          } else {
+            return new Error('no such key');
+          }
+        })
+        .then(function(value) {
+          var p = new Promise();
+
+          switch (true) {
+            case Array.isArray(value):
+              p.resolve(value);
+              break;
+            case (value.ms && Array.isArray(value.ms)):
+              p.resolve(value.ms);
+              break;
+            
+            default:
+              return new Error('content type wrong');
+          }
+
+          return p;
+        })
+        .then(function(data) {
+          self.result = data.sort(self.sortFn);
+
+          self.result.forEach(function(chunk) {
+            self.keys[chunk] = chunk;
+          });
+
+          self.promise.resolve(self.result);
+          self.callback(null, self.result);
+        })
+        .fail(function(err) {
+          self.promise.reject(err);
+          self.callback(err);
+        });
+    };
+
+    // Promise Shim
+    (function loop(methods) {
+      var curr = methods.shift();
+
+      if (curr) {
+        self[curr] = function() {
+          return self.promise[curr].apply(self.promise, arguments);
+        };
+
+        loop(methods);
+      } else {
+        run();
+      }
+    })([ 'then', 'fail', 'done']);
+  }
+  Sorter.prototype.by = function(pattern, callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    var src2ref = {};
+    var refs = {};
+    var aviKeys = [];
+
+    // TODO: Sort by hash field
+    var field = null;
+
+    if (pattern.indexOf('->') > 0) {
+      var i = pattern.indexOf('->');
+      field = pattern.substr(i + 2);
+      pattern = pattern.substr(0, pattern.length - i);
+    }
+    var isHash = !!field;
+
+    self.min.keys(pattern)
+      .then(function(keys) {
+        var filter = new RegExp(pattern
+          .replace('?', '(.)')
+          .replace('*', '(.*)'));
+
+        for (var i = 0; i < keys.length; i++) {
+          var symbol = filter.exec(keys[i])[1];
+
+          if (self.result.indexOf(symbol) >= 0) {
+            src2ref[keys[i]] = symbol;
+          }
+        }
+
+        aviKeys = Object.keys(src2ref);
+
+        return self.min.mget(aviKeys.slice());
+      })
+      .then(function(values) {
+        var reverse = {};
+
+        for (var i = 0; i < values.length; i++) {
+          reverse[JSON.stringify(values[i])] = aviKeys[i];
+        }
+
+        values.sort(self.sortFn);
+
+        var newResult = values
+          .map(function(value) {
+            return reverse[JSON.stringify(value)];
+          })
+          .map(function(key) {
+            return src2ref[key];
+          });
+
+        self.result = newResult;
+
+        self.promise.resolve(newResult);
+        callback(null, newResult);
+      })
+      .fail(function(err) {
+        self.promise.reject(err);
+        callback(err);
+        self.callback(err);
+      });
+    
+    return this;
+  };
+  Sorter.prototype.asc = function(callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    self.sortFn = function(a, b) {
+      if (utils.isNumber(a) && utils.isNumber(b)) {
+        return a - b;
+      } else {
+        return JSON.stringify(a) > JSON.stringify(b); 
+      }
+    };
+
+    var handle = function(result) {
+      self.result = result.sort(self.sortFn);
+
+      self.promise.resolve(self.result);
+      callback(null, self.result);
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return self;
+  };
+  Sorter.prototype.desc = function(callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    self.sortFn = function(a, b) {
+      if (utils.isNumber(a) && utils.isNumber(b)) {
+        return b - a;
+      } else {
+        return JSON.stringify(a) < JSON.stringify(b); 
+      }
+    };
+
+    var handle = function(result) {
+      self.result = result.sort(self.sortFn);
+
+      self.promise.resolve(self.result);
+      callback(null, self.result);
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return self;
+  };
+  Sorter.prototype.get = function(pattern, callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    var handle = function(_result) {
+      var result = [];
+
+      (function loop(res) {
+        var curr = res.shift();
+
+        if (!utils.isUndefined(curr)) {
+          if (Array.isArray(curr)) {
+            var key = self.keys[curr[0]];
+
+            self.min.get(pattern.replace('*', key))
+              .then(function(value) {
+                curr.push(value);
+                result.push(curr);
+
+                loop(res);
+              })
+              .fail(function(err) {
+                self.promise.reject(err);
+                callback(err);
+              });
+
+          } else if (curr.substr || utils.isNumber(curr)) {
+            var key = self.keys[curr];
+
+            self.min.get(pattern.replace('*', key))
+              .then(function(value) {
+                result.push([ value ]);
+                if (value.substr || utils.isNumber(value)) {
+                  self.keys[value] = key;
+                } else {
+                  self.keys[JSON.stringify(value)] = key;
+                }
+
+                loop(res);
+              })
+              .fail(function(err) {
+                self.promise.reject(err);
+                callback(err);
+              });
+          }
+        } else {
+          self.result = result;
+
+          self.promise.resolve(result);
+          callback(null, result);
+        }
+      })(_result.slice());
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return this;
+  };
+  Sorter.prototype.hget = function(pattern, field, callback) {
+    callback = callback || utils.noop;
+    var self = this;
+
+    var handle = function(_result) {
+      var result = [];
+
+      (function loop(res) {
+        var curr = res.shift();
+
+        if (!utils.isUndefined(curr)) {
+          if (Array.isArray(curr)) {
+            var key = self.keys[curr[0]];
+
+            self.min.hget(pattern.replace('*', key), field)
+              .then(function(value) {
+                curr.push(value);
+                result.push(curr);
+
+                loop(res);
+              })
+              .fail(function(err) {
+                self.promise.reject(err);
+                callback(err);
+              });
+
+          } else if (curr.substr || utils.isNumber(curr)) {
+            var key = self.keys[curr];
+
+            self.min.hget(pattern.replace('*', key))
+              .then(function(value) {
+                result.push([ value ]);
+                if (value.substr || utils.isNumber(value)) {
+                  self.keys[value] = key;
+                } else {
+                  self.keys[JSON.stringify(value)] = key;
+                }
+
+                loop(res);
+              })
+              .fail(function(err) {
+                self.promise.reject(err);
+                callback(err);
+              });
+          }
+        } else {
+          self.result = result;
+
+          self.promise.resolve(result);
+          callback(null, result);
+        }
+      })(_result.slice());
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return this;
+  };
+  Sorter.prototype.limit = function(offset, count, callback) {
+    callback = callback || utils.noop;
+    var self = this;
+
+    var handle = function(result) {
+      self.result = result.splice(offset, count);
+
+      self.promise.resolve(self.result);
+      callback(null, self.result);
+    };
+
+    if (self.promise.ended) {
+      handle(self.result);
+    } else {
+      self.promise.once('resolve', handle);
+    }
+
+    return this;
+  };
+  Sorter.prototype.flatten = function(callback) {
+    callback = callback || utils.noop;
+    var self = this;
+
+    if (self.promise.ended) {
+      var rtn = [];
+
+      for (var i = 0; i < self.result.length; i++) {
+        for (var j = 0; j < self.result[i].length; j++) {
+          rtn.push(self.result[i][j]);
+        }
+      }
+
+      self.result = rtn;
+
+      self.promise.resolve(rtn);
+      callback(null, rtn);
+    } else {
+      self.promise.once('resolve', function(result) {
+        var rtn = [];
+
+        for (var i = 0; i < result.length; i++) {
+          for (var j = 0; j < result[i].length; j++) {
+            rtn.push(result[i][j]);
+          }
+        }
+
+        self.result = rtn;
+
+        self.promise.resolve(rtn);
+        callback(null, rtn);
+      });
+    }
+
+    return this;
+  };
+  Sorter.prototype.store = function(dest, callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    if (self.promise.ended) {
+      self.min.set(dest, self.result)
+        .then(function() {
+          self.promise.resolve(self.result);
+          callback(null, self.result);
+        })
+        .fail(function(err) {
+          self.promise.reject(err);
+          callback(err);
+        });
+    } else {
+      self.promise.once('resolve', function(result) {
+        self.min.set(dest, result)
+          .then(function() {
+            self.promise.resolve(result);
+            callback(null, result);
+          })
+          .fail(function(err) {
+            self.promise.reject(err);
+            callback(err);
+          });
+      });
+    }
+
+    return this;
+  };
+
+  min.sort = function(key, callback) {
+    callback = callback || utils.noop;
+
+    return new Sorter(key, this, callback);
+  };
+
+  function Scanner(cursor, pattern, count, min) {
+    pattern = pattern || '*';
+
+    this.cursor = cursor || 0;
+    this.pattern = new RegExp(pattern.replace('*', '(.*)'));
+    this.limit = count > -1 ? count : 10;
+    this.end = this.cursor;
+
+    this.parent = min;
+  }
+  Scanner.prototype.scan = function(callback) {
+    var self = this;
+
+    var rtn = [];
+
+    self.parent.get('min_keys')
+      .then(function(data) {
+        data = JSON.parse(data);
+
+        var keys = Object.keys(data);
+
+        (function scan(ii) {
+          var key = keys[ii];
+
+          if (key && self.pattern.test(key) && key !== 'min_keys') {
+            rtn.push(key);
+
+            if ((++self.end - self.cursor) >= self.limit) {
+              return callback(null, rtn, self.end);
+            }
+          } else if (!key) {
+            self.end = 0;
+            return callback(null, rtn, self.end);
+          }
+
+          return scan(++ii);
+        })(self.cursor);
+      }, function(err) {
+        callback(err);
+      });
+
+    return this;
+  };
+  Scanner.prototype.match = function(pattern, callback) {
+    this.pattern = new RegExp(pattern.replace('*', '(.*)'));
+    this.end = this.cursor;
+
+    return this.scan(callback || utils.noop);
+  };
+  Scanner.prototype.count = function(count, callback) {
+    this.limit = count;
+    this.end = this.cursor;
+
+    return this.scan(callback || utils.noop);
+  };
+
+  min.scan = function(cursor, callback) {
+    var self = this;
+    callback = callback || utils.noop;
+
+    var scanner = new Scanner(cursor, null, -1, self);
+
+    scanner.scan(callback);
+
+    return scanner;
+  };
+
+  return min;
+});
+def('min', [ 'min.utils', 'min.deps.events', 'min.mix', 'min.hash', 'min.list', 'min.sset', 'min.zset', 'min.mise' ], function(require, exports, module) {
+
+  if ('undefined' !== typeof define && define.amd) {
+    var utils = arguments[0];
+    var events = arguments[1];
+    var mix = arguments[2];
+    var hash = arguments[3];
+    var list = arguments[4];
+    var sset = arguments[5];
+    var zset = arguments[6];
+    var mise = arguments[7];
+  } else {
+    var utils = require('min.utils');
+    var events = require('min.deps.events');
+    var mix = require('min.mix');
+    var hash = require('min.hash');
+    var list = require('min.list');
+    var sset = require('min.sset');
+    var zset = require('min.zset');
+    var mise = require('min.mise');
+  }
+
+  var Promise = events.Promise;
+
+  var min = {};
+  utils.extend(min, new events.EventEmitter());
+  min.EventEmitter = events.EventEmitter;
+  min.Promise = events.Promise;
+
+  // Default Store Interfaces
+  function memStore () {}
+  memStore.prototype.get = function(key) {
+    if (sessionStorage) {
+      return sessionStorage.getItem(key);
+    } else {
+      return false;
+    }
+  };
+  memStore.prototype.set = function(key, value) {
+    if (sessionStorage) {
+      return sessionStorage.setItem(key, value);
+    } else {
+      return false;
+    }
+  };
+  memStore.prototype.remove = function(key) {
+    if (sessionStorage) {
+      return sessionStorage.removeItem(key);
+    } else {
+      return false;
+    }
+  };
+
+  function localStore () {}
+  localStore.prototype.get = function(key) {
+    if (localStorage) {
+      return localStorage.getItem(key);
+    } else {
+      return false;
+    }
+  };
+  localStore.prototype.set = function(key, value) {
+    if (localStorage) {
+      return localStorage.setItem(key, value);
+    } else {
+      return false;
+    }
+  };
+  localStore.prototype.remove = function(key) {
+    if (localStorage) {
+      return localStorage.removeItem(key);
+    } else {
+      return false;
+    }
+  };
+
+  min.memStore = memStore;
+  min.localStore = localStore;
+
+  // Default StoreInterface
+  min.store = new min.localStore();
+
+  // Default variables
+  var _keys = min._keys = {};
+  var _keysTimer = null;
+  var _types = {
+    0 : 'mix',
+    1 : 'hash',
+    2 : 'list',
+    3 : 'set',
+    4 : 'zset'  // Sorted Set
+  };
+
+    /**
+   * Fork a new MinDB object
+   * @return {Object} new min object
+   */
+  min.fork = function() {
+    var rtn = {};
+    var self = this;
+
+    for (var prop in this) {
+      if (this.hasOwnProperty(prop)) {
+        rtn[prop] = this[prop];
+      }
+    }
+
+    return rtn;
+  };
+
+  /*********
+  ** Keys **
+  *********/
+
+  /**
+   * Delete a key
+   * @param  {String}   key      Key
+   * @param  {Function} callback Callback
+   * @return {Promise}           Promise Object
+   */
+  min.del = function(key, callback) {
+    var self = this;
+
+    // Promise Object
+    var promise = new Promise(function() {
+      self.emit('del', key);
+      if (_keysTimer) {
+        clearTimeout(_keysTimer);
+      }
+
+      _keysTimer = setTimeout(self.save.bind(self), 1000);
+    });
+
+    // Store
+    var store = this.store;
+
+    // Callback and Promise's shim
+    if ('undefined' == typeof callback) {
+      callback = utils.noop;
+    }
+
+    // Key prefix
+    var $key = 'min-' + key;
+
+    if (store.async) {
+      // Async Store Operating
+      
+      var load = function() {
+        // Value processing
+        store.remove($key, function(err) {
+          if (err) {
+            // Error!
+            promise.reject(err);
+            return callback(err);
+          }
+
+          delete self._keys[key];
+
+          // Done
+          promise.resolve(key);
+          callback(null, key);
+        });
+      };
+
+      if (store.ready) {
+        load();
+      } else {
+        store.on('ready', load);
+      }
+    } else {
+      try {
+        store.remove($key);
+
+        delete self._keys[key];
+
+        // Done
+        promise.resolve(key);
+        callback(null, key);
+      } catch(err) {
+        // Error!
+        promise.reject(err);
+        callback(err);
+      }
+    }
+
+    // Event emitting
+    this.emit('del', key);
+
+    return promise;
+  };
+
+  /**
+   * Check a key is exists or not
+   * @param  {String}   key      Key
+   * @param  {Function} callback Callback
+   * @return {Promise}           Promise Object
+   */
+  min.exists = function(key, callback) {
+    // Promise Object
+    var promise = new Promise();
+
+    callback = callback || utils.noop;
+
+    try {
+      this.get(key, function(err, value) {
+        if (err) {
+          promise.resolve(false);
+          callback(null, false);
+        }
+
+        if ('undefined' == typeof value) {
+          promise.resolve(false);
+          return callback(null, false);
+        } else {
+          promise.resolve(true);
+          return callback(null, true);
+        }
+      });
+    } catch(err) {
+      promise.reject(err);
+      return callback(err);
+    }
+
+    return promise;
+  };
+
+  /**
+   * Rename a old key
+   * @param  {String}   key      the old key
+   * @param  {String}   newKey   the new key
+   * @param  {Function} callback Callback
+   * @return {Promise}           Promise Object
+   */
+  min.renamenx = function(key, newKey, callback) {
+    var self = this;
+
+    // Promise object
+    var promise = new Promise(function() {
+      if (_keysTimer) {
+        clearTimeout(_keysTimer);
+      }
+
+      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
+    });
+
+    // Callback and Promise's shim
+    if ('undefined' == typeof callback) {
+      callback = utils.noop;
+    }
+
+    try {
+      // Error handle
+      var reject = function(err) {
+        promise.reject(err);
+        callback(err);
+      };
+
+      var type = null;
+      var value = null;
+
+      min.exists(key)
+        .then(function(exists) {
+          if (!exists) {
+            var err = new Error('no such key');
+
+            reject(err);
+          } else {
+            return min.get(key);
+          }
+        })
+        .then(function(_value) {
+          type = self._keys[key];
+          value = _value;
+
+          return min.del(key);
+        })
+        .then(function() {
+          return min.set(newKey, value, callback);
+        })
+        .then(function() {
+          self._keys[newKey] = type;
+          promise.resolve('OK');
+          callback(null, 'OK');
+        })
+        .fail(reject);
+
+    } catch(err) {
+      reject(err);
+    }
+
+    return promise;
+  };
+
+  /**
+   * Rename a old key when the old key is not equal to the new key
+   * and the old key is exiest.
+   * @param  {String}   key      the old key
+   * @param  {String}   newKey   the new key
+   * @param  {Function} callback Callback
+   * @return {Promise}           Promise Object
+   */
+  min.rename = function(key, newKey, callback) {
+    var self = this;
+    // Promise object
+    var promise = new Promise(function() {
+      if (_keysTimer) {
+        clearTimeout(_keysTimer);
+      }
+
+      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
+    });
+
+    // Error handle
+    var reject = function(err) {
+      promise.reject(err);
+      callback(err);
+    };
+    
+    // Callback and Promise's shim
+    if ('undefined' == typeof callback) {
+      callback = utils.noop;
+    }
+
+    if (key == newKey) {
+      // The origin key is equal to the new key
+      reject(new Error('The key is equal to the new key.'));
+    } else {
+      self.renamenx.apply(self, arguments)
+        .then(promise.resolve.bind(promise))
+        .fail(promise.reject.bind(promise));
+    }
+    return promise;
+  };
+
+  /**
+   * Return the keys which match by the pattern
+   * @param  {String}   pattern  Pattern
+   * @param  {Function} callback Callback
+   * @return {Promise}           Promise Object
+   */
+  min.keys = function(pattern, callback) {
+
+    // Promise object
+    var promise = new Promise();
+
+    // Stored keys
+    var keys = Object.keys(this._keys);
+
+    // Callback and Promise's shim
+    callback = callback || utils.noop;
+
+    // Filter
+    var filter = pattern
+      .replace('?', '(.)')
+      .replace('*', '(.*)');
+    filter = new RegExp(filter);
+
+    var ret = [];
+
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i].match(filter)) {
+        ret.push(keys[i]);
+      }
+    }
+
+    // Done
+    promise.resolve(ret);
+    callback(null, ret);
+
+    return promise;
+  };
+
+  /**
+   * Return a key randomly
+   * @param  {Function} callback Callback
+   * @return {Promise}           Promise Object
+   */
+  min.randomkey = function(callback) {
+    
+    // Promise Object
+    var promise = new Promise();
+
+    // Stored keys
+    var keys = Object.keys(this._keys);
+
+    // Callback and Promise's shim
+    if ('undefined' == typeof callback) {
+      callback = utils.noop;
+    }
+
+    // Random Key
+    var index = Math.round(Math.random() * (keys.length - 1));
+
+    // Done
+    var $key = keys[index];
+    promise.resolve($key);
+    callback(null, $key);
+
+    return promise;
+  };
+
+  /**
+   * Return the value's type of the key
+   * @param  {String}   key      the key
+   * @param  {Function} callback Callback
+   * @return {Promise}           Promise Object
+   */
+  min.type = function(key, callback) {
+
+    // Promise Object
+    var promise = new Promise();
+
+    // Callback and Promise's shim
+    callback = callback || utils.noop;
+
+    if (this._keys.hasOwnProperty(key)) {
+      promise.resolve(_types[this._keys[key]]);
+      callback(null, callback);
+    } else {
+      promise.resolve(null);
+      callback(null, null);
+    }
+
+    return promise;
+  };
+
+  /**
+   * Remove all keys in the db
+   * @param  {Function} callback Callback
+   * @return {Object}            min
+   */
+  min.empty = function(callback) {
+    var self = this;
+    var promise = new Promise(function(len) {
+      self.emit('empty', len);
+      if (_keysTimer) {
+        clearTimeout(_keysTimer);
+      }
+
+      _keysTimer = setTimeout(self.save.bind(self), 5 * 1000);
+    });
+    var keys = Object.keys(this._keys);
+    var last = null;
+    var removeds = 0;
+    callback = callback || utils.noop;
+
+    (function loop(key) {
+      if (key) {
+        self.del(key, function(err) {
+          if (!err) {
+            removeds++;
+          }
+
+          loop(keys.shift());
+        });
+      } else {
+        promise.resolve(removeds);
+        callback(null, removeds);
+      }
+    })(keys.shift());
+
+    return promise;
+  };
+
+  /**
+   * Save the dataset to the Store Interface manually
+   * @param  {Function} callback callback
+   * @return {Promise}           promise
+   */
+  min.save = function(callback) {
+    var self = this;
+    var promise = new Promise(function(dump, strResult) {
+      self.emit('save', dump, strResult);
+    });
+    callback = callback || utils.noop;
+
+    self.set('min_keys', JSON.stringify(self._keys))
+      .then(function() {
+        return self.dump();
+      })
+      .then(function(dump, strResult) {
+        promise.resolve(dump, strResult);
+        callback(dump, strResult);
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  /**
+   * Return the dataset of MinDB
+   * @param  {Function} callback callback
+   * @return {Promise}           promise
+   */
+  min.dump = function(callback) {
+    var self = this;
+    var promise = new Promise();
+    callback = callback || utils.noop;
+
+    var rtn = {};
+
+    self.keys('*')
+      .then(function(keys) {
+        (function loop(key) {
+          if (key) {
+            self.get(key)
+              .then(function(value) {
+                rtn[key] = value;
+                loop(keys.shift());
+              })
+              .fail(function(err) {
+                promise.reject(err);
+                callback(err);
+              });
+          } else {
+            var strResult = JSON.stringify(rtn);
+            promise.resolve(rtn, strResult);
+            callback(null, rtn, strResult);
+          }
+        })(keys.shift());
+      })
+      .fail(function(err) {
+        promise.reject(err);
+        callback(err);
+      });
+
+    return promise;
+  };
+
+  /**
+   * Restore the dataset to MinDB
+   * @param  {Object}   dump     dump object
+   * @param  {Function} callback callback
+   * @return {Promise}           promise
+   */
+  min.restore = function(dump, callback) {
+    var self = this;
+    var promise = new Promise(function() {
+      self.save(function() {
+        self.emit('restore');
+      });
+    });
+    callback = callback || utils.noop;
+
+    var keys = Object.keys(dump);
+
+    (function loop(key, done) {
+      if (key) {
+        self.set(key, dump[key])
+          .then(function() {
+            loop(keys.shift(), done);
+          })
+          .fail(function(err) {
+            promise.reject(err);
+            callback(err);
+          });
+      } else {
+        done();
+      }
+    })(keys.shift(), function() {
+      self
+        .exists('min_keys')
+        .then(function(exists) {
+          if (exists) {
+            return self.get('min_keys');
+          } else {
+            promise.resolve();
+            callback();
+          }
+        })
+        .then(function(keys) {
+          _keys = JSON.parse(keys);
+
+          promise.resolve();
+          callback();
+        });
+    });
+
+    return promise;
+  };
+
+  // Methods
+  utils.extend(min, hash);
+  utils.extend(min, list);
+  utils.extend(min, sset);
+  utils.extend(min, zset);
+  utils.extend(min, mise);
+  utils.extend(min, mix);
+
   // Apply
   min.exists('min_keys')
     .then(function(exists) {
@@ -3895,7 +5087,7 @@
       }
     })
     .then(function(keys) {
-      _keys = JSON.parse(keys);
+      min._keys = JSON.parse(keys);
     });
 
   return min;

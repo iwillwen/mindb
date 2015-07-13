@@ -1,4 +1,21 @@
 
+n.n.n / 2014-11-08
+==================
+
+  * 	deleted:    tracks.html
+  * Merge remote-tracking branch 'origin/master' into develop
+  * hotfix:mget,events
+  * Update Donation
+  * Merge pull request #9 from viztor/patch-1
+  * Update README.md: Redis-copy -> Redis-like.
+  * Fixed grammar bug
+  * Merge pull request #8 from iwillwen/develop
+  * Added `min.scan()` method;
+  * Release v0.0.4
+  * Merge pull request #4 from iwillwen/develop
+  * Release v0.0.3
+  * start new feature `SORT` command
+
 n.n.n / 2014-05-23 
 ==================
 
