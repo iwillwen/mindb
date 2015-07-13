@@ -136,25 +136,29 @@ min.del = function(key, callback = noop) {
  */
 min.exists = function(key, callback = noop) {
   // Promise Object
-  var promise = new Promise(noop)
+  var promise = new Promise()
 
-  try {
-    this.get(key)
-      .then(value => {
-        if ('undefined' == typeof value) {
-          promise.resolve(false)
-          return callback(null, false)
-        } else {
-          promise.resolve(true)
-          return callback(null, true)
-        }
-      }, err => {
-        promise.resolve(false)
-        callback(null, false)
-      })
-  } catch(err) {
-    promise.reject(err)
-    return callback(err)
+  key = `min-${key}`
+
+  var handle = function(err, value) {
+    if (err || !value) {
+      promise.resolve(false)
+      return callback(null, false)
+    }
+
+    promise.resolve(true)
+    callback(null, true)
+  }
+
+  if (this.store.async) {
+    this.store.get(key, handle)
+  } else {
+    try {
+      var val = this.store.get(key)
+      handle(null, val)
+    } catch(err) {
+      handle(err)
+    }
   }
 
   return promise
@@ -294,7 +298,7 @@ min.keys = function(pattern, callback = noop) {
   }
 
   // Done
-  setTimeout(_ => promise.resolve(ret), 100)
+  promise.resolve(ret)
   callback(null, ret)
 
   return promise
@@ -565,11 +569,25 @@ utils.extend(min, mise)
 utils.extend(min, mix)
 
 // Apply
-min.exists('min_keys')
-  .then(exists => {
-    if (exists)
-      return min.get('min_keys')
-  })
-  .then(keys => {
+var handle = function(err, value) {
+  if (err || !value) {
+    min._keys = {}
+    return
+  }
+
+  try {
     min._keys = JSON.parse(keys)
-  })
+  } catch(err) {
+    min._keys = {}
+  }
+}
+if (min.store.async) {
+  min.store.get('min-min_keys', handle)
+} else {
+  try {
+    var val = min.store.get('min-min_keys')
+    handle(null, val)
+  } catch(err) {
+    handle(err)
+  }
+}

@@ -373,9 +373,14 @@ min.get = function(key, callback = noop) {
 
         if (value) {
           // Done
-          var ret = JSON.parse(value)
-          promise.resolve(ret)
-          callback(null, ret)
+          try {
+            var ret = JSON.parse(value)
+            promise.resolve(ret)
+            callback(null, ret)
+          } catch(err) {
+            promise.reject(err)
+            callback(err)
+          }
         } else {
           var err = new Error('no such key')
 
@@ -396,19 +401,24 @@ min.get = function(key, callback = noop) {
       var _value = this.store.get($key)
 
       if (_value) {
-        var value = JSON.parse(_value)
-        // Done
-        setTimeout(_ => promise.resolve(value), 100)
-        callback(null, value)
+        try {
+          var value = JSON.parse(_value)
+          // Done
+          promise.resolve(value)
+          callback(null, value)
+        } catch(err) {
+          promise.reject(err)
+          callback(err)
+        }
       } else {
         var err = new Error('no such key')
 
-        setTimeout(_ => promise.reject(err), 100)
+        promise.reject(err)
         callback(err)
       }
     } catch(err) {
       // Error!
-      setTimeout(_ => promise.reject(err), 100)
+      promise.reject(err)
       callback(err)
     }
   }

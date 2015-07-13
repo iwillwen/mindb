@@ -1109,9 +1109,14 @@
 
           if (value) {
             // Done
-            var ret = JSON.parse(value);
-            promise.resolve(ret);
-            callback(null, ret);
+            try {
+              var ret = JSON.parse(value);
+              promise.resolve(ret);
+              callback(null, ret);
+            } catch (err) {
+              promise.reject(err);
+              callback(err);
+            }
           } else {
             var err = new Error('no such key');
 
@@ -1131,25 +1136,24 @@
         var _value = this.store.get($key);
 
         if (_value) {
-          var value = JSON.parse(_value);
-          // Done
-          setTimeout(function (_) {
-            return promise.resolve(value);
-          }, 100);
-          callback(null, value);
+          try {
+            var value = JSON.parse(_value);
+            // Done
+            promise.resolve(value);
+            callback(null, value);
+          } catch (err) {
+            promise.reject(err);
+            callback(err);
+          }
         } else {
           var err = new Error('no such key');
 
-          setTimeout(function (_) {
-            return promise.reject(err);
-          }, 100);
+          promise.reject(err);
           callback(err);
         }
       } catch (err) {
         // Error!
-        setTimeout(function (_) {
-          return promise.reject(err);
-        }, 100);
+        promise.reject(err);
         callback(err);
       }
     }
@@ -4995,24 +4999,29 @@
     var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
     // Promise Object
-    var promise = new _depsEventsJs.Promise(noop);
+    var promise = new _depsEventsJs.Promise();
 
-    try {
-      this.get(key).then(function (value) {
-        if ('undefined' == typeof value) {
-          promise.resolve(false);
-          return callback(null, false);
-        } else {
-          promise.resolve(true);
-          return callback(null, true);
-        }
-      }, function (err) {
+    key = 'min-' + key;
+
+    var handle = function handle(err, value) {
+      if (err || !value) {
         promise.resolve(false);
-        callback(null, false);
-      });
-    } catch (err) {
-      promise.reject(err);
-      return callback(err);
+        return callback(null, false);
+      }
+
+      promise.resolve(true);
+      callback(null, true);
+    };
+
+    if (this.store.async) {
+      this.store.get(key, handle);
+    } else {
+      try {
+        var val = this.store.get(key);
+        handle(null, val);
+      } catch (err) {
+        handle(err);
+      }
     }
 
     return promise;
@@ -5147,9 +5156,7 @@
     }
 
     // Done
-    setTimeout(function (_) {
-      return promise.resolve(ret);
-    }, 100);
+    promise.resolve(ret);
     callback(null, ret);
 
     return promise;
@@ -5437,10 +5444,27 @@
   _utils['default'].extend(min, _mix['default']);
 
   // Apply
-  min.exists('min_keys').then(function (exists) {
-    if (exists) return min.get('min_keys');
-  }).then(function (keys) {
-    min._keys = JSON.parse(keys);
-  });
+  var handle = function handle(err, value) {
+    if (err || !value) {
+      min._keys = {};
+      return;
+    }
+
+    try {
+      min._keys = JSON.parse(keys);
+    } catch (err) {
+      min._keys = {};
+    }
+  };
+  if (min.store.async) {
+    min.store.get('min-min_keys', handle);
+  } else {
+    try {
+      var val = min.store.get('min-min_keys');
+      handle(null, val);
+    } catch (err) {
+      handle(err);
+    }
+  }
 });
 //# sourceMappingURL=maps/min-debug.js.map
