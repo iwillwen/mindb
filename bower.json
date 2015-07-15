@@ -1,7 +1,7 @@
 {
   "name": "mindb",
   "main": "dist/min.js",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "homepage": "http://github.com/iwillwen/mindb",
   "authors": [
     "iwillwen <willwengunn@gmail.com>"
