@@ -1,77 +1,64 @@
-var fs = require('fs');
+var fs = require('fs')
+var events = require('events')
+var util = require('util')
 
 function FileStore(filename) {
-  this.filename = filename;
-  this.buffer   = null;
+  var self = this
+
+  this.filename = filename
+  this.buffer   = {}
   
-  this.async    = true;
-  this.ready    = true;
-}
-FileStore.prototype.set = function(key, value, callback) {
-  var self = this;
+  this.async    = true
+  this.ready    = false
 
-  if (!self.buffer) {
-    fs.readFile(self.filename, function(err, data) {
-      if (err)
-        return callback(err);
+  fs.exists(filename, function(exists) {
+    if (!exists) {
+      fs.writeFile(filename, "{}", function(err) {
+        if (err) return console.error(err)
 
-      self.buffer = JSON.parse(data.toString());
-      self.buffer[key] = value;
-      fs.writeFile(self.filename, JSON.stringify(self.buffer), function(err) {
-        if (err)
-          return callback(err);
-
-        callback();
-      });
-    });
-  } else {
-    self.buffer[key] = value;
-
-    fs.writeFile(self.filename, JSON.stringify(self.buffer), function(err) {
-      if (err)
-        return callback(err);
-
-      callback();
-    });
-  }
-};
-FileStore.prototype.get = function(key, callback) {
-  var self = this;
-
-  if (!self.buffer) {
-    fs.readFile(self.filename, function(err, data) {
-      if (err)
-        return callback(err);
-
-      self.buffer = JSON.parse(data);
-
-      callback(null, self.buffer[key]);
-    });
-  } else {
-    if (self.buffer[key]) {
-      return callback(null, self.buffer[key]);
+        self.ready = true
+        self.emit('ready')
+      })
     } else {
-      return callback(new Error('This key is not exists.'));
+      fs.readFile(filename, function(err, data) {
+        if (err) return console.error(err)
+
+        self.buffer = JSON.parse(data.toString())
+
+        self.ready = true
+        self.emit('ready')
+      })
     }
-  }
-};
-FileStore.prototype.remove = function(key, callback) {
-  var self = this;
+  })
+}
+util.inherits(FileStore, events.EventEmitter)
+FileStore.prototype.set = function(key, value, callback) {
+  var self = this
 
-  if (!self.buffer) {
-    fs.readFile(self.filename, function(err, data) {
-      if (err)
-        return callback(err);
+  self.buffer[key] = value
 
-      delete self.buffer[key];
+  fs.writeFile(self.filename, JSON.stringify(self.buffer), function(err) {
+    if (err)
+      return callback(err)
 
-      fs.writeFile(self.filename, JSON.stringify(self.buffer), callback);
-    });
+    callback()
+  })
+}
+FileStore.prototype.get = function(key, callback) {
+  var self = this
+
+  if (self.buffer[key]) {
+    return callback(null, self.buffer[key])
   } else {
-    delete self.buffer[key];
-
-    fs.writeFile(self.filename, JSON.stringify(self.buffer), callback);
+    return callback(new Error('This key is not exists.'))
   }
-};
+}
+FileStore.prototype.remove = function(key, callback) {
+  var self = this
 
-module.exports = FileStore;
+  delete self.buffer[key]
+
+  fs.writeFile(self.filename, JSON.stringify(self.buffer), callback)
+}
+
+module.exports = FileStore

@@ -1,9 +1,9 @@
-var nano = require('../../nano');
+var min = require('../../dist/min');
 var FileStore = require('./filestore');
 
-nano.store = new FileStore(__dirname + '/mydata.db');
+min.store = new FileStore(__dirname + '/mydata.db');
 
-nano.multi()
+min.multi()
   .sadd('foo', 'bar')
   .sadd('foo', 'test')
   .smembers('foo')

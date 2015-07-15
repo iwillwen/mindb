@@ -1,0 +1,15 @@
+{
+  "name": "min-file",
+  "version": "1.0.0",
+  "description": "FileStore of MinDB in Node.js/Io.js",
+  "main": "filestore.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mindb",
+    "file"
+  ],
+  "author": "iwillwen",
+  "license": "MIT"
+}

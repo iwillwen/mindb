@@ -61,7 +61,7 @@ class Multi {
   }
 }
 
-min.multi = () => {
+min.multi = function() {
   return new Multi(this)
 }
 

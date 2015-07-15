@@ -1,5 +1,5 @@
 /*!
- * MinDB (version 0.1.4) - Database on JavaScript
+ * MinDB (version 0.1.5) - Database on JavaScript
  * 
  * Will Wen Gunn(iwillwen) and other contributors
  * 
@@ -3891,7 +3891,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      callback(null, null);
 	    }
 	  }).then(function (members) {
-	    var index = Math.random() * members.length || 0;
+	    var index = Math.floor(Math.random() * members.length) || 0;
 
 	    var member = members[index];
 
@@ -4896,6 +4896,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	      var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
 
+	      var promise = new _eventsJs.Promise();
 	      var results = [];
 	      var loop = null(loop = function (task) {
 	        if (task) {
@@ -4903,12 +4904,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	            results.push(_arguments2);
 	            loop(_this2.queue.shift());
 	          }, function (err) {
+	            promise.reject(err);
 	            callback(err, results);
 	          });
 	        } else {
+	          promise.resolve(results);
 	          callback(null, results);
 	        }
 	      })(this.queue.shift());
+
+	      return promise;
 	    }
 	  }]);
 
@@ -4916,7 +4921,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	})();
 
 	min.multi = function () {
-	  return new Multi(undefined);
+	  return new Multi(this);
 	};
 
 	var Sorter = (function () {
