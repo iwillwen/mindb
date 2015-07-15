@@ -37,16 +37,16 @@ class Multi {
   }
 
   exec(callback = noop) {
+    var self = this
     var promise = new Promise()
-    var results = []
-    var loop = null
+    var results = [];
 
-    (loop = task => {
+    (function loop(task) {
       if (task) {
-        this.min[task.method].apply(this.min, task.args)
+        self.min[task.method].apply(self.min, task.args)
           .then(_ => {
             results.push(arguments)
-            loop(this.queue.shift())
+            loop(self.queue.shift())
           }, err => {
             promise.reject(err)
             callback(err, results)

@@ -1,5 +1,5 @@
 /*!
- * MinDB (version 0.1.5) - Database on JavaScript
+ * MinDB (version 0.1.7) - Database on JavaScript
  * 
  * Will Wen Gunn(iwillwen) and other contributors
  * 
@@ -4891,18 +4891,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	  _createClass(Multi, [{
 	    key: 'exec',
 	    value: function exec() {
-	      var _this2 = this,
-	          _arguments2 = arguments;
-
 	      var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
 
+	      var self = this;
 	      var promise = new _eventsJs.Promise();
 	      var results = [];
-	      var loop = null(loop = function (task) {
+
+	      (function loop(task) {
+	        var _arguments2 = arguments;
+
 	        if (task) {
-	          _this2.min[task.method].apply(_this2.min, task.args).then(function (_) {
+	          self.min[task.method].apply(self.min, task.args).then(function (_) {
 	            results.push(_arguments2);
-	            loop(_this2.queue.shift());
+	            loop(self.queue.shift());
 	          }, function (err) {
 	            promise.reject(err);
 	            callback(err, results);
@@ -4926,7 +4927,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var Sorter = (function () {
 	  function Sorter(key, _min) {
-	    var _this3 = this,
+	    var _this2 = this,
 	        _arguments3 = arguments;
 
 	    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
@@ -4949,9 +4950,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	    };
 
 	    var run = (function (_) {
-	      _this3.min.exists(key).then(function (exists) {
+	      _this2.min.exists(key).then(function (exists) {
 	        if (exists) {
-	          return _this3.min.get(key);
+	          return _this2.min.get(key);
 	        } else {
 	          return new Error('no such key');
 	        }
@@ -4972,17 +4973,17 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	        return p;
 	      }).then(function (data) {
-	        _this3.result = data.sort(_this3.sortFn);
+	        _this2.result = data.sort(_this2.sortFn);
 
-	        _this3.result.forEach(function (chunk) {
-	          _this3.keys[chunk] = chunk;
+	        _this2.result.forEach(function (chunk) {
+	          _this2.keys[chunk] = chunk;
 	        });
 
-	        _this3.promise.resolve(_this3.result);
-	        _this3.callback(null, _this3.result);
+	        _this2.promise.resolve(_this2.result);
+	        _this2.callback(null, _this2.result);
 	      }, function (err) {
-	        _this3.promise.reject(err);
-	        _this3.callback(err);
+	        _this2.promise.reject(err);
+	        _this2.callback(err);
 	      });
 	    }
 
@@ -4991,8 +4992,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	      var curr = methods.shift();
 
 	      if (curr) {
-	        _this3[curr] = function () {
-	          return _this3.promise[curr].apply(_this3.promise, _arguments3);
+	        _this2[curr] = function () {
+	          return _this2.promise[curr].apply(_this2.promise, _arguments3);
 	        };
 
 	        loop(methods);
@@ -5005,7 +5006,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  _createClass(Sorter, [{
 	    key: 'by',
 	    value: function by(pattern) {
-	      var _this4 = this;
+	      var _this3 = this;
 
 	      var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
@@ -5027,14 +5028,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	        for (var i = 0; i < keys.length; i++) {
 	          var symbol = filter.exec(keys[i])[1];
 
-	          if (_this4.result.indexOf(symbol) >= 0) {
+	          if (_this3.result.indexOf(symbol) >= 0) {
 	            src2ref[keys[i]] = symbol;
 	          }
 	        }
 
 	        aviKeys = Object.keys(src2ref);
 
-	        return _this4.min.mget(aviKeys.slice());
+	        return _this3.min.mget(aviKeys.slice());
 	      }).then(function (values) {
 	        var reverse = {};
 
@@ -5042,7 +5043,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	          reverse[JSON.stringify(values[i])] = aviKeys[i];
 	        }
 
-	        values.sort(_this4.sortFn);
+	        values.sort(_this3.sortFn);
 
 	        var newResult = values.map(function (value) {
 	          return reverse[JSON.stringify(value)];
@@ -5050,14 +5051,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	          return src2ref[key];
 	        });
 
-	        _this4.result = newResult;
+	        _this3.result = newResult;
 
-	        _this4.promise.resolve(newResult);
+	        _this3.promise.resolve(newResult);
 	        callback(null, newResult);
 	      }, function (err) {
-	        _this4.promise.reject(err);
+	        _this3.promise.reject(err);
 	        callback(err);
-	        _this4.callback(err);
+	        _this3.callback(err);
 	      });
 
 	      return this;
@@ -5065,7 +5066,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }, {
 	    key: 'asc',
 	    value: function asc() {
-	      var _this5 = this;
+	      var _this4 = this;
 
 	      var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
 
@@ -5074,6 +5075,36 @@ return /******/ (function(modules) { // webpackBootstrap
 	          return a - b;
 	        } else {
 	          return JSON.stringify(a) > JSON.stringify(b);
+	        }
+	      };
+
+	      var handle = function handle(result) {
+	        _this4.result = result.sort(_this4.sortFn);
+
+	        _this4.promise.resolve(_this4.result);
+	        callback(null, _this4.result);
+	      };
+
+	      if (this.promise.ended) {
+	        handle(this.result);
+	      } else {
+	        this.promise.once('resolve', handle);
+	      }
+
+	      return this;
+	    }
+	  }, {
+	    key: 'desc',
+	    value: function desc() {
+	      var _this5 = this;
+
+	      var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
+
+	      this.sortFn = function (a, b) {
+	        if (_utilsJs2['default'].isNumber(a) && _utilsJs2['default'].isNumber(b)) {
+	          return b - a;
+	        } else {
+	          return JSON.stringify(a) < JSON.stringify(b);
 	        }
 	      };
 
@@ -5093,25 +5124,54 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return this;
 	    }
 	  }, {
-	    key: 'desc',
-	    value: function desc() {
+	    key: 'get',
+	    value: function get(pattern) {
 	      var _this6 = this;
 
-	      var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
+	      var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
-	      this.sortFn = function (a, b) {
-	        if (_utilsJs2['default'].isNumber(a) && _utilsJs2['default'].isNumber(b)) {
-	          return b - a;
-	        } else {
-	          return JSON.stringify(a) < JSON.stringify(b);
-	        }
-	      };
+	      var handle = function handle(_result) {
+	        var result = [];
+	        var loop = null(loop = function (res) {
+	          var curr = res.shift();
 
-	      var handle = function handle(result) {
-	        _this6.result = result.sort(_this6.sortFn);
+	          if (!_utilsJs2['default'].isUndefined(curr)) {
+	            if (Array.isArray(curr)) {
+	              var key = _this6.keys[curr[0]];
 
-	        _this6.promise.resolve(_this6.result);
-	        callback(null, _this6.result);
+	              _this6.min.get(pattern.replace('*', key)).then(function (value) {
+	                curr.push(value);
+	                result.push(curr);
+
+	                loop(res);
+	              }, function (err) {
+	                _this6.promise.reject(err);
+	                callback(err);
+	              });
+	            } else if (curr.substr || _utilsJs2['default'].isNumber(curr)) {
+	              var key = _this6.keys[curr];
+
+	              _this6.min.get(pattern.replace('*', key)).then(function (value) {
+	                result.push([value]);
+	                if (value.substr || _utilsJs2['default'].isNumber(value)) {
+	                  _this6.keys[value] = key;
+	                } else {
+	                  _this6.keys[JSON.stringify(value)] = key;
+	                }
+
+	                loop(res);
+	              }, function (err) {
+	                _this6.promise.reject(err);
+	                callback(err);
+	              });
+	            }
+	          } else {
+	            _this6.result = result;
+
+	            _this6.promise.resolve(result);
+	            callback(null, result);
+	          }
+	        })(_result.slice());
 	      };
 
 	      if (this.promise.ended) {
@@ -5123,11 +5183,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return this;
 	    }
 	  }, {
-	    key: 'get',
-	    value: function get(pattern) {
+	    key: 'hget',
+	    value: function hget(pattern, field) {
 	      var _this7 = this;
 
-	      var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
+	      var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
 	      var handle = function handle(_result) {
 	        var result = [];
@@ -5138,7 +5198,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            if (Array.isArray(curr)) {
 	              var key = _this7.keys[curr[0]];
 
-	              _this7.min.get(pattern.replace('*', key)).then(function (value) {
+	              _this7.min.hget(pattern.replace('*', key), field).then(function (value) {
 	                curr.push(value);
 	                result.push(curr);
 
@@ -5150,7 +5210,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            } else if (curr.substr || _utilsJs2['default'].isNumber(curr)) {
 	              var key = _this7.keys[curr];
 
-	              _this7.min.get(pattern.replace('*', key)).then(function (value) {
+	              _this7.min.hget(pattern.replace('*', key)).then(function (value) {
 	                result.push([value]);
 	                if (value.substr || _utilsJs2['default'].isNumber(value)) {
 	                  _this7.keys[value] = key;
@@ -5182,76 +5242,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return this;
 	    }
 	  }, {
-	    key: 'hget',
-	    value: function hget(pattern, field) {
+	    key: 'limit',
+	    value: function limit(offset, count) {
 	      var _this8 = this;
 
 	      var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
-	      var handle = function handle(_result) {
-	        var result = [];
-	        var loop = null(loop = function (res) {
-	          var curr = res.shift();
-
-	          if (!_utilsJs2['default'].isUndefined(curr)) {
-	            if (Array.isArray(curr)) {
-	              var key = _this8.keys[curr[0]];
-
-	              _this8.min.hget(pattern.replace('*', key), field).then(function (value) {
-	                curr.push(value);
-	                result.push(curr);
-
-	                loop(res);
-	              }, function (err) {
-	                _this8.promise.reject(err);
-	                callback(err);
-	              });
-	            } else if (curr.substr || _utilsJs2['default'].isNumber(curr)) {
-	              var key = _this8.keys[curr];
-
-	              _this8.min.hget(pattern.replace('*', key)).then(function (value) {
-	                result.push([value]);
-	                if (value.substr || _utilsJs2['default'].isNumber(value)) {
-	                  _this8.keys[value] = key;
-	                } else {
-	                  _this8.keys[JSON.stringify(value)] = key;
-	                }
-
-	                loop(res);
-	              }, function (err) {
-	                _this8.promise.reject(err);
-	                callback(err);
-	              });
-	            }
-	          } else {
-	            _this8.result = result;
-
-	            _this8.promise.resolve(result);
-	            callback(null, result);
-	          }
-	        })(_result.slice());
-	      };
-
-	      if (this.promise.ended) {
-	        handle(this.result);
-	      } else {
-	        this.promise.once('resolve', handle);
-	      }
-
-	      return this;
-	    }
-	  }, {
-	    key: 'limit',
-	    value: function limit(offset, count) {
-	      var _this9 = this;
-
-	      var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
-
 	      var handle = function handle(result) {
-	        _this9.result = result.splice(offset, count);
+	        _this8.result = result.splice(offset, count);
 
-	        _this9.promise.resolve(_this9.result);
-	        callback(null, _this9.result);
+	        _this8.promise.resolve(_this8.result);
+	        callback(null, _this8.result);
 	      };
 
 	      if (this.promise.ended) {
@@ -5265,7 +5266,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }, {
 	    key: 'flatten',
 	    value: function flatten() {
-	      var _this10 = this;
+	      var _this9 = this;
 
 	      var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
 
@@ -5292,9 +5293,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }
 	          }
 
-	          _this10.result = rtn;
+	          _this9.result = rtn;
 
-	          _this10.promise.resolve(rtn);
+	          _this9.promise.resolve(rtn);
 	          callback(null, rtn);
 	        });
 	      }
@@ -5304,25 +5305,25 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }, {
 	    key: 'store',
 	    value: function store(dest) {
-	      var _this11 = this;
+	      var _this10 = this;
 
 	      var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
 	      if (this.promise.ended) {
 	        this.min.set(dest, this.result).then(function (_) {
-	          _this11.promise.resolve(_this11.result);
-	          callback(null, _this11.result);
+	          _this10.promise.resolve(_this10.result);
+	          callback(null, _this10.result);
 	        }, function (err) {
-	          _this11.promise.reject(err);
+	          _this10.promise.reject(err);
 	          callback(err);
 	        });
 	      } else {
 	        this.promise.once('resolve', function (result) {
-	          _this11.min.set(dest, result).then(function (_) {
-	            _this11.promise.resolve(result);
+	          _this10.min.set(dest, result).then(function (_) {
+	            _this10.promise.resolve(result);
 	            callback(null, result);
 	          }, function (err) {
-	            _this11.promise.reject(err);
+	            _this10.promise.reject(err);
 	            callback(err);
 	          });
 	        });
@@ -5357,7 +5358,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  _createClass(Scanner, [{
 	    key: 'scan',
 	    value: function scan() {
-	      var _this12 = this;
+	      var _this11 = this;
 
 	      var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
 
@@ -5370,19 +5371,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var keys = Object.keys(data)(scan = function (ii) {
 	          var key = keys[ii];
 
-	          if (key && _this12.pattern.test(key) && key !== 'min_keys') {
+	          if (key && _this11.pattern.test(key) && key !== 'min_keys') {
 	            rtn.push(key);
 
-	            if (++_this12.end - _this12.cursor >= _this12.limit) {
-	              return callback(null, rtn, _this12.end);
+	            if (++_this11.end - _this11.cursor >= _this11.limit) {
+	              return callback(null, rtn, _this11.end);
 	            }
 	          } else if (!key) {
-	            _this12.end = 0;
-	            return callback(null, rtn, _this12.end);
+	            _this11.end = 0;
+	            return callback(null, rtn, _this11.end);
 	          }
 
 	          return scan(++ii);
-	        })(_this12.cursor);
+	        })(_this11.cursor);
 	      }, function (err) {
 	        callback(err);
 	      });
