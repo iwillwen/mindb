@@ -1,8 +1,6 @@
-import utils from '../utils.js'
+import utils from './utils.js'
 
 var noop = utils.noop
-
-var self = this || window || global
 
 var defaultMaxListeners = 10
 
@@ -199,7 +197,10 @@ export class EventEmitter {
 
     // emit removeListener for all listeners on all events
     if (arguments.length === 0) {
-      for (key in this._events) {
+      var keys = Object.keys(this._events)
+
+      for (var i = 0; i < keys.length; i++) {
+        var key = keys[i]
         if (key === 'removeListener') continue
         this.removeAllListeners(key)
       }
@@ -309,17 +310,20 @@ class _Promise {
   }
 }
 
-var nativePromise = self.Promise
+var nativePromise = (global || window).Promise || null;
 
 export function Promise(resolver) {
   var promise = null
   var resolve = noop
   var reject = noop
+  resolver = resolver || noop
 
   if (nativePromise) {
     promise = new nativePromise((_1, _2) => {
       resolve = _1
       reject = _2
+
+      resolver(_1, _2)
     })
     promise.resolve = (...args) => {
       resolve.apply(promise, args)
@@ -328,7 +332,7 @@ export function Promise(resolver) {
       reject.apply(promise, args)
     }
   } else {
-    promise = new _Promise()
+    promise = new _Promise(resolver)
   }
 
   return promise

@@ -1,7 +1,5 @@
 import utils from './utils.js'
-import { Promise } from './deps/events.js'
-
-var self = this || window || global
+import { Promise } from './events.js'
 
 var noop = utils.noop
 
@@ -18,8 +16,12 @@ class Multi {
     this.state = 0
     this.min = _min
 
-    for (var prop in _nano) {
-      if (_nano.hasOwnProperty(prop) && 'function' === typeof _nano[prop]) {
+    var keys = Object.getOwnPropertyNames(_min)
+
+    for (var i = 0; i < keys.length; i++) {
+      var prop = keys[i]
+
+      if ('function' === typeof _min[prop]) {
         (method => {
           this[method] = () => {
             this.queue.push({
@@ -35,6 +37,7 @@ class Multi {
   }
 
   exec(callback = noop) {
+    var promise = new Promise()
     var results = []
     var loop = null
 
@@ -45,12 +48,16 @@ class Multi {
             results.push(arguments)
             loop(this.queue.shift())
           }, err => {
+            promise.reject(err)
             callback(err, results)
           })
       } else {
+        promise.resolve(results)
         callback(null, results)
       }
     })(this.queue.shift())
+
+    return promise
   }
 }
 
@@ -134,7 +141,6 @@ class Sorter {
 
   by(pattern, callback = noop) {
     var src2ref = {}
-    var refs = {}
     var aviKeys = []
 
     // TODO: Sort by hash field
@@ -145,7 +151,6 @@ class Sorter {
       field = pattern.substr(i + 2)
       pattern = pattern.substr(0, pattern.length - i)
     }
-    var isHash = !!field
 
     this.min.keys(pattern)
       .then(keys => {

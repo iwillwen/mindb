@@ -1,7 +1,5 @@
 import utils from './utils.js'
-import { Promise } from './deps/events.js'
-
-var self = this || window || global
+import { Promise } from './events.js'
 
 var noop = utils.noop
 var min = {}
@@ -294,7 +292,7 @@ min.rpop = function(key, callback = noop) {
   this.exists(key)
     .then(exists => {
       if (exists) {
-        return self.get(key)
+        return this.get(key)
       } else {
         promise.resolve(null)
         callback(null, null)
@@ -303,7 +301,7 @@ min.rpop = function(key, callback = noop) {
     .then(data => {
       value = data.pop()
 
-      return self.set(key, data)
+      return this.set(key, data)
     })
     .then(_ => {
       promise.resolve(value)
@@ -422,7 +420,7 @@ min.lrem = function(key, count, value, callback = noop) {
           case count > 0:
             for (var i = 0; i < data.length && removeds < count; i++) {
               if (data[i] === value) {
-                var removed = data.splice(i, 1)[0]
+                data.splice(i, 1)[0]
 
                 removeds++
               }
@@ -431,7 +429,7 @@ min.lrem = function(key, count, value, callback = noop) {
           case count < 0:
             for (var i = data.length - 1; i >= 0 && removeds < count; i--) {
               if (data[i] === value) {
-                var removed = data.splice(i, 1)[0]
+                data.splice(i, 1)[0]
 
                 removeds++
               }
@@ -440,7 +438,7 @@ min.lrem = function(key, count, value, callback = noop) {
           case count = 0:
             for (var i = data.length - 1; i >= 0; i--) {
               if (data[i] === value) {
-                var removed = data.splice(i, 1)[0]
+                data.splice(i, 1)[0]
 
                 removeds++
               }
@@ -529,29 +527,28 @@ min.lset = function(key, index, value, callback = noop) {
 min.ltrim = function(key, start, stop, callback = noop) {
   var promise = new Promise()
 
-  this.exists(key, (err, exists) => {
-    if (err) {
+  this.exists(key)
+    .then(exists => {
+      if (!exists) {
+        promise.resolve(null)
+        return callback(null, null)
+      }
+
+      return this.get(key)
+    })
+    .then(data => {
+      var values = data.splice(start, stop + 1)
+
+      return this.set(key, values)
+    })
+    .then(([key, values]) => {
+      promise.resolve(values)
+      callback(null, values, key)
+    })
+    .catch(err => {
       promise.reject(err)
-      return callback(err)
-    }
-
-    if (exists) {
-      this.get(key, (err, data) => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
-
-        var values = data.splice(start, stop + 1)
-
-        promise.resolve(values)
-        callback(null, values)
-      })
-    } else {
-      promise.resolve(null)
-      callback(null, null)
-    }
-  })
+      callback(err)
+    })
 
   return promise
 }
@@ -566,29 +563,27 @@ min.ltrim = function(key, start, stop, callback = noop) {
 min.lindex = function(key, index, callback = noop) {
   var promise = new Promise()
 
-  this.exists(key, (err, exists) => {
-    if (err) {
+  this.exists(key)
+    .then(exists => {
+      if (!exists) {
+        var err = new Error('no such key')
+
+        promise.reject(err)
+        return callback(err)
+      }
+
+      return this.get(key)
+    })
+    .then(data => {
+      var value = data[index]
+
+      promise.resolve(value)
+      callback(null, value)
+    })
+    .catch(err => {
       promise.reject(err)
-      return callback(err)
-    }
-
-    if (exists) {
-      this.get(key, (err, data) => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
-
-        var value = data[index]
-
-        promise.resolve(value)
-        callback(null, value)
-      })
-    } else {
-      promise.resolve(null)
-      callback(null, null)
-    }
-  })
+      callback(err)
+    })
 
   return promise
 }

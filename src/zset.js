@@ -1,7 +1,5 @@
 import utils from './utils.js'
-import { Promise } from './deps/events.js'
-
-var self = this || window || global
+import { Promise } from './events.js'
 
 var noop = utils.noop
 
@@ -113,7 +111,7 @@ min.zcard = function(key, callback = noop) {
 min.zcount = function(key, min, max, callback = noop) {
   var promise = new Promise(noop)
 
-  promise.then(len => this.emit('zcount', key, min, max, value))
+  promise.then(len => this.emit('zcount', key, min, max, value, len))
 
   this.exists(key)
     .then(exists => {
@@ -170,8 +168,6 @@ min.zrem = function(key, ...members) {
       }
     })
     .then(data => {
-      var n = members.length
-
       var p = new Promise(noop)
 
       for (let hash of members) {

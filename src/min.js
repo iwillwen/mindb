@@ -1,5 +1,5 @@
 import utils from './utils.js'
-import { EventEmitter, Promise } from './deps/events.js'
+import { EventEmitter, Promise } from './events.js'
 import mix from './mix.js'
 import hash from './hash.js'
 import list from './list.js'
@@ -7,8 +7,6 @@ import set from './set.js'
 import zset from './zset.js'
 import mise from './mise.js'
 import { memStore, localStore } from './stores.js'
-
-var self = this || window || global
 
 var noop = utils.noop
 
@@ -38,11 +36,13 @@ var _types = {
  * Fork a new MinDB object
  * @return {Object} new min object
  */
-min.fork = () => {
+min.fork = function() {
   var rtn = {}
-  var self = this
 
-  for (var prop in this) {
+  var keys = Object.getOwnPropertyNames(this)
+
+  for (var i = 0; i < keys.length; i++) {
+    var prop = keys[i]
     if (this.hasOwnProperty(prop)) {
       rtn[prop] = this[prop]
     }
@@ -153,12 +153,8 @@ min.exists = function(key, callback = noop) {
   if (this.store.async) {
     this.store.get(key, handle)
   } else {
-    try {
-      var val = this.store.get(key)
-      handle(null, val)
-    } catch(err) {
-      handle(err)
-    }
+    var val = this.store.get(key)
+    handle(null, val)
   }
 
   return promise
@@ -358,7 +354,6 @@ min.type = function(key, callback = noop) {
 min.empty = function(callback = noop) {
   var promise = new Promise(noop)
   var keys = Object.keys(this._keys)
-  var last = null
   var loop = null
   var removeds = 0
 

@@ -1,7 +1,5 @@
 import utils from './utils.js'
-import { Promise } from './deps/events.js'
-
-var self = this || window || global
+import { Promise } from './events.js'
 
 var noop = utils.noop
 
@@ -37,7 +35,7 @@ min.hset = function(key, field, value, callback = noop) {
         // update the hash
         body[field] = value
 
-        this.set(key, body, (err, _key, _value) => {
+        this.set(key, body, err => {
           if (err) {
             promise.reject(err)
             return callback(err)
@@ -53,7 +51,7 @@ min.hset = function(key, field, value, callback = noop) {
 
       body[field] = value
 
-      this.set(key, body, (err, _key, _value) => {
+      this.set(key, body, err => {
         if (err) {
           reject(err)
           return callback(err)
@@ -124,7 +122,6 @@ min.hmset = function(key, docs, callback = noop) {
   var promise = new Promise()
 
   var keys = Object.keys(docs)
-  var replies = []
 
   var multi = this.multi()
 
@@ -232,13 +229,14 @@ min.hgetall = function(key, callback = noop) {
 
     if (exists) {
       this.get(key)
-        .then(
-          data => {
-            promise.resolve(data)
-            callback(null, data)
-          },
-          err => {}
-        )
+        .then(data => {
+          promise.resolve(data)
+          callback(null, data)
+        })
+        .catch(err => {
+          promise.reject(err)
+          callback(err)
+        })
     } else {
       var err = new Error('no such key')
 

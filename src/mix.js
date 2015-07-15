@@ -1,7 +1,5 @@
 import utils from './utils.js'
-import { Promise } from './deps/events.js'
-
-var self = this || window || global
+import { Promise } from './events.js'
 
 var noop = utils.noop
 
@@ -69,20 +67,14 @@ min.set = function(key, value, callback) {
       store.on('ready', load)
     }
   } else {
-    try {
-      // Value processing
-      var $value = JSON.stringify(value)
-      store.set($key, $value)
-      this._keys[key] = 0
+    // Value processing
+    var $value = JSON.stringify(value)
+    store.set($key, $value)
+    this._keys[key] = 0
 
-      // Done
-      promise.resolve([key, value])
-      callback(null, key, value)
-    } catch(err) {
-      // Error!
-      promise.reject(err)
-      callback(err)
-    }
+    // Done
+    promise.resolve([key, value])
+    callback(null, key, value)
   }
 
   return promise
@@ -327,13 +319,14 @@ min.append = function(key, value, callback = noop) {
     .then(currVal => {
       return this.set(key, currVal + value)
     })
-    .then((key, value) => {
+    .then(_ => {
       return this.strlen(key)
     })
     .then(len => {
       promise.resolve(len)
       callback(null, len)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -561,7 +554,8 @@ min.strlen = function(key, callback = noop) {
         promise.reject(err)
         callback(err)
       }
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -580,8 +574,19 @@ min.incr = function(key, callback = noop) {
 
   promise.then(value => this.emit('incr', key, value))
 
-  this.get(key)
-    .then((curr = 0) => {
+  this.exists(key)
+    .then(exists => {
+      if (exists) {
+        return this.get(key)
+      } else {
+        var p = new Promise()
+
+        p.resolve(0)
+
+        return p
+      }
+    })
+    .then(curr => {
       if (isNaN(parseInt(curr))) {
         promise.reject('value wrong')
         return callback('value wrong')
@@ -593,8 +598,9 @@ min.incr = function(key, callback = noop) {
     })
     .then(([key, value]) => {
       promise.resolve(value)
-      callback(null, value)
-    }, err => {
+      callback(null, value, key)
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -676,9 +682,9 @@ min.decr = function(key, callback = noop) {
 
       return this.set(key, --curr)
     })
-    .then((key, value) => {
+    .then(([key, value]) => {
       promise.resolve(value)
-      callback(null, value)
+      callback(null, value, key)
     }, err => {
       promise.reject(err)
       callback(err)

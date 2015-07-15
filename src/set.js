@@ -1,7 +1,5 @@
 import utils from './utils.js'
-import { Promise } from './deps/events.js'
-
-var self = this || window || global
+import { Promise } from './events.js'
 
 var noop = utils.noop
 
@@ -244,7 +242,7 @@ min.srandmember = function(key, callback = noop) {
       }
     })
     .then(members => {
-      var index = Math.random() * members.length || 0
+      var index = Math.floor(Math.random() * members.length) || 0
 
       var member = members[index]
 
