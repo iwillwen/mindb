@@ -10,7 +10,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "make test",
+    "test": "sh test/test.sh",
     "build": "sh build/build.sh"
   },
   "bin": {
@@ -35,11 +35,12 @@
   "homepage": "https://github.com/iwillwen/mindb",
   "devDependencies": {
     "babel-loader": "^5.3.1",
-    "mocha": "latest",
-    "node-libs-browser": "^0.5.2",
-    "webpack": "^1.10.1",
+    "chai": "^3.0.0",
     "commander": "^2.5.0",
     "ejs": "^1.0.0",
-    "uglify-js": "^2.4.15"
+    "istanbul": "^0.3.17",
+    "mocha": "^2.2.5",
+    "uglify-js": "^2.4.15",
+    "webpack": "^1.10.1"
   }
 }

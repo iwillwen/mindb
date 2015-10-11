@@ -32,7 +32,9 @@ min.zadd = function(key, score, member, callback = noop) {
         })
       }
     })
-    .then(_key => {
+    .then(args => {
+      var _key = args[0]
+
       if ('string' === typeof _key) {
         this._keys[key] = 4
 

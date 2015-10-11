@@ -229,9 +229,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	  }
 
-	  // Event emitting
-	  this.emit('del', key);
-
 	  return promise;
 	};
 
@@ -462,9 +459,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
 
-	  var promise = new _eventsJs.Promise(noop);
+	  var promise = new _eventsJs.Promise();
+	  var self = this;
 	  var keys = Object.keys(this._keys);
-	  var loop = null;
 	  var removeds = 0;
 
 	  promise.then(function (len) {
@@ -474,9 +471,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 
 	    _keysTimer = setTimeout(_this4.save.bind(_this4), 5 * 1000);
-	  })(loop = function (key) {
+	  });
+
+	  function loop(key) {
 	    if (key) {
-	      _this4.del(key, function (err) {
+	      self.del(key, function (err) {
 	        if (!err) {
 	          removeds++;
 	        }
@@ -487,7 +486,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	      promise.resolve(removeds);
 	      callback(null, removeds);
 	    }
-	  })(keys.shift());
+	  }
+
+	  loop(keys.shift());
 
 	  return promise;
 	};
@@ -502,7 +503,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  var callback = arguments.length <= 0 || arguments[0] === undefined ? noop : arguments[0];
 
-	  var promise = new _eventsJs.Promise(noop);
+	  var promise = new _eventsJs.Promise();
 
 	  promise.then(function (_ref) {
 	    var _ref2 = _slicedToArray(_ref, 2);
@@ -515,7 +516,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  this.set('min_keys', JSON.stringify(this._keys)).then(function (_) {
 	    return _this5.dump();
-	  }).then(function (dump, strResult) {
+	  }).then(function (_ref3) {
+	    var _ref32 = _slicedToArray(_ref3, 2);
+
+	    var dump = _ref32[0];
+	    var strResult = _ref32[1];
+
 	    promise.resolve([dump, strResult]);
 	    callback(dump, strResult);
 	  }, function (err) {
@@ -578,8 +584,8 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
-	  var promise = new _eventsJs.Promise(noop);
-	  var loop = null;
+	  var promise = new _eventsJs.Promise();
+	  var self = this;
 
 	  promise.then(function (_) {
 	    _this7.save(function (_) {
@@ -587,18 +593,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	    });
 	  });
 
-	  var keys = Object.keys(dump)(loop = function (key, done) {
-	    if (key) {
-	      _this7.set(key, dump[key]).then(function (_) {
-	        loop(keys.shift(), done);
-	      }, function (err) {
-	        promise.reject(err);
-	        callback(err);
-	      });
-	    } else {
-	      done();
-	    }
-	  })(keys.shift(), function (_) {
+	  var keys = Object.keys(dump);
+
+	  var done = function done(_) {
 	    _this7.exists('min_keys').then(function (exists) {
 	      if (exists) {
 	        return _this7.get('min_keys');
@@ -611,8 +608,26 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	      promise.resolve();
 	      callback();
+	    })['catch'](function (err) {
+	      promise.rejeect(err);
+	      callback(err);
 	    });
-	  });
+	  };
+
+	  function loop(key) {
+	    if (key) {
+	      self.set(key, dump[key]).then(function (_) {
+	        loop(keys.shift());
+	      }, function (err) {
+	        promise.reject(err);
+	        callback(err);
+	      });
+	    } else {
+	      done();
+	    }
+	  }
+
+	  loop(keys.shift());
 
 	  return promise;
 	};
@@ -626,10 +641,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param  {Function} callback callback
 	 * @return {Promise}           promise
 	 */
-	min.watch = function (key, callback) {
+	min.watch = function (key, command, callback) {
 	  var _this8 = this;
 
-	  var command = arguments.length <= 2 || arguments[2] === undefined ? 'set' : arguments[2];
+	  if ('undefined' === typeof callback && command.apply) {
+	    callback = command;
+	    command = 'set';
+	  }
 
 	  var watcherId = Math.random().toString(32).substr(2);
 
@@ -657,8 +675,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @param  {String} watcherId watcher's id
 	 * @param  {String} command   command
 	 */
-	min.unwatch = function (key, watcherId) {
-	  var command = arguments.length <= 2 || arguments[2] === undefined ? 'set' : arguments[2];
+	min.unwatch = function (key, command, watcherId) {
+	  if ('undefined' === typeof watcherId && !!command) {
+	    watcherId = command;
+	    command = 'set';
+	  }
 
 	  this.removeListener(command, watchers[key][watcherId]);
 	};
@@ -1413,7 +1434,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	      // The key is exists
 	      return promise.reject(new Error('The key is exists.'));
 	    } else {
-	      _this2.set(key, value, callback).then(function (key, value) {
+	      _this2.set(key, value, callback).then(function (_ref) {
+	        var _ref2 = _slicedToArray(_ref, 2);
+
+	        var key = _ref2[0];
+	        var value = _ref2[1];
+
 	        // Done
 	        callback(null, key, value);
 	        promise.resolve([key, value]);
@@ -1453,7 +1479,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	    // Done
 	    setTimeout(timeout, seconds * 1000);
 	    callback(err, result);
-	  }).then(function (key, value) {
+	  }).then(function (_ref3) {
+	    var _ref32 = _slicedToArray(_ref3, 2);
+
+	    var key = _ref32[0];
+	    var value = _ref32[1];
+
 	    // Done
 	    setTimeout(timeout, seconds * 1000);
 	    promise.resolve([key, value]);
@@ -1475,8 +1506,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise object
 	 */
 	min.psetex = function (key, milliseconds, value) {
-	  var _this4 = this,
-	      _arguments = arguments;
+	  var _this4 = this;
 
 	  var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
 
@@ -1493,10 +1523,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	    // Done
 	    setTimeout(timeout, milliseconds);
 	    callback(err, result);
-	  }).then(function (_) {
+	  }).then(function (_ref4) {
+	    var _ref42 = _slicedToArray(_ref4, 2);
+
+	    var key = _ref42[0];
+	    var value = _ref42[1];
+
 	    // Done
 	    setTimeout(timeout, milliseconds);
-	    promise.resolve.apply(promise, _arguments);
+	    promise.resolve([key, value]);
+	    callback(null, key, value);
 	  }, promise.reject.bind(promise));
 
 	  return promise;
@@ -1509,8 +1545,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise object
 	 */
 	min.mset = function (plainObject) {
-	  var _this5 = this,
-	      _arguments2 = arguments;
+	  var _this5 = this;
 
 	  var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
@@ -1530,8 +1565,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	    // remove the current element of the plainObject
 	    delete keys[index];
 
-	    _this5.set(key, plainObject[key]).then(function (_) {
-	      results.push(_arguments2);
+	    _this5.set(key, plainObject[key]).then(function (_ref5) {
+	      var _ref52 = _slicedToArray(_ref5, 2);
+
+	      var key = _ref52[0];
+	      var value = _ref52[1];
+
+	      results.push([key, value]);
 
 	      i++;
 	      if (keys[i]) {
@@ -1552,7 +1592,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  };
 
 	  function out() {
-	    if (errors.length) {
+	    if (errors.length > 0) {
 	      callback(errors);
 	      promise.reject(errors);
 	    } else {
@@ -1573,8 +1613,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise object
 	 */
 	min.msetnx = function (plainObject) {
-	  var _this6 = this,
-	      _arguments3 = arguments;
+	  var _this6 = this;
 
 	  var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
@@ -1588,8 +1627,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	  var next = function next(key, index) {
 	    delete keys[index];
 
-	    _this6.setnx(key, plainObject[key]).then(function (_) {
-	      results.push(_arguments3);
+	    _this6.setnx(key, plainObject[key]).then(function (_ref6) {
+	      var _ref62 = _slicedToArray(_ref6, 2);
+
+	      var key = _ref62[0];
+	      var value = _ref62[1];
+
+	      results.push([key, value]);
 
 	      i++;
 	      if (keys[i]) {
@@ -1780,8 +1824,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise object
 	 */
 	min.mget = function (keys) {
-	  var _this10 = this;
-
 	  var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
 	  // Promise Object
@@ -1791,59 +1833,24 @@ return /******/ (function(modules) { // webpackBootstrap
 	  var results = [];
 	  var errors = [];
 
-	  var next = function next(_x16, _x17) {
-	    var _again = true;
+	  var multi = this.multi();
 
-	    _function: while (_again) {
-	      var key = _x16,
-	          index = _x17;
-	      _again = false;
-
-	      delete keys[index];
-
-	      if (!key) {
-	        i++;
-	        _x16 = keys[i];
-	        _x17 = i;
-	        _again = true;
-	        continue _function;
-	      }
-	      _this10.get(key, function (err, value) {
-	        if (err) {
-	          errors.push(err);
-	          results.push(null);
-
-	          i++;
-	          if (keys[i]) {
-	            return next(keys[i], i);
-	          } else {
-	            return out();
-	          }
-	        }
-
-	        results.push(value);
-
-	        i++;
-	        if (keys[i]) {
-	          next(keys[i], i);
-	        } else {
-	          out();
-	        }
-	      });
-	    }
-	  };
-
-	  function out() {
-	    if (errors.length) {
-	      callback(errors);
-	      promise.reject(errors);
-	    } else {
-	      callback(null, results);
-	      promise.resolve(results);
-	    }
+	  for (var i = 0; i < keys.length; i++) {
+	    multi.get(keys[i]);
 	  }
 
-	  next(keys[i], i);
+	  multi.exec(function (err, results) {
+	    if (err) {
+	      callback(err);
+	      return promise.reject(err);
+	    }
+
+	    var rtn = results.map(function (row) {
+	      return row[0];
+	    });
+	    callback(err);
+	    promise.resolve(rtn);
+	  });
 
 	  return promise;
 	};
@@ -1856,14 +1863,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise object
 	 */
 	min.getset = function (key, value) {
-	  var _this11 = this;
+	  var _this10 = this;
 
 	  var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
 	  var promise = new _eventsJs.Promise();
 
 	  promise.then(function (old) {
-	    return _this11.emit('getset', key, value, old);
+	    return _this10.emit('getset', key, value, old);
 	  });
 
 	  var _value = null;
@@ -1871,7 +1878,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  this.get(key).then(function ($value) {
 	    _value = $value;
 
-	    return _this11.set(key, value);
+	    return _this10.set(key, value);
 	  }).then(function (_) {
 	    promise.resolve(_value);
 	    callback(null, _value);
@@ -1921,19 +1928,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise
 	 */
 	min.incr = function (key) {
-	  var _this12 = this;
+	  var _this11 = this;
 
 	  var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
 	  var promise = new _eventsJs.Promise();
 
 	  promise.then(function (value) {
-	    return _this12.emit('incr', key, value);
+	    return _this11.emit('incr', key, value);
 	  });
 
 	  this.exists(key).then(function (exists) {
 	    if (exists) {
-	      return _this12.get(key);
+	      return _this11.get(key);
 	    } else {
 	      var p = new _eventsJs.Promise();
 
@@ -1949,12 +1956,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    curr = parseInt(curr);
 
-	    return _this12.set(key, ++curr);
-	  }).then(function (_ref) {
-	    var _ref2 = _slicedToArray(_ref, 2);
+	    return _this11.set(key, ++curr);
+	  }).then(function (_ref7) {
+	    var _ref72 = _slicedToArray(_ref7, 2);
 
-	    var key = _ref2[0];
-	    var value = _ref2[1];
+	    var key = _ref72[0];
+	    var value = _ref72[1];
 
 	    promise.resolve(value);
 	    callback(null, value, key);
@@ -1974,19 +1981,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise
 	 */
 	min.incrby = function (key, increment) {
-	  var _this13 = this;
+	  var _this12 = this;
 
 	  var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
 	  var promise = new _eventsJs.Promise();
 
 	  promise.then(function (value) {
-	    return _this13.emit('incrby', key, increment, value);
+	    return _this12.emit('incrby', key, increment, value);
 	  });
 
 	  this.exists(key).then(function (exists) {
 	    if (exists) {
-	      return _this13.get(key);
+	      return _this12.get(key);
 	    } else {
 	      var p = new _eventsJs.Promise();
 
@@ -2002,7 +2009,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    curr = parseFloat(curr);
 
-	    return _this13.set(key, curr + increment);
+	    return _this12.set(key, curr + increment);
 	  }).then(function (key, value) {
 	    promise.resolve(value);
 	    callback(null, value);
@@ -2017,14 +2024,59 @@ return /******/ (function(modules) { // webpackBootstrap
 	min.incrbyfloat = min.incrby;
 
 	min.decr = function (key) {
-	  var _this14 = this;
+	  var _this13 = this;
 
 	  var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
 	  var promise = new _eventsJs.Promise();
 
 	  promise.then(function (curr) {
-	    return _this14.emit('decr', key, curr);
+	    return _this13.emit('decr', key, curr);
+	  });
+
+	  this.exists(key).then(function (exists) {
+	    if (exists) {
+	      return _this13.get(key);
+	    } else {
+	      var p = new _eventsJs.Promise();
+
+	      p.resolve(0);
+
+	      return p;
+	    }
+	  }).then(function (curr) {
+	    if (isNaN(parseInt(curr))) {
+	      promise.reject('value wrong');
+	      return callback('value wrong');
+	    }
+
+	    curr = parseInt(curr);
+
+	    return _this13.set(key, --curr);
+	  }).then(function (_ref8) {
+	    var _ref82 = _slicedToArray(_ref8, 2);
+
+	    var key = _ref82[0];
+	    var value = _ref82[1];
+
+	    promise.resolve(value);
+	    callback(null, value, key);
+	  }, function (err) {
+	    promise.reject(err);
+	    callback(err);
+	  });
+
+	  return promise;
+	};
+
+	min.decrby = function (key, decrement) {
+	  var _this14 = this;
+
+	  var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
+
+	  var promise = new _eventsJs.Promise();
+	  promise.then(function (curr) {
+	    return _this14.emit('decrby', key, decrement, curr);
 	  });
 
 	  this.exists(key).then(function (exists) {
@@ -2045,52 +2097,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    curr = parseInt(curr);
 
-	    return _this14.set(key, --curr);
-	  }).then(function (_ref3) {
-	    var _ref32 = _slicedToArray(_ref3, 2);
-
-	    var key = _ref32[0];
-	    var value = _ref32[1];
-
-	    promise.resolve(value);
-	    callback(null, value, key);
-	  }, function (err) {
-	    promise.reject(err);
-	    callback(err);
-	  });
-
-	  return promise;
-	};
-
-	min.decrby = function (key, decrement) {
-	  var _this15 = this;
-
-	  var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
-
-	  var promise = new _eventsJs.Promise();
-	  promise.then(function (curr) {
-	    return _this15.emit('decrby', key, decrement, curr);
-	  });
-
-	  this.exists(key).then(function (exists) {
-	    if (exists) {
-	      return _this15.get(key);
-	    } else {
-	      var p = new _eventsJs.Promise();
-
-	      p.resolve(0);
-
-	      return p;
-	    }
-	  }).then(function (curr) {
-	    if (isNaN(parseInt(curr))) {
-	      promise.reject('value wrong');
-	      return callback('value wrong');
-	    }
-
-	    curr = parseInt(curr);
-
-	    return _this15.set(key, curr - decrement);
+	    return _this14.set(key, curr - decrement);
 	  }).then(function (key, value) {
 	    promise.resolve(value);
 	    callback(null, value);
@@ -2167,7 +2174,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            return callback(err);
 	          }
 
-	          promise.resolve(key, field, value);
+	          promise.resolve([key, field, value]);
 	          callback(null, key, field, value);
 	        });
 	      });
@@ -2219,14 +2226,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 
 	    if (!exists) {
-	      _this2.hset(key, field, value, function (err) {
-	        if (err) {
-	          reject(err);
-	          callback(err);
-	        }
+	      _this2.hset(key, field, value).then(function (_ref) {
+	        var _ref2 = _slicedToArray(_ref, 3);
 
-	        promise.resolve('OK');
-	        callback(null, 'OK');
+	        var key = _ref2[0];
+	        var field = _ref2[1];
+	        var value = _ref2[2];
+
+	        promise.resolve([key, field, value]);
+	        callback(null, key, field, value);
 	      });
 	    } else {
 	      var err = new Error('The field of the hash is exists');
@@ -2247,22 +2255,60 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise
 	 */
 	min.hmset = function (key, docs) {
+	  var _this3 = this;
+
 	  var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
 	  var promise = new _eventsJs.Promise();
 
 	  var keys = Object.keys(docs);
 
-	  var multi = this.multi();
+	  var i = 0;
 
-	  keys.forEach(function (field) {
-	    multi.hset(key, field, docs[field]);
-	  });
+	  var results = [];
+	  var errors = [];
 
-	  multi.exec(function (err, replies) {
-	    callback(null, replies);
-	    promise.resolve(replies);
-	  });
+	  var next = function next(field, index) {
+	    delete keys[index];
+
+	    _this3.hset(key, field, docs[field]).then(function (_ref3) {
+	      var _ref32 = _slicedToArray(_ref3, 3);
+
+	      var key = _ref32[0];
+	      var field = _ref32[1];
+	      var value = _ref32[2];
+
+	      results.push([key, field, value]);
+
+	      i++;
+	      if (keys[i]) {
+	        next(keys[i], i);
+	      } else {
+	        out();
+	      }
+	    }, function (err) {
+	      errors.push(err);
+
+	      i++;
+	      if (keys[i]) {
+	        return next(keys[i], i);
+	      } else {
+	        return out();
+	      }
+	    });
+	  };
+
+	  function out() {
+	    if (errors.length > 0) {
+	      callback(errors);
+	      promise.reject(errors);
+	    } else {
+	      callback(null, results);
+	      promise.resolve(results);
+	    }
+	  }
+
+	  next(keys[i], i);
 
 	  return promise;
 	};
@@ -2275,7 +2321,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise
 	 */
 	min.hget = function (key, field) {
-	  var _this3 = this;
+	  var _this4 = this;
 
 	  var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
@@ -2288,7 +2334,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 
 	    if (exists) {
-	      _this3.get(key).then(function (value) {
+	      _this4.get(key).then(function (value) {
 	        var data = value[field];
 	        promise.resolve(data);
 	        callback(null, data);
@@ -2351,7 +2397,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise
 	 */
 	min.hgetall = function (key) {
-	  var _this4 = this;
+	  var _this5 = this;
 
 	  var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
@@ -2364,7 +2410,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 
 	    if (exists) {
-	      _this4.get(key).then(function (data) {
+	      _this5.get(key).then(function (data) {
 	        promise.resolve(data);
 	        callback(null, data);
 	      })['catch'](function (err) {
@@ -2390,20 +2436,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise
 	 */
 	min.hdel = function (key, field) {
-	  var _this5 = this;
+	  var _this6 = this;
 
 	  var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
 	  var promise = new _eventsJs.Promise();
 
-	  promise.then(function (_ref) {
-	    var _ref2 = _slicedToArray(_ref, 3);
+	  promise.then(function (_ref4) {
+	    var _ref42 = _slicedToArray(_ref4, 3);
 
-	    var key = _ref2[0];
-	    var field = _ref2[1];
-	    var value = _ref2[2];
+	    var key = _ref42[0];
+	    var field = _ref42[1];
+	    var value = _ref42[2];
 
-	    _this5.emit('hdel', key, field, value);
+	    _this6.emit('hdel', key, field, value);
 	  });
 
 	  this.hexists(key.field, function (err, exists) {
@@ -2413,11 +2459,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 
 	    if (exists) {
-	      _this5.get(key).then(function (data) {
+	      _this6.get(key).then(function (data) {
 	        var removed = data[field];
 	        delete data[field];
 
-	        _this5.set(key, data).then(function (_) {
+	        _this6.set(key, data).then(function (_) {
 	          promise.resolve([key, field, removed]);
 	          callback(null, key, field, removed);
 	        }, function (err) {
@@ -2445,7 +2491,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise
 	 */
 	min.hlen = function (key) {
-	  var _this6 = this;
+	  var _this7 = this;
 
 	  var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
@@ -2458,7 +2504,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 
 	    if (exists) {
-	      _this6.get(key).then(function (data) {
+	      _this7.get(key).then(function (data) {
 	        var length = Object.keys(data).length;
 
 	        promise.resolve(length);
@@ -2483,7 +2529,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise
 	 */
 	min.hkeys = function (key) {
-	  var _this7 = this;
+	  var _this8 = this;
 
 	  var callback = arguments.length <= 1 || arguments[1] === undefined ? noop : arguments[1];
 
@@ -2496,7 +2542,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 
 	    if (exists) {
-	      _this7.get(key).then(function (data) {
+	      _this8.get(key).then(function (data) {
 	        var keys = Object.keys(data);
 
 	        promise.resolve(keys);
@@ -2522,7 +2568,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * @return {Promise}           promise object
 	 */
 	min.hexists = function (key, field) {
-	  var _this8 = this;
+	  var _this9 = this;
 
 	  var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
@@ -2530,7 +2576,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  this.exists(key).then(function (exists) {
 	    if (exists) {
-	      return _this8.get(key);
+	      return _this9.get(key);
 	    } else {
 	      promise.resolve(false);
 	      callback(null, false);
@@ -2552,50 +2598,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	};
 
 	min.hincr = function (key, field) {
-	  var _this9 = this;
-
-	  var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
-
-	  var promise = new _eventsJs.Promise();
-
-	  promise.then(function (curr) {
-	    _this9.emit('hincr', key, field, curr);
-	  });
-
-	  this.hexists(key, field).then(function (exists) {
-	    if (exists) {
-	      return _this9.hget(exists);
-	    } else {
-	      var p = new _eventsJs.Promise();
-
-	      p.resolve(0);
-
-	      return p;
-	    }
-	  }).then(function (curr) {
-	    if (isNaN(parseFloat(curr))) {
-	      promise.reject('value wrong');
-	      return callback('value wrong');
-	    }
-
-	    curr = parseFloat(curr);
-
-	    return _this9.hset(key, field, ++curr);
-	  }).then(function (key, field, value) {
-	    promise.resolve(value);
-	    callback(null, value);
-	  }, function (err) {
-	    promise.reject(err);
-	    callback(null, err);
-	  });
-
-	  return promise;
-	};
-
-	min.hincrby = function (key, field, increment) {
 	  var _this10 = this;
 
-	  var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+	  var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
 	  var promise = new _eventsJs.Promise();
 
@@ -2621,7 +2626,48 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    curr = parseFloat(curr);
 
-	    return _this10.hset(key, field, curr + increment);
+	    return _this10.hset(key, field, ++curr);
+	  }).then(function (key, field, value) {
+	    promise.resolve(value);
+	    callback(null, value);
+	  }, function (err) {
+	    promise.reject(err);
+	    callback(null, err);
+	  });
+
+	  return promise;
+	};
+
+	min.hincrby = function (key, field, increment) {
+	  var _this11 = this;
+
+	  var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
+
+	  var promise = new _eventsJs.Promise();
+
+	  promise.then(function (curr) {
+	    _this11.emit('hincr', key, field, curr);
+	  });
+
+	  this.hexists(key, field).then(function (exists) {
+	    if (exists) {
+	      return _this11.hget(exists);
+	    } else {
+	      var p = new _eventsJs.Promise();
+
+	      p.resolve(0);
+
+	      return p;
+	    }
+	  }).then(function (curr) {
+	    if (isNaN(parseFloat(curr))) {
+	      promise.reject('value wrong');
+	      return callback('value wrong');
+	    }
+
+	    curr = parseFloat(curr);
+
+	    return _this11.hset(key, field, curr + increment);
 	  }).then(function (key, field, value) {
 	    promise.resolve(value);
 	    callback(null, value);
@@ -2636,19 +2682,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	min.hincrbyfloat = min.hincrby;
 
 	min.hdecr = function (key, field) {
-	  var _this11 = this;
+	  var _this12 = this;
 
 	  var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
 	  var promise = new _eventsJs.Promise();
 
 	  promise.then(function (curr) {
-	    _this11.emit('hdecr', key, field, curr);
+	    _this12.emit('hdecr', key, field, curr);
 	  });
 
 	  this.hexists(key, field).then(function (exists) {
 	    if (exists) {
-	      return _this11.hget(key, field);
+	      return _this12.hget(key, field);
 	    } else {
 	      var p = new _eventsJs.Promise();
 
@@ -2664,7 +2710,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    curr = parseFloat(curr);
 
-	    return _this11.hset(key, field, --curr);
+	    return _this12.hset(key, field, --curr);
 	  }).then(function (key, field, value) {
 	    promise.resolve(value);
 	    callback(null, value);
@@ -2677,19 +2723,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	};
 
 	min.hdecrby = function (key, field, decrement) {
-	  var _this12 = this;
+	  var _this13 = this;
 
 	  var callback = arguments.length <= 3 || arguments[3] === undefined ? noop : arguments[3];
 
 	  var promise = new _eventsJs.Promise();
 
 	  promise.then(function (curr) {
-	    _this12.emit('hincr', key, field, curr);
+	    _this13.emit('hincr', key, field, curr);
 	  });
 
 	  this.hexists(key, field).then(function (exists) {
 	    if (exists) {
-	      return _this12.hget(exists);
+	      return _this13.hget(exists);
 	    } else {
 	      var p = new _eventsJs.Promise();
 
@@ -2705,7 +2751,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    curr = parseFloat(curr);
 
-	    return _this12.hset(key, field, curr - decrement);
+	    return _this13.hset(key, field, curr - decrement);
 	  }).then(function (key, field, value) {
 	    promise.resolve(value);
 	    callback(null, value);
@@ -4272,7 +4318,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	        shm: score2HashsMap
 	      });
 	    }
-	  }).then(function (_key) {
+	  }).then(function (args) {
+	    var _key = args[0];
+
 	    if ('string' === typeof _key) {
 	      _this._keys[key] = 4;
 
@@ -4858,8 +4906,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var Multi = (function () {
 	  function Multi(_min) {
-	    var _this = this,
-	        _arguments = arguments;
+	    var _this = this;
 
 	    _classCallCheck(this, Multi);
 
@@ -4876,9 +4923,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	      if ('function' === typeof _min[prop]) {
 	        (function (method) {
 	          _this[method] = function () {
+	            for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+	              args[_key] = arguments[_key];
+	            }
+
 	            _this.queue.push({
 	              method: method,
-	              args: _arguments
+	              args: args
 	            });
 
 	            return _this;
@@ -4898,11 +4949,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	      var results = [];
 
 	      (function loop(task) {
-	        var _arguments2 = arguments;
-
 	        if (task) {
-	          self.min[task.method].apply(self.min, task.args).then(function (_) {
-	            results.push(_arguments2);
+	          self.min[task.method].apply(self.min, task.args).then(function () {
+	            for (var _len2 = arguments.length, args = Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+	              args[_key2] = arguments[_key2];
+	            }
+
+	            results.push(args);
 	            loop(self.queue.shift());
 	          }, function (err) {
 	            promise.reject(err);
@@ -4928,7 +4981,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var Sorter = (function () {
 	  function Sorter(key, _min) {
 	    var _this2 = this,
-	        _arguments3 = arguments;
+	        _arguments = arguments;
 
 	    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
@@ -4993,7 +5046,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	      if (curr) {
 	        _this2[curr] = function () {
-	          return _this2.promise[curr].apply(_this2.promise, _arguments3);
+	          return _this2.promise[curr].apply(_this2.promise, _arguments);
 	        };
 
 	        loop(methods);

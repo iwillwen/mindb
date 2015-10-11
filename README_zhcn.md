@@ -81,7 +81,7 @@ MinDB 提供一个标准的存储接口(`Store Interface`)和 **Redis** 风格�
       .then(function(length) {
         // ...
       })
-      .fail(function(err) {
+      .catch(function(err) {
         console.log(err);
       });
 
@@ -116,7 +116,7 @@ MinDB 也支持多数据库:
     var Min = min.fork();
     Min.set('foo', 'bar')
       .then(/*...*/)
-      .fail(/*...*/);
+      .catch(/*...*/);
 
 # Store Interface
 请阅读 [Store Interface 文档](https://github.com/iwillwen/mindb/blob/master/docs/store_interface.md).

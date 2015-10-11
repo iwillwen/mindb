@@ -122,9 +122,6 @@ min.del = function(key, callback = noop) {
     }
   }
 
-  // Event emitting
-  this.emit('del', key)
-
   return promise
 }
 
@@ -352,9 +349,9 @@ min.type = function(key, callback = noop) {
  * @return {Object}            min
  */
 min.empty = function(callback = noop) {
-  var promise = new Promise(noop)
+  var promise = new Promise()
+  var self = this
   var keys = Object.keys(this._keys)
-  var loop = null
   var removeds = 0
 
   promise.then(len => {
@@ -366,9 +363,9 @@ min.empty = function(callback = noop) {
     _keysTimer = setTimeout(this.save.bind(this), 5 * 1000)
   })
 
-  (loop = key => {
+  function loop(key) {
     if (key) {
-      this.del(key, err => {
+      self.del(key, err => {
         if (!err) {
           removeds++
         }
@@ -379,7 +376,9 @@ min.empty = function(callback = noop) {
       promise.resolve(removeds)
       callback(null, removeds)
     }
-  })(keys.shift())
+  }
+
+  loop(keys.shift())
 
   return promise
 }
@@ -390,7 +389,7 @@ min.empty = function(callback = noop) {
  * @return {Promise}           promise
  */
 min.save = function(callback = noop) {
-  var promise = new Promise(noop)
+  var promise = new Promise()
 
   promise.then(([dump, strResult]) => {
     this.emit('save', dump, strResult)
@@ -398,16 +397,13 @@ min.save = function(callback = noop) {
 
   this.set('min_keys', JSON.stringify(this._keys))
     .then(_ => this.dump())
-    .then(
-      (dump, strResult) => {
-        promise.resolve([dump, strResult])
-        callback(dump, strResult)
-      },
-      err => {
-        promise.reject(err)
-        callback(err)
-      }
-    )
+    .then(([dump, strResult]) => {
+      promise.resolve([dump, strResult])
+      callback(dump, strResult)
+    }, err => {
+      promise.reject(err)
+      callback(err)
+    })
 
   return promise
 }
@@ -457,8 +453,8 @@ min.dump = function(callback = noop) {
  * @return {Promise}           promise
  */
 min.restore = function(dump, callback = noop) {
-  var promise = new Promise(noop)
-  var loop = null
+  var promise = new Promise()
+  var self = this
 
   promise.then(_ => {
     this.save(_ => {
@@ -468,22 +464,7 @@ min.restore = function(dump, callback = noop) {
 
   var keys = Object.keys(dump)
 
-  (loop = (key, done) => {
-    if (key) {
-      this.set(key, dump[key])
-        .then(
-          _ => {
-            loop(keys.shift(), done)
-          },
-          err => {
-            promise.reject(err)
-            callback(err)
-          }
-        )
-    } else {
-      done()
-    }
-  })(keys.shift(), _ => {
+  var done = _ => {
     this
       .exists('min_keys')
       .then(exists => {
@@ -500,7 +481,27 @@ min.restore = function(dump, callback = noop) {
         promise.resolve()
         callback()
       })
-  })
+      .catch(function(err) {
+        promise.rejeect(err)
+        callback(err)
+      })
+  }
+
+  function loop(key) {
+    if (key) {
+      self.set(key, dump[key])
+        .then(_ => {
+          loop(keys.shift())
+        }, err => {
+          promise.reject(err)
+          callback(err)
+        })
+    } else {
+      done()
+    }
+  }
+
+  loop(keys.shift())
 
   return promise
 }
@@ -514,7 +515,12 @@ var watchers = {}
  * @param  {Function} callback callback
  * @return {Promise}           promise
  */
-min.watch = function(key, callback, command = 'set') {
+min.watch = function(key, command, callback) {
+  if ('undefined' === typeof callback && command.apply) {
+    callback = command
+    command = 'set'
+  }
+
   var watcherId = Math.random().toString(32).substr(2)
 
   if (!watchers[key]) watchers[key] = {}
@@ -537,7 +543,12 @@ min.watch = function(key, callback, command = 'set') {
  * @param  {String} watcherId watcher's id
  * @param  {String} command   command
  */
-min.unwatch = function(key, watcherId, command = 'set') {
+min.unwatch = function(key, command, watcherId) {
+  if ('undefined' === typeof watcherId && !!command) {
+    watcherId = command
+    command = 'set'
+  }
+
   this.removeListener(command, watchers[key][watcherId])
 }
 

@@ -102,7 +102,7 @@ min.setnx = function(key, value, callback = noop) {
       return promise.reject(new Error('The key is exists.'))
     } else {
       this.set(key, value, callback)
-        .then((key, value) => {
+        .then(([key, value]) => {
           // Done
           callback(null, key, value)
           promise.resolve([key, value])
@@ -140,7 +140,7 @@ min.setex = function(key, seconds, value, callback = noop) {
     setTimeout(timeout, seconds * 1000)
     callback(err, result)
   })
-    .then((key, value) => {
+    .then(([key, value]) => {
       // Done
       setTimeout(timeout, seconds * 1000)
       promise.resolve([key, value])
@@ -177,10 +177,11 @@ min.psetex = function(key, milliseconds, value, callback = noop) {
     setTimeout(timeout, milliseconds)
     callback(err, result)
   })
-    .then(_ => {
+    .then(([key, value]) => {
       // Done
       setTimeout(timeout, milliseconds)
-      promise.resolve.apply(promise, arguments)
+      promise.resolve([key, value])
+      callback(null, key, value)
     }, promise.reject.bind(promise))
 
   return promise
@@ -210,8 +211,8 @@ min.mset = function(plainObject, callback = noop) {
     delete keys[index]
 
     this.set(key, plainObject[key])
-      .then(_ => {
-        results.push(arguments)
+      .then(([key, value]) => {
+        results.push([key, value])
 
         i++
         if (keys[i]) {
@@ -232,7 +233,7 @@ min.mset = function(plainObject, callback = noop) {
   }
 
   function out() {
-    if (errors.length) {
+    if (errors.length > 0) {
       callback(errors)
       promise.reject(errors)
     } else {
@@ -264,8 +265,8 @@ min.msetnx = function(plainObject, callback = noop) {
     delete keys[index]
 
     this.setnx(key, plainObject[key])
-      .then(_ => {
-        results.push(arguments)
+      .then(([key, value]) => {
+        results.push([key, value])
 
         i++
         if (keys[i]) {
@@ -455,48 +456,22 @@ min.mget = function(keys, callback = noop) {
   var results = []
   var errors = []
 
-  var next = (key, index) => {
-    delete keys[index]
-    
-    if (!key) {
-      i++
-      return next(keys[i], i)
-    }
-    this.get(key, (err, value) => {
-      if (err) {
-        errors.push(err)
-        results.push(null)
+  var multi = this.multi()
 
-        i++
-        if (keys[i]) {
-          return next(keys[i], i)
-        } else {
-          return out()
-        }
-      }
-
-      results.push(value)
-
-      i++
-      if (keys[i]) {
-        next(keys[i], i)
-      } else {
-        out()
-      }
-    })
+  for (var i = 0; i < keys.length; i++) {
+    multi.get(keys[i])
   }
 
-  function out() {
-    if (errors.length) {
-      callback(errors)
-      promise.reject(errors)
-    } else {
-      callback(null, results)
-      promise.resolve(results)
+  multi.exec((err, results) => {
+    if (err) {
+      callback(err)
+      return promise.reject(err)
     }
-  }
 
-  next(keys[i], i)
+    var rtn = results.map(row => row[0])
+    callback(err)
+    promise.resolve(rtn)
+  })
 
   return promise
 }

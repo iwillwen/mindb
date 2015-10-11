@@ -41,7 +41,7 @@ min.hset = function(key, field, value, callback = noop) {
             return callback(err)
           }
 
-          promise.resolve(key, field, value)
+          promise.resolve([key, field, value])
           callback(null, key, field, value)
         })
       })
@@ -91,15 +91,11 @@ min.hsetnx = function(key, field, value, callback = noop) {
     }
 
     if (!exists) {
-      this.hset(key, field, value, (err) => {
-        if (err) {
-          reject(err)
-          callback(err)
-        }
-
-        promise.resolve('OK')
-        callback(null, 'OK')
-      })
+      this.hset(key, field, value)
+        .then(function([key, field, value]) {
+          promise.resolve([key, field, value])
+          callback(null, key, field, value)
+        })
     } else {
       var err = new Error('The field of the hash is exists')
 
@@ -123,16 +119,47 @@ min.hmset = function(key, docs, callback = noop) {
 
   var keys = Object.keys(docs)
 
-  var multi = this.multi()
+  var i = 0
 
-  keys.forEach((field) => {
-    multi.hset(key, field, docs[field])
-  })
+  var results = []
+  var errors = []
 
-  multi.exec((err, replies) => {
-    callback(null, replies)
-    promise.resolve(replies)
-  })
+  var next = (field, index) => {
+    delete keys[index]
+
+    this.hset(key, field, docs[field])
+      .then(([key, field, value]) => {
+        results.push([key, field, value])
+
+        i++
+        if (keys[i]) {
+          next(keys[i], i)
+        } else {
+          out()
+        }
+      }, err => {
+        errors.push(err)
+
+        i++
+        if (keys[i]) {
+          return next(keys[i], i)
+        } else {
+          return out()
+        }
+      })
+  }
+
+  function out() {
+    if (errors.length > 0) {
+      callback(errors)
+      promise.reject(errors)
+    } else {
+      callback(null, results)
+      promise.resolve(results)
+    }
+  }
+
+  next(keys[i], i)
 
   return promise
 }

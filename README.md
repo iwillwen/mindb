@@ -83,7 +83,7 @@ Nested Callbacks? Maybe you would prefer [Promise](http://promises-aplus.github.
       .then(function(length) {
         // ...
       })
-      .fail(function(err) {
+      .catch(function(err) {
         console.log(err);
       });
 
@@ -118,7 +118,7 @@ Support multiple databases:
     var Min = min.fork();
     Min.set('foo', 'bar')
       .then(/*...*/)
-      .fail(/*...*/);
+      .catch(/*...*/);
 
 # Store Interface
 Read the [Store Interface Documentation](https://github.com/iwillwen/mindb/blob/master/docs/store_interface.md).

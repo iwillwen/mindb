@@ -23,10 +23,10 @@ class Multi {
 
       if ('function' === typeof _min[prop]) {
         (method => {
-          this[method] = () => {
+          this[method] = (...args) => {
             this.queue.push({
               method: method,
-              args: arguments
+              args: args
             })
 
             return this
@@ -44,8 +44,8 @@ class Multi {
     (function loop(task) {
       if (task) {
         self.min[task.method].apply(self.min, task.args)
-          .then(_ => {
-            results.push(arguments)
+          .then((...args) => {
+            results.push(args)
             loop(self.queue.shift())
           }, err => {
             promise.reject(err)
