@@ -32,9 +32,9 @@ min.sadd = function(key, ...members) {
         return this.set(key, data)
       }
     })
-    .then(_ => {
-      if (Array.isArray(arguments[0])) {
-        var data = arguments[0]
+    .then((...args) => {
+      if (Array.isArray(args[0])) {
+        var data = args[0]
 
         for (var curr of members) {
           if (data.indexOf(curr) >= 0) {
@@ -46,7 +46,7 @@ min.sadd = function(key, ...members) {
         }
 
         return this.set(key, data)
-      } else if (typeof arguments[0] === 'string') {
+      } else if (typeof args[0] === 'string') {
         added += members.length
 
         this._keys[key] = 3

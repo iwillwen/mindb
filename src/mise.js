@@ -128,8 +128,8 @@ class Sorter {
       var curr = methods.shift()
 
       if (curr) {
-        this[curr] = () => {
-          return this.promise[curr].apply(this.promise, arguments)
+        this[curr] = (...args) => {
+          return this.promise[curr].apply(this.promise, args)
         }
 
         loop(methods)

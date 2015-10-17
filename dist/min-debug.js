@@ -1,5 +1,5 @@
 /*!
- * MinDB (version 0.1.7) - Database on JavaScript
+ * MinDB (version 0.1.8) - Database on JavaScript
  * 
  * Will Wen Gunn(iwillwen) and other contributors
  * 
@@ -758,9 +758,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	  },
 	  // Object Extend
 	  extend: function extend() {
-	    var target = arguments[0];
+	    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+	      args[_key] = arguments[_key];
+	    }
 
-	    var objs = [].slice.call(arguments, 1);
+	    var target = args[0];
+
+	    var objs = [].slice.call(args, 1);
 
 	    for (var i = 0, l = objs.length; i < l; i++) {
 	      var keys = Object.getOwnPropertyNames(objs[i] || {});
@@ -815,7 +819,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	    return ret;
 	  },
 	  arrayInter: function arrayInter(array) {
-	    var rest = [].slice.call(arguments, 1);
+	    for (var _len2 = arguments.length, rest = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+	      rest[_key2 - 1] = arguments[_key2];
+	    }
+
 	    return utils.arrayUnique(array).filter(function (item) {
 	      var ret = true;
 
@@ -850,7 +857,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	    });
 	  },
 	  arrayDiff: function arrayDiff(array) {
-	    var rest = [].slice.call(arguments, 1);
+	    for (var _len3 = arguments.length, rest = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
+	      rest[_key3 - 1] = arguments[_key3];
+	    }
+
 	    return array.filter(function (item) {
 	      var ret = true;
 
@@ -3643,8 +3653,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	**           Set             **
 	******************************/
 	min.sadd = function (key) {
-	  var _this = this,
-	      _arguments = arguments;
+	  var _this = this;
 
 	  for (var _len = arguments.length, members = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
 	    members[_key - 1] = arguments[_key];
@@ -3672,9 +3681,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	      return _this.set(key, data);
 	    }
-	  }).then(function (_) {
-	    if (Array.isArray(_arguments[0])) {
-	      var data = _arguments[0];
+	  }).then(function () {
+	    if (Array.isArray(arguments[0])) {
+	      var data = arguments[0];
 
 	      var _iteratorNormalCompletion = true;
 	      var _didIteratorError = false;
@@ -3707,7 +3716,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      }
 
 	      return _this.set(key, data);
-	    } else if (typeof _arguments[0] === 'string') {
+	    } else if (typeof arguments[0] === 'string') {
 	      added += members.length;
 
 	      _this._keys[key] = 3;
@@ -4980,8 +4989,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var Sorter = (function () {
 	  function Sorter(key, _min) {
-	    var _this2 = this,
-	        _arguments = arguments;
+	    var _this2 = this;
 
 	    var callback = arguments.length <= 2 || arguments[2] === undefined ? noop : arguments[2];
 
@@ -5046,7 +5054,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	      if (curr) {
 	        _this2[curr] = function () {
-	          return _this2.promise[curr].apply(_this2.promise, _arguments);
+	          for (var _len3 = arguments.length, args = Array(_len3), _key3 = 0; _key3 < _len3; _key3++) {
+	            args[_key3] = arguments[_key3];
+	          }
+
+	          return _this2.promise[curr].apply(_this2.promise, args);
 	        };
 
 	        loop(methods);

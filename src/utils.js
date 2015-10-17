@@ -16,10 +16,10 @@ export default {
     })
   },
   // Object Extend
-  extend() {
-    var target = arguments[0]
+  extend(...args) {
+    var target = args[0]
 
-    var objs = [].slice.call(arguments, 1)
+    var objs = [].slice.call(args, 1)
 
     for (var i = 0, l = objs.length; i < l; i++) {
       var keys = Object.getOwnPropertyNames(objs[i] || {})
@@ -52,8 +52,7 @@ export default {
     }
     return ret
   },
-  arrayInter(array) {
-    var rest = [].slice.call(arguments, 1)
+  arrayInter(array, ...rest) {
     return utils.arrayUnique(array).filter(function(item) {
       var ret = true
 
@@ -66,8 +65,7 @@ export default {
       return ret
     })
   },
-  arrayDiff(array) {
-    var rest = [].slice.call(arguments, 1)
+  arrayDiff(array, ...rest) {
     return array.filter(function(item) {
       var ret = true
 
