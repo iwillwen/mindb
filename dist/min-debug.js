@@ -1,5 +1,5 @@
 /*!
- * MinDB (version 0.1.8) - Database on JavaScript
+ * MinDB (version 0.1.9) - Database on JavaScript
  * 
  * Will Wen Gunn(iwillwen) and other contributors
  * 
@@ -757,14 +757,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	    });
 	  },
 	  // Object Extend
-	  extend: function extend() {
-	    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-	      args[_key] = arguments[_key];
+	  extend: function extend(target) {
+	    for (var _len = arguments.length, objs = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+	      objs[_key - 1] = arguments[_key];
 	    }
-
-	    var target = args[0];
-
-	    var objs = [].slice.call(args, 1);
 
 	    for (var i = 0, l = objs.length; i < l; i++) {
 	      var keys = Object.getOwnPropertyNames(objs[i] || {});
@@ -1396,7 +1392,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        _this._keys[key] = 0;
 
 	        // Done
-	        promise.resolve([key, value]);
+	        promise.resolve(key);
 	        callback(null, key, value);
 	      });
 	    };
@@ -1412,7 +1408,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    this._keys[key] = 0;
 
 	    // Done
-	    promise.resolve([key, value]);
+	    promise.resolve(key);
 	    callback(null, key, value);
 	  }
 

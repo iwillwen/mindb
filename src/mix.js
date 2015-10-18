@@ -57,7 +57,7 @@ min.set = function(key, value, callback) {
         this._keys[key] = 0
 
         // Done
-        promise.resolve([key, value])
+        promise.resolve(key)
         callback(null, key, value)
       })
     }
@@ -73,7 +73,7 @@ min.set = function(key, value, callback) {
     this._keys[key] = 0
 
     // Done
-    promise.resolve([key, value])
+    promise.resolve(key)
     callback(null, key, value)
   }
 

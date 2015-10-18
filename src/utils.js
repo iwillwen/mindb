@@ -16,11 +16,7 @@ export default {
     })
   },
   // Object Extend
-  extend(...args) {
-    var target = args[0]
-
-    var objs = [].slice.call(args, 1)
-
+  extend(target, ...objs) {
     for (var i = 0, l = objs.length; i < l; i++) {
       var keys = Object.getOwnPropertyNames(objs[i] || {})
 
