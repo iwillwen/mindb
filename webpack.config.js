@@ -11,12 +11,12 @@ module.exports = {
     libraryTarget: 'umd'
   },
   plugins: [
-    new webpack.BannerPlugin(banner)
-    // new webpack.optimize.UglifyJsPlugin({
-    //   compress: {
-    //     warnings: false
-    //   }
-    // })
+    new webpack.BannerPlugin(banner),
+    new webpack.optimize.UglifyJsPlugin({
+      compress: {
+        warnings: false
+      }
+    })
   ],
   module: {
     loaders: [
