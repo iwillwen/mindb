@@ -109,7 +109,7 @@ min.setnx = function(key, value, callback = noop) {
         }, err => {
           callback(err)
           promise.reject(err)
-        });          
+        });
     }
   })
 

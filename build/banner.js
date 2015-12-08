@@ -1,11 +1,11 @@
-import pkg from '../package.json'
+var pkg = require('../package.json')
 
 var version = pkg.version
 
-export default 
-`MinDB (version ${version}) - Database on JavaScript
+exports.banner =
+"MinDB (version " + version + ") - Database on JavaScript\n\n" +
 
-Will Wen Gunn(iwillwen) and other contributors
+"Will Wen Gunn(iwillwen) and other contributors\n\n" +
 
-@license MIT-license
-@copyright 2012-2015 iwillwen(willwengunn@gmail.com)`
+"@license MIT-license\n" +
+"@copyright 2012-2015 iwillwen(willwengunn@gmail.com)"

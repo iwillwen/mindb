@@ -20,8 +20,8 @@ export default {
     for (var i = 0, l = objs.length; i < l; i++) {
       var keys = Object.getOwnPropertyNames(objs[i] || {})
 
-      for (var key of keys) {
-        target[key] = objs[i][key]
+      for (var j = 0;j < keys.length; j++) {
+        target[keys[j]] = objs[i][keys[j]]
       }
     }
 

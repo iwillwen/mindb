@@ -1,3 +1,5 @@
+import 'es6-symbol/implement'
+
 import utils from './utils.js'
 import { EventEmitter, Promise } from './events.js'
 import mix from './mix.js'
@@ -83,7 +85,7 @@ min.del = function(key, callback = noop) {
 
   if (store.async) {
     // Async Store Operating
-    
+
     var load = () => {
       // Value processing
       store.remove($key, err => {
@@ -303,7 +305,7 @@ min.keys = function(pattern, callback = noop) {
  * @return {Promise}           Promise Object
  */
 min.randomkey = function(callback = noop) {
-  
+
   // Promise Object
   var promise = new Promise(noop)
 

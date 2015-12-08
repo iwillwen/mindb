@@ -293,8 +293,9 @@ class _Promise {
   }
 
   resolve(...args) {
-    for (var handler of this._callbacks) {
-      handler.apply(this, args)
+    for (let i = 0; i < this._callbacks.length; i++) {
+      let handler = this._callbacks[i]
+        handler.apply(this, args)
     }
 
     this._args = args
