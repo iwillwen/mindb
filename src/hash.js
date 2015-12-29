@@ -289,7 +289,7 @@ min.hdel = function(key, field, callback = noop) {
     this.emit('hdel', key, field, value)
   })
 
-  this.hexists(key. field, (err, exists) => {
+  this.hexists(key, field, (err, exists) => {
     if (err) {
       callback(err)
       return promise.reject(err)
@@ -397,8 +397,8 @@ min.hkeys = function(key, callback = noop) {
           }
         )
     } else {
-      promise.resolve(0)
-      callback(null, 0)
+      promise.resolve([])
+      callback(null, [])
     }
   })
 
@@ -450,7 +450,7 @@ min.hincr = function(key, field, callback = noop) {
   this.hexists(key, field)
     .then(exists => {
       if (exists) {
-        return this.hget(exists)
+        return this.hget(key, field)
       } else {
         var p = new Promise()
 
@@ -461,8 +461,9 @@ min.hincr = function(key, field, callback = noop) {
     })
     .then(curr => {
       if (isNaN(parseFloat(curr))) {
-        promise.reject('value wrong')
-        return callback('value wrong')
+        let err = new Error('value wrong')
+        promise.reject(err)
+        return callback(err)
       }
 
       curr = parseFloat(curr)
@@ -490,7 +491,7 @@ min.hincrby = function(key, field, increment, callback = noop) {
   this.hexists(key, field)
     .then(exists => {
       if (exists) {
-        return this.hget(exists)
+        return this.hget(key, field)
       } else {
         var p = new Promise()
 
@@ -501,8 +502,9 @@ min.hincrby = function(key, field, increment, callback = noop) {
     })
     .then(curr => {
       if (isNaN(parseFloat(curr))) {
-        promise.reject('value wrong')
-        return callback('value wrong')
+        let err = new Error('value wrong')
+        promise.reject(err)
+        return callback(err)
       }
 
       curr = parseFloat(curr)
@@ -543,8 +545,9 @@ min.hdecr = function(key, field, callback = noop) {
     })
     .then(curr => {
       if (isNaN(parseFloat(curr))) {
-        promise.reject('value wrong')
-        return callback('value wrong')
+        let err = new Error('value wrong')
+        promise.reject(err)
+        return callback(err)
       }
 
       curr = parseFloat(curr)
@@ -572,7 +575,7 @@ min.hdecrby = function(key, field, decrement, callback = noop) {
   this.hexists(key, field)
     .then(exists => {
       if (exists) {
-        return this.hget(exists)
+        return this.hget(key, field)
       } else {
         var p = new Promise()
 
@@ -583,8 +586,9 @@ min.hdecrby = function(key, field, decrement, callback = noop) {
     })
     .then(curr => {
       if (isNaN(parseFloat(curr))) {
-        promise.reject('value wrong')
-        return callback('value wrong')
+        let err = new Error('value wrong')
+        promise.reject(err)
+        return callback(err)
       }
 
       curr = parseFloat(curr)
@@ -601,3 +605,5 @@ min.hdecrby = function(key, field, decrement, callback = noop) {
 
   return promise
 }
+
+min.hdecrbyfloat = min.hdecrby

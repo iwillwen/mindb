@@ -32,9 +32,7 @@ min.zadd = function(key, score, member, callback = noop) {
         })
       }
     })
-    .then(args => {
-      var _key = args[0]
-
+    .then(_key => {
       if ('string' === typeof _key) {
         this._keys[key] = 4
 
@@ -68,7 +66,8 @@ min.zadd = function(key, score, member, callback = noop) {
         return this.set(key, data)
       }
     })
-    .then((key, data) => {
+    .then(() => this.get(key))
+    .then(data => {
       this._keys[key] = 4
 
       var len = data.ms.length
@@ -172,17 +171,19 @@ min.zrem = function(key, ...members) {
     .then(data => {
       var p = new Promise(noop)
 
+
       for (let hash of members) {
         let i = data.ms.indexOf(hash)
 
         if (i >= 0) {
-          data.ms[hash] = 0
-          var score = data.hsm[hash]
-          delete data.hsm[hash]
+          delete data.ms[i]
+          var score = data.hsm[i]
+          delete data.hsm[i]
 
-          var ii = data.shm[score].indexOf(hash)
-          if (ii >= 0)
-            data.shm[score].splice(ii, 1)
+          var ii = data.shm[String(score)].indexOf(i)
+          if (ii >= 0) {
+            data.shm[String(score)].splice(ii, 1)
+          }
 
           removeds++
         }
@@ -241,7 +242,7 @@ min.zrange = function(key, min, max, callback = noop) {
   var promise = new Promise(noop)
 
   this.exists(key)
-    .then(function(exists) {
+    .then(exists => {
       if (exists) {
         return this.get(key)
       } else {
@@ -253,11 +254,13 @@ min.zrange = function(key, min, max, callback = noop) {
     })
     .then(data => {
       var hashs = Object.keys(data.shm)
+        .map(s => parseFloat(s))
+        .sort()
         .filter(score => (min <= score && score <= max))
         .map(score => data.shm[score])
 
-      var members = utils.flatten(hashs
-        .map(hash => hash.map(row => data.ms[row])))
+      var members = hashs
+        .map(hash => hash.map(row => data.ms[row]))
         .reduce((a, b) => a.concat(b))
 
       promise.resolve(members)
@@ -316,12 +319,13 @@ min.zrevrange = function(key, min, max, callback = noop) {
     })
     .then(data => {
       var hashs = Object.keys(data.shm)
-        .reverse()
+        .map(s => parseFloat(s))
+        .sort((a, b) => b > a)
         .filter(score => (min <= score && score <= max))
         .map(score => data.shm[score])
 
-      var members = utils.flatten(hashs
-        .map(hash => hash.map(row => data.ms[row])))
+      var members = hashs
+        .map(hash => hash.map(row => data.ms[row]))
         .reduce((a, b) => a.concat(b))
 
       promise.resolve(members)
@@ -376,7 +380,7 @@ min.zincrby = function(key, increment, member, callback = noop) {
       if (exists) {
         return this.zscore(key, member)
       } else {
-        this.zadd(key, increment, member, callback)
+        this.zadd(key, 0, member, callback)
           .then(promise.resolve.bind(promise),
             promise.reject.bind(promise))
       }
@@ -467,17 +471,14 @@ min.zrank = function(key, member, callback = noop) {
       if (exists) {
         return this.get(key)
       } else {
-        var err = new Error('no such key')
-
-        promise.reject(err)
-        callback(err)
+        throw new Error('no such key')
       }
     })
     .then(data => {
-      var scores = Object.keys(data.shm)
-      var score = data.hsm[data.ms.indexOf(member)]
+      var scores = Object.keys(data.shm).map(s => parseFloat(s)).sort()
+      var score = parseFloat(data.hsm[data.ms.indexOf(member)])
 
-      var rank = scores.indexOf(score)
+      var rank = scores.indexOf(score) + 1
 
       promise.resolve(rank)
       callback(null, rank)
@@ -497,17 +498,14 @@ min.zrevrank = function(key, member, callback = noop) {
       if (exists) {
         return this.get(key)
       } else {
-        var err = new Error('no such key')
-
-        promise.reject(err)
-        callback(err)
+        throw new Error('no such key')
       }
     })
     .then(data => {
-      var scores = Object.keys(data.shm)
-      var score = data.hsm[data.ms.indexOf(member)]
+      var scores = Object.keys(data.shm).map(s => parseFloat(s)).sort()
+      var score = parseFloat(data.hsm[data.ms.indexOf(member)])
 
-      var rank = scores.reverse().indexOf(score)
+      var rank = scores.reverse().indexOf(score) + 1
 
       promise.resolve(rank)
       callback(null, rank)

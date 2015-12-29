@@ -1,5 +1,5 @@
 // Utils
-export default {
+const utils = {
   noop() {
     return false
   },
@@ -49,7 +49,7 @@ export default {
     return ret
   },
   arrayInter(array, ...rest) {
-    return utils.arrayUnique(array).filter(function(item) {
+    return utils.arrayUnique(array).filter(item => {
       var ret = true
 
       for (let other of rest) {
@@ -62,16 +62,10 @@ export default {
     })
   },
   arrayDiff(array, ...rest) {
-    return array.filter(function(item) {
-      var ret = true
-
-      for (let other of rest) {
-        if (other.indexOf(item) >= 0) {
-          ret = false
-        }
-      }
-
-      return ret
+    let inter = utils.arrayInter(array, ...rest)
+    let union = utils.arrayUnique(array.concat(...rest))
+    return union.filter(item => {
+      return inter.indexOf(item) < 0
     })
   },
 
@@ -94,3 +88,5 @@ export default {
     return output
   }
 }
+
+export default utils

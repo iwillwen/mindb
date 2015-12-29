@@ -1,21 +1,17 @@
-var assert = require('assert')
-var should = require('chai').should()
-var min = require('./min')
+import { should as Should } from 'chai'
+import min from './min'
 
-describe('MinDB - Mix', function() {
-  describe('set', function() {
-    it('should set a key with a string value', function(done) {
-      var value = null
+const should = Should()
 
+describe('MinDB - Mix', () => {
+  describe('set', () => {
+    it('should set a key with a string value', done => {
       min.set('key', 'value')
-        .then(function(args) {
-          var key = args[0]
-          value = args[1]
-
+        .then(key => {
           return min.get(key)
         })
-        .then(function(_value) {
-          _value.should.be.equal(value)
+        .then(value => {
+          value.should.be.equal('value')
 
           done()
         })
@@ -26,14 +22,11 @@ describe('MinDB - Mix', function() {
       var value = null
 
       min.set('key', 2333)
-        .then(function(args) {
-          var key = args[0]
-          value = args[1]
-
+        .then(key => {
           return min.get(key)
         })
-        .then(function(_value) {
-          _value.should.be.equal(value)
+        .then(value => {
+          value.should.be.equal(2333)
 
           done()
         })
@@ -44,14 +37,11 @@ describe('MinDB - Mix', function() {
       var value = null
 
       min.set('key', true)
-        .then(function(args) {
-          var key = args[0]
-          value = args[1]
-
+        .then(key => {
           return min.get(key)
         })
-        .then(function(_value) {
-          _value.should.be.equal(value)
+        .then(value => {
+          value.should.be.equal(true)
 
           done()
         })
@@ -62,14 +52,11 @@ describe('MinDB - Mix', function() {
       var value = null
 
       min.set('key', [ 2, 3, 3, 3 ])
-        .then(function(args) {
-          var key = args[0]
-          value = args[1]
-
+        .then(key => {
           return min.get(key)
         })
-        .then(function(_value) {
-          _value.should.be.deep.equal(value)
+        .then(function(value) {
+          value.should.be.deep.equal([ 2, 3, 3, 3 ])
 
           done()
         })
@@ -78,11 +65,12 @@ describe('MinDB - Mix', function() {
 
     it('should set a key with a object value', function(done) {
       min.set('key', { code: 233 })
-        .then(function(args) {
-          var key = args[0]
-          var value = args[1]
-
+        .then(key => {
           key.should.be.equal('key')
+
+          return min.get(key)
+        })
+        .then(value => {
           value.should.be.deep.equal({ code: 233 })
 
           done()
@@ -94,18 +82,17 @@ describe('MinDB - Mix', function() {
   describe('setnx', function() {
     it('should set a key if the key is not exists', function(done) {
       min.set('fool', 'value')
-        .then(function(args) {
-          var key = args[0]
-          var value = args[1]
-
+        .then(key => {
           key.should.be.equal('fool')
+
+          return min.get(key)
+        })
+        .then(value => {
           value.should.be.equal('value')
 
-          return min.del(key)
+          return min.del('fool')
         })
-        .then(function() {
-          done()
-        })
+        .then(() => done())
         .catch(done)
     })
 
@@ -113,7 +100,7 @@ describe('MinDB - Mix', function() {
     it('should return a error if the key was exists', function(done) {
       min.setnx('key', 'foobar')
         .catch(function(err) {
-          err.should.be.an('error')
+          err.message.should.equal('The key is exists.')
 
           done()
         })
@@ -123,16 +110,17 @@ describe('MinDB - Mix', function() {
   describe('setex', function() {
     it('should set a key with a TTL(Time to Live)(s)', function(done) {
       min.setex('fool', 0.01, 'value')
-        .then(function(args) {
-          var key = args[0]
-          var value = args[1]
-
+        .then(key => {
           key.should.be.equal('fool')
-          value.should.be.equal('value')
 
-          setTimeout(function() {
-            min.exists(key)
-              .then(function(exists) {
+          return min.get(key)
+        })
+        .then(value => {
+          value.should.equal('value')
+
+          setTimeout(() => {
+            min.exists('fool')
+              .then(exists => {
                 exists.should.be.false
 
                 done()
@@ -147,15 +135,16 @@ describe('MinDB - Mix', function() {
   describe('psetex', function() {
     it('should set a key with a TTL(Time to Live)(ms)', function(done) {
       min.psetex('fool1', 10, 'value')
-        .then(function(args) {
-          var key = args[0]
-          var value = args[1]
-
+        .then(key => {
           key.should.be.equal('fool1')
-          value.should.be.equal('value')
+
+          return min.get(key)
+        })
+        .then(value => {
+          value.should.equal('value')
 
           setTimeout(function() {
-            min.exists(key)
+            min.exists('fool1')
               .then(function(exists) {
                 exists.should.be.false
 
@@ -175,8 +164,8 @@ describe('MinDB - Mix', function() {
         '_key2': 'value2'
       })
       .then(function(results) {
-        results[0].should.be.deep.equal([ '_key1', 'value1' ])
-        results[1].should.be.deep.equal([ '_key2', 'value2' ])
+        results[0].should.be.equal('_key1')
+        results[1].should.be.equal('_key2')
 
         done()
       })
@@ -191,8 +180,8 @@ describe('MinDB - Mix', function() {
         '_key4': 'value4'
       })
       .then(function(results) {
-        results[0].should.be.deep.equal([ '_key3', 'value3' ])
-        results[1].should.be.deep.equal([ '_key4', 'value4' ])
+        results[0].should.be.equal('_key3')
+        results[1].should.be.equal('_key4')
 
         var n = results.length
 
@@ -432,7 +421,7 @@ describe('MinDB - Mix', function() {
     it('should return a error if the key was not exists', function(done) {
       min.get('something')
         .catch(function(err) {
-          err.should.be.an('error')
+          err.message.should.equal('no such key')
 
           done()
         })
@@ -455,8 +444,8 @@ describe('MinDB - Mix', function() {
 
     it('should return errors if a key was not exists', function(done) {
       min.mget([ 'key', 'something' ])
-        .catch(function(errors) {
-          errors.length.should.above(0)
+        .catch(err => {
+          err.message.should.equal('no such key')
 
           done()
         })

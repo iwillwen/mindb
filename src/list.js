@@ -16,8 +16,13 @@ export default min
  * @param  {Function} callback Callback
  * @return {Promise}           promise
  */
-min.lpush = function(key, value, callback = noop) {
+min.lpush = function(key, ...values) {
   var promise = new Promise()
+  var callback = noop
+
+  if (values[values.length - 1].apply) {
+    var callback = values.splice(values.length - 1)[0]
+  }
 
   promise.then(len => this.emit('lpush', key, value, len))
 
@@ -34,7 +39,7 @@ min.lpush = function(key, value, callback = noop) {
           return callback(err)
         }
 
-        data.unshift(value)
+        data.unshift(...values)
 
         this.set(key, data, err => {
           if (err) {
@@ -49,7 +54,7 @@ min.lpush = function(key, value, callback = noop) {
         })
       })
     } else {
-      var data = [ value ]
+      var data = values.slice()
 
       this.set(key, data, err => {
         if (err) {
@@ -75,8 +80,13 @@ min.lpush = function(key, value, callback = noop) {
  * @param  {Function} callback Callback
  * @return {Promise}           promise
  */
-min.lpushx = function(key, value, callback = noop) {
+min.lpushx = function(key, ...values) {
   var promise = new Promise()
+  var callback = noop
+
+  if (values[values.length - 1].apply) {
+    var callback = values.splice(values.length - 1)[0]
+  }
 
   promise.then(len => this.emit('lpush', key, value, len))
 
@@ -100,7 +110,7 @@ min.lpushx = function(key, value, callback = noop) {
           return promise.reject(err)
         }
 
-        data.unshift(value)
+        data.unshift(...values)
 
         this.set(key, data, err => {
           if (err) {
@@ -132,8 +142,13 @@ min.lpushx = function(key, value, callback = noop) {
  * @param  {Function} callback Callback
  * @return {Promise}           promise
  */
-min.rpush = function(key, value, callback) {
+min.rpush = function(key, ...values) {
   var promise = new Promise()
+  var callback = noop
+
+  if (values[values.length - 1].apply) {
+    var callback = values.splice(values.length - 1)[0]
+  }
 
   promise.then(len => this.emit('rpush', key, value, len))
 
@@ -150,7 +165,7 @@ min.rpush = function(key, value, callback) {
           return callback(err)
         }
 
-        data.push(value)
+        data.push(...values)
 
         this.set(key, data, err => {
           if (err) {
@@ -165,7 +180,7 @@ min.rpush = function(key, value, callback) {
         })
       })
     } else {
-      var data = [ value ]
+      var data = values.slice()
 
       this.set(key, data, err => {
         if (err) {
@@ -189,8 +204,13 @@ min.rpush = function(key, value, callback) {
  * @param  {Function} callback Callback
  * @return {Promise}           promise
  */
-min.rpushx = function(key, value, callback = noop) {
+min.rpushx = function(key, ...values) {
   var promise = new Promise()
+  var callback = noop
+
+  if (values[values.length - 1].apply) {
+    var callback = values.splice(values.length - 1)[0]
+  }
 
   promise.then(len => this.emit('rpush', key, value, len))
 
@@ -214,7 +234,7 @@ min.rpushx = function(key, value, callback = noop) {
           return promise.reject(err)
         }
 
-        data.push(value)
+        data.push(...values)
 
         this.set(key, data, err => {
           if (err) {
@@ -245,7 +265,7 @@ min.rpushx = function(key, value, callback = noop) {
  * @param  {Function} callback Callback
  * @return {Promise}           promise
  */
-min.lpop = function(key, callback) {
+min.lpop = function(key, callback = noop) {
   var promise = new Promise()
   var val = null
 
@@ -374,14 +394,18 @@ min.lrange = function(key, start, stop, callback = noop) {
           return callback(err)
         }
 
+        if (stop < 0) {
+          stop = data.length + stop
+        }
+
         var values = data.slice(start, stop + 1)
 
         promise.resolve(values)
         callback(null, values)
       })
     } else {
-      promise.resolve(null)
-      callback(null, null)
+      promise.resolve([])
+      callback(null, [])
     }
   })
 
@@ -401,59 +425,58 @@ min.lrem = function(key, count, value, callback = noop) {
 
   promise.then(removeds => this.emit('lrem', key, count, value, removeds))
 
-  this.exists(key, (err, exists) => {
-    if (err) {
+  var removeds = 0
+
+  this.exists(key)
+    .then(exists => {
+      if (exists) {
+        return this.get(key)
+      } else {
+        promise.resolve(0)
+        callback(null, 0)
+      }
+    })
+    .then(data => {
+      switch (true) {
+        case count > 0:
+          for (var i = 0; i < data.length && removeds < count; i++) {
+            if (data[i] === value) {
+              data.splice(i, 1)[0]
+
+              removeds++
+            }
+          }
+          break
+        case count < 0:
+          for (var i = data.length - 1; i >= 0 && removeds < -count; i--) {
+            if (data[i] === value) {
+              data.splice(i, 1)[0]
+
+              removeds++
+            }
+          }
+          break
+        case count == 0:
+          for (var i = data.length - 1; i >= 0; i--) {
+            if (data[i] === value) {
+              data.splice(i, 1)[0]
+
+              removeds++
+            }
+          }
+          break
+      }
+
+      return this.set(key, data)
+    })
+    .then(() => {
+      promise.resolve(removeds)
+      callback(null, removeds)
+    })
+    .catch(err => {
       promise.reject(err)
-      return callback(err)
-    }
-
-    if (exists) {
-      this.get(key, (err, data) => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
-
-        var removeds = 0
-
-        switch (true) {
-          case count > 0:
-            for (var i = 0; i < data.length && removeds < count; i++) {
-              if (data[i] === value) {
-                data.splice(i, 1)[0]
-
-                removeds++
-              }
-            }
-            break
-          case count < 0:
-            for (var i = data.length - 1; i >= 0 && removeds < count; i--) {
-              if (data[i] === value) {
-                data.splice(i, 1)[0]
-
-                removeds++
-              }
-            }
-            break
-          case count = 0:
-            for (var i = data.length - 1; i >= 0; i--) {
-              if (data[i] === value) {
-                data.splice(i, 1)[0]
-
-                removeds++
-              }
-            }
-            break
-        }
-
-        promise.resolve(removeds)
-        callback(null, removeds)
-      })
-    } else {
-      promise.resolve(null)
-      callback(null, null)
-    }
-  })
+      callback(err)
+    })
 
   return promise
 }
@@ -471,47 +494,39 @@ min.lset = function(key, index, value, callback = noop) {
 
   promise.then(len => this.emit('lset', key, index, value, len))
 
-  this.exists(key, (err, exists) => {
-    if (err) {
-      promise.reject(err)
-      return callback(err)
-    }
+  this.exists(key)
+    .then(exists => {
+      if (exists) {
+        return this.get(key)
+      } else {
+        throw new Error('no such key')
+      }
+    })
+    .then(data => {
+      if (index < 0 && data.length > 0) {
+        index = data.length + index
+      }
 
-    if (exists) {
-      this.get(key, (err, data) => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
+      if (!data[index] || !data.length) {
+        throw new Error('Illegal index')
+      }
 
-        if (!data[index] || !data.length) {
-          var err = new Error('no such key')
-
-          promise.reject(err)
-          return callback(err)
-        }
-
+      if (data.length == index) {
+        data.push(value)
+      } else {
         data[index] = value
+      }
 
-        this.set(key, data, err => {
-          if (err) {
-            promise.reject(err)
-            return callback(err)
-          }
-
-          var length = data.length
-
-          promise.resolve(length)
-          callback(null, length)
-        })
-      })
-    } else {
-      var err = new Error('no such key')
-
+      return this.set(key, data)
+    })
+    .then(() => {
+      promise.resolve()
+      callback(null)
+    })
+    .catch(err => {
       promise.reject(err)
-      return callback(err)
-    }
-  })
+      callback(err)
+    })
 
   return promise
 }
@@ -530,18 +545,26 @@ min.ltrim = function(key, start, stop, callback = noop) {
   this.exists(key)
     .then(exists => {
       if (!exists) {
-        promise.resolve(null)
-        return callback(null, null)
+        throw new Error('no such key')
       }
 
       return this.get(key)
     })
     .then(data => {
-      var values = data.splice(start, stop + 1)
+      if (start < 0) {
+        start = data.length + start
+      }
+
+      if (stop < 0) {
+        stop = data.length + stop
+      }
+
+      var values = data.slice(start, stop + 1)
 
       return this.set(key, values)
     })
-    .then(([key, values]) => {
+    .then(() => this.get(key))
+    .then(values => {
       promise.resolve(values)
       callback(null, values, key)
     })
@@ -575,6 +598,10 @@ min.lindex = function(key, index, callback = noop) {
       return this.get(key)
     })
     .then(data => {
+      if (index > (data.length - 1)) {
+        throw new Error('Illegal index')
+      }
+
       var value = data[index]
 
       promise.resolve(value)
@@ -596,50 +623,49 @@ min.lindex = function(key, index, callback = noop) {
  * @param  {Function} callback callback
  * @return {Promise}           promise
  */
-min.linsertBefore = function(key, pivot, value, callback) {
+min.linsertBefore = function(key, pivot, value, callback = noop) {
   var promise = new Promise()
 
   promise.then(len => this.emit('linsertBefore', key, pivot, value, len))
 
-  this.exists(key, (err, exists) => {
-    if (err) {
+  this.exists(key)
+    .then(exists => {
+      if (exists) {
+        return this.get(key)
+      } else {
+        throw new Error('no such key')
+      }
+    })
+    .then(data => {
+      let index = data.indexOf(pivot)
+
+      if (index < 0) {
+        promise.resolve(-1)
+        callback(null, -1)
+        return
+      }
+
+      let prev = data.slice(0, index)
+      let next = data.slice(index)
+
+      let newData = prev.slice()
+      newData.push(value, ...next)
+
+      return this.set(key, newData)
+    })
+    .then(key => {
+      if (key.substr) {
+        return this.get(key)
+      }
+    })
+    .then(data => {
+      promise.resolve(data.length)
+      callback(null, data.length)
+    })
+    .catch(err => {
       promise.reject(err)
-      return callback(err)
-    }
-
-    if (exists) {
-      this.get(key, (err, data) => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
-
-        var index = data.indexOf(pivot)
-
-        if (index < 0) {
-          promise.resolve(null)
-          return callback(null, null)
-        }
-
-        data.splice(index, 1, value, pivot)
-
-        this.set(key, data, err => {
-          if (err) {
-            promise.reject(err)
-            return callback(err)
-          }
-
-          var length = data.length
-
-          promise.resolve(length)
-          callback(null, length)
-        })
-      })
-    } else {
-      promise.resolve(null)
-      callback(null, null)
-    }
-  })
+      callback(err)
+    })
 
   return promise
 }
@@ -657,45 +683,44 @@ min.linsertAfter = function(key, pivot, value, callback = noop) {
 
   promise.then(len => this.emit('linsertAfter', key, pivot, value, len))
 
-  this.exists(key, (err, exists) => {
-    if (err) {
+  this.exists(key)
+    .then(exists => {
+      if (exists) {
+        return this.get(key)
+      } else {
+        throw new Error('no such key')
+      }
+    })
+    .then(data => {
+      let index = data.indexOf(pivot) + 1
+
+      if (index < 0) {
+        promise.resolve(-1)
+        callback(null, -1)
+        return
+      }
+
+      let prev = data.slice(0, index)
+      let next = data.slice(index)
+
+      let newData = prev.slice()
+      newData.push(value, ...next)
+
+      return this.set(key, newData)
+    })
+    .then(key => {
+      if (key.substr) {
+        return this.get(key)
+      }
+    })
+    .then(data => {
+      promise.resolve(data.length)
+      callback(null, data.length)
+    })
+    .catch(err => {
       promise.reject(err)
-      return callback(err)
-    }
-
-    if (exists) {
-      this.get(key, (err, data) => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
-
-        var index = data.indexOf(pivot)
-
-        if (index < 0) {
-          promise.resolve(null)
-          return callback(null, null)
-        }
-
-        data.splice(index, 0, value)
-
-        this.set(key, data, err => {
-          if (err) {
-            promise.reject(err)
-            return callback(err)
-          }
-
-          var length = data.length
-
-          promise.resolve(length)
-          callback(null, length)
-        })
-      })
-    } else {
-      promise.resolve(null)
-      callback(null, null)
-    }
-  })
+      callback(err)
+    })
 
   return promise
 }

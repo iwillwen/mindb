@@ -102,10 +102,10 @@ min.setnx = function(key, value, callback = noop) {
       return promise.reject(new Error('The key is exists.'))
     } else {
       this.set(key, value, callback)
-        .then(([key, value]) => {
+        .then(key => {
           // Done
-          callback(null, key, value)
-          promise.resolve([key, value])
+          callback(null, key)
+          promise.resolve(key)
         }, err => {
           callback(err)
           promise.reject(err)
@@ -140,11 +140,11 @@ min.setex = function(key, seconds, value, callback = noop) {
     setTimeout(timeout, seconds * 1000)
     callback(err, result)
   })
-    .then(([key, value]) => {
+    .then(key => {
       // Done
       setTimeout(timeout, seconds * 1000)
-      promise.resolve([key, value])
-      callback(null, key, value)
+      promise.resolve(key)
+      callback(null, key)
     }, err => {
       promise.reject(err)
       callback(err)
@@ -177,11 +177,11 @@ min.psetex = function(key, milliseconds, value, callback = noop) {
     setTimeout(timeout, milliseconds)
     callback(err, result)
   })
-    .then(([key, value]) => {
+    .then(key => {
       // Done
       setTimeout(timeout, milliseconds)
-      promise.resolve([key, value])
-      callback(null, key, value)
+      promise.resolve(key)
+      callback(null, key)
     }, promise.reject.bind(promise))
 
   return promise
@@ -211,8 +211,8 @@ min.mset = function(plainObject, callback = noop) {
     delete keys[index]
 
     this.set(key, plainObject[key])
-      .then(([key, value]) => {
-        results.push([key, value])
+      .then(key => {
+        results.push(key)
 
         i++
         if (keys[i]) {
@@ -265,8 +265,8 @@ min.msetnx = function(plainObject, callback = noop) {
     delete keys[index]
 
     this.setnx(key, plainObject[key])
-      .then(([key, value]) => {
-        results.push([key, value])
+      .then(key => {
+        results.push(key)
 
         i++
         if (keys[i]) {
@@ -571,7 +571,10 @@ min.incr = function(key, callback = noop) {
 
       return this.set(key, ++curr)
     })
-    .then(([key, value]) => {
+    .then(key => {
+      return this.get(key)
+    })
+    .then(value => {
       promise.resolve(value)
       callback(null, value, key)
     })
@@ -657,7 +660,10 @@ min.decr = function(key, callback = noop) {
 
       return this.set(key, --curr)
     })
-    .then(([key, value]) => {
+    .then(key => {
+      return this.get(key)
+    })
+    .then(value => {
       promise.resolve(value)
       callback(null, value, key)
     }, err => {

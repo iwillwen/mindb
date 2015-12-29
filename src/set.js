@@ -38,7 +38,7 @@ min.sadd = function(key, ...members) {
 
         for (var curr of members) {
           if (data.indexOf(curr) >= 0) {
-            return
+            continue
           } else {
             data.push(curr)
             added++
@@ -85,7 +85,7 @@ min.srem = function(key, ...members) {
       if (exists) {
         return this.get(key)
       } else {
-        return new Error('no such key')
+        throw new Error('no such key')
       }
     })
     .then(data => {
@@ -121,7 +121,7 @@ min.smembers = function(key, callback = noop) {
       if (exists) {
         return this.get(key)
       } else {
-        return new Error('no such key')
+        throw new Error('no such key')
       }
     })
     .then(members => {
@@ -143,11 +143,11 @@ min.sismember = function(key, value, callback = noop) {
       if (exists) {
         return this.get(key)
       } else {
-        return new Error('no such key')
+        throw new Error('no such key')
       }
     })
     .then(members => {
-      var res = members.indexOf(value) >= 0 ? 1 : 0
+      var res = members.indexOf(value) >= 0 ? true : false
 
       promise.resolve(res)
       callback(null, res)
@@ -167,7 +167,7 @@ min.scard = function(key, callback = noop) {
       if (exists) {
         return this.get(key)
       } else {
-        return new Error('no such key')
+        throw new Error('no such key')
       }
     })
     .then(data => {
@@ -188,37 +188,24 @@ min.smove = function(src, dest, member, callback = noop) {
 
   promise.then(ok => this.emit('smove', src, dest, member, ok))
 
-  this.exists(key)
+  this.exists(src)
     .then(exists => {
       if (exists) {
         return this.sismember(src, member)
       } else {
-        return new Error('no such key')
+        throw new Error('no such key')
       }
     })
     .then(isMember => {
       if (isMember) {
         return this.srem(src, member)
       } else {
-        return new Error('no such member')
+        throw new Error('no such member')
       }
     })
+    .then(() => this.sadd(dest, member))
     .then(_ => {
-      return this.sismember(dest, member)
-    })
-    .then(isMember => {
-      if (!isMember) {
-        return this.sadd(dest, member)
-      } else {
-
-        this._keys[key] = 3
-
-        promise.resolve(0)
-        callback(null, 0)
-      }
-    })
-    .then(_ => {
-      this._keys[key] = 3
+      this._keys[dest] = 3
       promise.resolve(1)
       callback(null, 1)
     }, err => {
@@ -299,7 +286,7 @@ min.sunion = function(...keys) {
 
   var members = []
 
-  (loop = index => {
+  ;(loop = index => {
     var curr = keys[index]
 
     if (curr) {
@@ -343,29 +330,15 @@ min.sunionstore = function(dest, ...keys) {
 
   var members = null
 
-  this.sunion(keys)
+  this.sunion(...keys)
     .then(_members => {
       members = _members
 
-      return this.exists(dest)
+      return this.del(dest)
     })
-    .then(exists => {
-      if (exists) {
-        return this.del(dest)
-      } else {
-        return this.sadd(dest, members)
-      }
-    })
+    .then(() => this.sadd(dest, ...members))
     .then(length => {
-      if (typeof length == 'number') {
-        promise.resolve([length, members])
-        callback(null, length, members)
-      } else {
-        return this.sadd(dest, members)
-      }
-    })
-    .then(length => {
-      promise.resolve(length, members)
+      promise.resolve([length, members])
       callback(null, length, members)
     }, err => {
       promise.reject(err)
@@ -386,7 +359,7 @@ min.sinter = function(...keys) {
 
   var memberRows = []
 
-  (loop = index => {
+  ;(loop = index => {
     var curr = keys[index]
 
     if (curr) {
@@ -410,7 +383,6 @@ min.sinter = function(...keys) {
         })
     } else {
       var members = utils.arrayInter.apply(utils, memberRows)
-
       promise.resolve(members)
       callback(null, members)
     }
@@ -427,32 +399,19 @@ min.sinterstore = function(dest, ...keys) {
     callback = keys.pop()
   }
 
+  promise.then(([length, members]) => this.emit('sinterstore', dest, keys, length, members))
+
   var members = null
 
-  this.sinter.apply(this, keys)
+  this.sinter(...keys)
     .then(_members => {
       members = _members
 
-      return this.exists(dest)
+      return this.del(dest)
     })
-    .then(exists => {
-      if (exists) {
-        return this.del(dest)
-      } else {
-        members.unshift(dest)
-        return this.sadd.apply(this, members)
-      }
-    })
-    .then(key => {
-      if (typeof key == 'string') {
-        promise.resolve(members.length, members)
-        callback(null, members.length, members)
-      } else {
-        return this.sadd(dest, members)
-      }
-    })
-    .then(_ => {
-      promise.resolve(members.length, members)
+    .then(() => this.sadd(dest, ...members))
+    .then(length => {
+      promise.resolve([members.length, members])
       callback(null, members.length, members)
     }, err => {
       promise.reject(err)
@@ -473,7 +432,7 @@ min.sdiff = function(...keys) {
 
   var memberRows = []
 
-  (loop = index => {
+  ;(loop = index => {
     var curr = keys[index]
 
     if (curr) {
@@ -514,31 +473,19 @@ min.sdiffstore = function(dest, ...keys) {
     callback = keys.pop()
   }
 
+  promise.then(([length, members]) => this.emit('sdiffstore', dest, keys, length, members))
+
   var members = null
 
-  this.sdiff(keys)
+  this.sdiff(...keys)
     .then(_members => {
       members = _members
 
-      return this.exists(dest)
+      return this.del(dest)
     })
-    .then(exists => {
-      if (exists) {
-        return this.del(dest)
-      } else {
-        return this.sadd(dest, members)
-      }
-    })
+    .then(exists => this.sadd(dest, ...members))
     .then(length => {
-      if (typeof length == 'number') {
-        promise.resolve(length, members)
-        callback(null, length, members)
-      } else {
-        return this.sadd(dest, members)
-      }
-    })
-    .then(length => {
-      promise.resolve(length, members)
+      promise.resolve([length, members])
       callback(null, length, members)
     }, err => {
       promise.reject(err)
