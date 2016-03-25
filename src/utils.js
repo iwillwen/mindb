@@ -17,10 +17,10 @@ const utils = {
   },
   // Object Extend
   extend(target, ...objs) {
-    for (var i = 0, l = objs.length; i < l; i++) {
-      var keys = Object.getOwnPropertyNames(objs[i] || {})
+    for (let i = 0, l = objs.length; i < l; i++) {
+      const keys = Object.getOwnPropertyNames(objs[i] || {})
 
-      for (var j = 0;j < keys.length; j++) {
+      for (let j = 0;j < keys.length; j++) {
         target[keys[j]] = objs[i][keys[j]]
       }
     }
@@ -37,9 +37,9 @@ const utils = {
     return obj === Object(obj)
   },
   arrayUnique(array) {
-    var u = {}
-    var ret = []
-    for (var i = 0, l = array.length; i < l; ++i) {
+    const u = {}
+    const ret = []
+    for (let i = 0, l = array.length; i < l; ++i) {
       if (u.hasOwnProperty(array[i]) && !utils.isObject(array[i])) {
          continue
       }
@@ -50,9 +50,9 @@ const utils = {
   },
   arrayInter(array, ...rest) {
     return utils.arrayUnique(array).filter(item => {
-      var ret = true
+      let ret = true
 
-      for (let other of rest) {
+      for (const other of rest) {
         if (other.indexOf(item) < 0) {
           ret = false
         }
@@ -64,19 +64,18 @@ const utils = {
   arrayDiff(array, ...rest) {
     let inter = utils.arrayInter(array, ...rest)
     let union = utils.arrayUnique(array.concat(...rest))
-    return union.filter(item => {
-      return inter.indexOf(item) < 0
-    })
+    return union.filter(item => inter.indexOf(item) < 0)
   },
 
   flatten(input, shallow, strict, startIndex) {
-    var output = [], idx = 0
-    for (var i = startIndex || 0, length = getLength(input); i < length; i++) {
-      var value = input[i]
+    const output = []
+    let idx = 0
+    for (let i = startIndex || 0, length = getLength(input); i < length; i++) {
+      let value = input[i]
       if (isArrayLike(value) && (_.isArray(value) || _.isArguments(value))) {
         //flatten current level of array or arguments object
         if (!shallow) value = flatten(value, shallow, strict)
-        var j = 0, len = value.length
+        let j = 0, len = value.length
         output.length += len
         while (j < len) {
           output[idx++] = value[j++]

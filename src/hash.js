@@ -1,9 +1,9 @@
 import utils from './utils.js'
 import { Promise } from './events.js'
 
-var noop = utils.noop
+const noop = utils.noop
 
-var min = {}
+const min = {}
 export default min
 
 /**
@@ -15,7 +15,7 @@ export default min
  * @return {Promise}           promise object
  */
 min.hset = function(key, field, value, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   // check the key status
   this.exists(key, (err, exists) => {
@@ -47,7 +47,7 @@ min.hset = function(key, field, value, callback = noop) {
       })
     } else {
       // create a hash
-      var body = {}
+      const body = {}
 
       body[field] = value
 
@@ -65,9 +65,7 @@ min.hset = function(key, field, value, callback = noop) {
     }
 
   })
-  promise.then(_ => {
-    this.emit('hset', key, field, value)
-  })
+  promise.then(_ => this.emit('hset', key, field, value))
 
 
   return promise
@@ -82,7 +80,7 @@ min.hset = function(key, field, value, callback = noop) {
  * @return {Promise}            promise
  */
 min.hsetnx = function(key, field, value, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   this.hexists(key, field, (err, exists) => {
     if (err) {
@@ -97,7 +95,7 @@ min.hsetnx = function(key, field, value, callback = noop) {
           callback(null, key, field, value)
         })
     } else {
-      var err = new Error('The field of the hash is exists')
+      const err = new Error('The field of the hash is exists')
 
       promise.reject(err)
       return callback(err)
@@ -115,16 +113,16 @@ min.hsetnx = function(key, field, value, callback = noop) {
  * @return {Promise}           promise
  */
 min.hmset = function(key, docs, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
-  var keys = Object.keys(docs)
+  const keys = Object.keys(docs)
 
-  var i = 0
+  let i = 0
 
-  var results = []
-  var errors = []
+  const results = []
+  const errors = []
 
-  var next = (field, index) => {
+  const next = (field, index) => {
     delete keys[index]
 
     this.hset(key, field, docs[field])
@@ -172,7 +170,7 @@ min.hmset = function(key, docs, callback = noop) {
  * @return {Promise}           promise
  */
 min.hget = function(key, field, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   this.hexists(key, field, (err, exists) => {
     if (err) {
@@ -184,7 +182,7 @@ min.hget = function(key, field, callback = noop) {
       this.get(key)
         .then(
           value => {
-            var data = value[field]
+            const data = value[field]
             promise.resolve(data)
             callback(null, data)
           },
@@ -194,7 +192,7 @@ min.hget = function(key, field, callback = noop) {
           }
         )
     } else {
-      var err = new Error('no such field')
+      const err = new Error('no such field')
 
       promise.reject(err)
       callback(err)
@@ -212,11 +210,11 @@ min.hget = function(key, field, callback = noop) {
  * @return {Promise}           promise
  */
 min.hmget = function(key, fields, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
-  var values = []
+  let values = []
 
-  var multi = this.multi()
+  const multi = this.multi()
 
   fields.forEach(field => {
     multi.hget(key, field)
@@ -246,7 +244,7 @@ min.hmget = function(key, fields, callback = noop) {
  * @return {Promise}           promise
  */
 min.hgetall = function(key, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   this.exists(key, (err, exists) => {
     if (err) {
@@ -265,7 +263,7 @@ min.hgetall = function(key, callback = noop) {
           callback(err)
         })
     } else {
-      var err = new Error('no such key')
+      const err = new Error('no such key')
 
       callback(err)
       return promise.reject(err)
@@ -283,7 +281,7 @@ min.hgetall = function(key, callback = noop) {
  * @return {Promise}           promise
  */
 min.hdel = function(key, field, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   promise.then(([key, field, value]) => {
     this.emit('hdel', key, field, value)
@@ -299,7 +297,7 @@ min.hdel = function(key, field, callback = noop) {
       this.get(key)
         .then(
           data => {
-            var removed = data[field]
+            const removed = data[field]
             delete data[field]
 
             this.set(key, data)
@@ -314,12 +312,10 @@ min.hdel = function(key, field, callback = noop) {
                 }
               )
           },
-          err => {
-            callback(err)
-          }
+          err => callback(err)
         )
     } else {
-      var err = new Error('no such key')
+      const err = new Error('no such key')
 
       callback(err)
       return promise.reject(err)
@@ -336,7 +332,7 @@ min.hdel = function(key, field, callback = noop) {
  * @return {Promise}           promise
  */
 min.hlen = function(key, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   this.exists(key, (err, exists) => {
     if (err) {
@@ -348,7 +344,7 @@ min.hlen = function(key, callback = noop) {
       this.get(key)
         .then(
           data => {
-            var length = Object.keys(data).length
+            const length = Object.keys(data).length
 
             promise.resolve(length)
             callback(null, length)
@@ -374,7 +370,7 @@ min.hlen = function(key, callback = noop) {
  * @return {Promise}           promise
  */
 min.hkeys = function(key, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   this.exists(key, (err, exists) => {
     if (err) {
@@ -386,7 +382,7 @@ min.hkeys = function(key, callback = noop) {
       this.get(key)
         .then(
           data => {
-            var keys = Object.keys(data)
+            const keys = Object.keys(data)
 
             promise.resolve(keys)
             callback(null, keys)
@@ -413,7 +409,7 @@ min.hkeys = function(key, callback = noop) {
  * @return {Promise}           promise object
  */
 min.hexists = function(key, field, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   this.exists(key)
     .then(exists => {
@@ -441,18 +437,16 @@ min.hexists = function(key, field, callback = noop) {
 }
 
 min.hincr = function(key, field, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
-  promise.then(curr => {
-    this.emit('hincr', key, field, curr)
-  })
+  promise.then(curr => this.emit('hincr', key, field, curr))
 
   this.hexists(key, field)
     .then(exists => {
       if (exists) {
         return this.hget(key, field)
       } else {
-        var p = new Promise()
+        const p = new Promise()
 
         p.resolve(0)
 
@@ -461,7 +455,7 @@ min.hincr = function(key, field, callback = noop) {
     })
     .then(curr => {
       if (isNaN(parseFloat(curr))) {
-        let err = new Error('value wrong')
+        const err = new Error('value wrong')
         promise.reject(err)
         return callback(err)
       }
@@ -470,7 +464,7 @@ min.hincr = function(key, field, callback = noop) {
 
       return this.hset(key, field, ++curr)
     })
-    .then((key, field, value) => {
+    .then(([ key, field, value ]) => {
       promise.resolve(value)
       callback(null, value)
     }, err => {
@@ -482,7 +476,7 @@ min.hincr = function(key, field, callback = noop) {
 }
 
 min.hincrby = function(key, field, increment, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   promise.then(curr => {
     this.emit('hincr', key, field, curr)
@@ -493,7 +487,7 @@ min.hincrby = function(key, field, increment, callback = noop) {
       if (exists) {
         return this.hget(key, field)
       } else {
-        var p = new Promise()
+        const p = new Promise()
 
         p.resolve(0)
 
@@ -502,7 +496,7 @@ min.hincrby = function(key, field, increment, callback = noop) {
     })
     .then(curr => {
       if (isNaN(parseFloat(curr))) {
-        let err = new Error('value wrong')
+        const err = new Error('value wrong')
         promise.reject(err)
         return callback(err)
       }
@@ -511,7 +505,7 @@ min.hincrby = function(key, field, increment, callback = noop) {
 
       return this.hset(key, field, curr + increment)
     })
-    .then((key, field, value) => {
+    .then(([ key, field, value ]) => {
       promise.resolve(value)
       callback(null, value)
     }, err => {
@@ -525,7 +519,7 @@ min.hincrby = function(key, field, increment, callback = noop) {
 min.hincrbyfloat = min.hincrby
 
 min.hdecr = function(key, field, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   promise.then(curr => {
     this.emit('hdecr', key, field, curr)
@@ -536,7 +530,7 @@ min.hdecr = function(key, field, callback = noop) {
       if (exists) {
         return this.hget(key, field)
       } else {
-        var p = new Promise()
+        const p = new Promise()
 
         p.resolve(0)
 
@@ -545,7 +539,7 @@ min.hdecr = function(key, field, callback = noop) {
     })
     .then(curr => {
       if (isNaN(parseFloat(curr))) {
-        let err = new Error('value wrong')
+        const err = new Error('value wrong')
         promise.reject(err)
         return callback(err)
       }
@@ -554,7 +548,7 @@ min.hdecr = function(key, field, callback = noop) {
 
       return this.hset(key, field, --curr)
     })
-    .then((key, field, value) => {
+    .then(([ key, field, value ]) => {
       promise.resolve(value)
       callback(null, value)
     }, err => {
@@ -566,11 +560,9 @@ min.hdecr = function(key, field, callback = noop) {
 }
 
 min.hdecrby = function(key, field, decrement, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
-  promise.then(curr => {
-    this.emit('hincr', key, field, curr)
-  })
+  promise.then(curr => this.emit('hincr', key, field, curr))
 
   this.hexists(key, field)
     .then(exists => {
@@ -595,7 +587,7 @@ min.hdecrby = function(key, field, decrement, callback = noop) {
 
       return this.hset(key, field, curr - decrement)
     })
-    .then((key, field, value) => {
+    .then(([ key, field, value ]) => {
       promise.resolve(value)
       callback(null, value)
     }, err => {

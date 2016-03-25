@@ -1,8 +1,8 @@
 import utils from './utils.js'
 
-var noop = utils.noop
+const noop = utils.noop
 
-var defaultMaxListeners = 10
+const defaultMaxListeners = 10
 
 export class EventEmitter {
   constructor() {
@@ -17,7 +17,7 @@ export class EventEmitter {
   }
 
   emit(type) {
-    var er, handler, len, args, i, listeners
+    let er, handler, len, args, i, listeners
 
     if (!this._events)
       this._events = {}
@@ -80,7 +80,7 @@ export class EventEmitter {
   }
 
   addListener(type, listener) {
-    var m
+    let m
 
     if (typeof listener !== 'function')
       throw TypeError('listener must be a function')
@@ -136,7 +136,7 @@ export class EventEmitter {
   }
 
   removeListener(type, listener) {
-    var list, position, length, i
+    let list, position, length, i
 
     if (typeof listener !== 'function')
       throw TypeError('listener must be a function')
@@ -181,7 +181,7 @@ export class EventEmitter {
   }
 
   removeAllListeners(type) {
-    var key, listeners
+    let key, listeners
 
     if (!this._events)
       return this
@@ -197,10 +197,10 @@ export class EventEmitter {
 
     // emit removeListener for all listeners on all events
     if (arguments.length === 0) {
-      var keys = Object.keys(this._events)
+      const keys = Object.keys(this._events)
 
-      for (var i = 0; i < keys.length; i++) {
-        var key = keys[i]
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i]
         if (key === 'removeListener') continue
         this.removeAllListeners(key)
       }
@@ -224,7 +224,7 @@ export class EventEmitter {
   }
 
   listeners(type) {
-    var ret
+    let ret
     if (!this._events || !this._events[type])
       ret = []
     else if (typeof this._events[type] === 'function')
@@ -237,7 +237,7 @@ export class EventEmitter {
 
 EventEmitter.prototype.on = EventEmitter.prototype.addListener
 EventEmitter.listenerCount = function(emitter, type) {
-  var ret
+  let ret
   if (!emitter._events || !emitter._events[type])
     ret = 0
   else if (typeof emitter._events[type] === 'function')
@@ -263,11 +263,11 @@ class _Promise {
   }
 
   then(onResolve, onReject = noop) {
-    var promise = new _Promise()
+    const promise = new _Promise()
 
     this._onReject = onReject
     this._callbacks.push((...args) => {
-      var ret = onResolve.apply(this, args)
+      const ret = onResolve.apply(this, args)
 
       if (ret && typeof ret.then == 'function') {
         ret.then(promise.resolve.bind(promise),
@@ -311,12 +311,12 @@ class _Promise {
   }
 }
 
-var nativePromise = (global || window).Promise || null;
+const nativePromise = (global || window).Promise || null;
 
 export function Promise(resolver) {
-  var promise = null
-  var resolve = noop
-  var reject = noop
+  let promise = null
+  let resolve = noop
+  let reject = noop
   resolver = resolver || noop
 
   if (nativePromise) {

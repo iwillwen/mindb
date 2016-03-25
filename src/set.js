@@ -1,25 +1,25 @@
 import utils from './utils.js'
 import { Promise } from './events.js'
 
-var noop = utils.noop
+const noop = utils.noop
 
-var min = {}
+const min = {}
 export default min
 
 /******************************
 **           Set             **
 ******************************/
 min.sadd = function(key, ...members) {
-  var promise = new Promise(noop)
+  const promise = new Promise(noop)
 
   promise.then(len => this.emit('sadd', key, len))
 
-  var added = 0
+  let added = 0
 
-  if (!(members[members.length - 1] instanceof Function)) {
-    var callback = noop
-  } else {
-    var callback = members.splice(members.length - 1, 1)[0]
+  let callback = noop
+
+  if ((members[members.length - 1] instanceof Function)) {
+    callback = members.pop()
   }
 
   this.exists(key)
@@ -27,16 +27,16 @@ min.sadd = function(key, ...members) {
       if (exists) {
         return this.get(key)
       } else {
-        var data = utils.arrayUnique(members)
+        const data = utils.arrayUnique(members)
 
         return this.set(key, data)
       }
     })
     .then((...args) => {
       if (Array.isArray(args[0])) {
-        var data = args[0]
+        const data = args[0]
 
-        for (var curr of members) {
+        for (const curr of members) {
           if (data.indexOf(curr) >= 0) {
             continue
           } else {
@@ -60,7 +60,8 @@ min.sadd = function(key, ...members) {
 
       promise.resolve(added)
       callback(null, added)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -69,12 +70,12 @@ min.sadd = function(key, ...members) {
 }
 
 min.srem = function(key, ...members) {
-  var promise = new Promise(noop)
-  var callback = noop
+  const promise = new Promise(noop)
+  let callback = noop
 
   promise.then(len => this.emit('srem', key, members, len))
 
-  var removeds = 0
+  let removeds = 0
 
   if ((members[members.length - 1] instanceof Function)) {
     callback = members.pop()
@@ -89,8 +90,8 @@ min.srem = function(key, ...members) {
       }
     })
     .then(data => {
-      for (var curr of members) {
-        var i = data.indexOf(curr)
+      for (const curr of members) {
+        const i = data.indexOf(curr)
         if (i >= 0) {
           data.splice(i, 1)
           removeds++
@@ -105,7 +106,8 @@ min.srem = function(key, ...members) {
 
       promise.resolve(removeds)
       callback(null, removeds)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -114,7 +116,7 @@ min.srem = function(key, ...members) {
 }
 
 min.smembers = function(key, callback = noop) {
-  var promise = new Promise(noop)
+  const promise = new Promise(noop)
 
   this.exists(key)
     .then(exists => {
@@ -127,7 +129,8 @@ min.smembers = function(key, callback = noop) {
     .then(members => {
       promise.resolve(members)
       callback(null, members)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -136,7 +139,7 @@ min.smembers = function(key, callback = noop) {
 }
 
 min.sismember = function(key, value, callback = noop) {
-  var promise = new Promise(noop)
+  const promise = new Promise(noop)
 
   this.exists(key)
     .then(exists => {
@@ -147,11 +150,12 @@ min.sismember = function(key, value, callback = noop) {
       }
     })
     .then(members => {
-      var res = members.indexOf(value) >= 0 ? true : false
+      const res = members.indexOf(value) >= 0 ? true : false
 
       promise.resolve(res)
       callback(null, res)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -160,7 +164,7 @@ min.sismember = function(key, value, callback = noop) {
 }
 
 min.scard = function(key, callback = noop) {
-  var promise = new Promise(noop)
+  const promise = new Promise(noop)
 
   this.exists(key)
     .then(exists => {
@@ -171,11 +175,12 @@ min.scard = function(key, callback = noop) {
       }
     })
     .then(data => {
-      var length = data.length
+      const length = data.length
 
       promise.resolve(length)
       callback(null, length)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -184,7 +189,7 @@ min.scard = function(key, callback = noop) {
 }
 
 min.smove = function(src, dest, member, callback = noop) {
-  var promise = new Promise(noop)
+  const promise = new Promise(noop)
 
   promise.then(ok => this.emit('smove', src, dest, member, ok))
 
@@ -208,7 +213,8 @@ min.smove = function(src, dest, member, callback = noop) {
       this._keys[dest] = 3
       promise.resolve(1)
       callback(null, 1)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -217,7 +223,7 @@ min.smove = function(src, dest, member, callback = noop) {
 }
 
 min.srandmember = function(key, callback = noop) {
-  var promise = new Promise(noop)
+  const promise = new Promise(noop)
 
   this.exists(key)
     .then(exists => {
@@ -229,13 +235,14 @@ min.srandmember = function(key, callback = noop) {
       }
     })
     .then(members => {
-      var index = Math.floor(Math.random() * members.length) || 0
+      const index = Math.floor(Math.random() * members.length) || 0
 
-      var member = members[index]
+      const member = members[index]
 
       promise.resolve(member)
       callback(null, member)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -244,11 +251,11 @@ min.srandmember = function(key, callback = noop) {
 }
 
 min.spop = function(key, callback = noop) {
-  var promise = new Promise(noop)
+  const promise = new Promise(noop)
 
   promise.then(value => this.emit('spop', key, value))
 
-  var member = null
+  let member = null
 
   this.exists(key)
     .then(exists => {
@@ -267,7 +274,8 @@ min.spop = function(key, callback = noop) {
     .then(_ => {
       promise.resolve(member)
       callback(null, member)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -276,9 +284,9 @@ min.spop = function(key, callback = noop) {
 }
 
 min.sunion = function(...keys) {
-  var promise = new Promise(noop)
-  var callback = noop
-  var loop = null
+  const promise = new Promise(noop)
+
+  let callback = noop
 
   if ((keys[keys.length - 1] instanceof Function)) {
     callback = keys.pop()
@@ -286,8 +294,8 @@ min.sunion = function(...keys) {
 
   var members = []
 
-  ;(loop = index => {
-    var curr = keys[index]
+  const loop = index => {
+    const curr = keys[index]
 
     if (curr) {
       this.exists(curr)
@@ -313,14 +321,16 @@ min.sunion = function(...keys) {
       promise.resolve(members)
       callback(null, members)
     }
-  })(0)
+  }
+
+  loop(0)
 
   return promise
 }
 
 min.sunionstore = function(dest, ...keys) {
-  var promise = new Promise(noop)
-  var callback = noop
+  const promise = new Promise(noop)
+  let callback = noop
 
   promise.then(([length, members]) => this.emit('sunionstore', dest, keys, length, members))
 
@@ -328,7 +338,7 @@ min.sunionstore = function(dest, ...keys) {
     callback = keys.pop()
   }
 
-  var members = null
+  let members = null
 
   this.sunion(...keys)
     .then(_members => {
@@ -340,7 +350,8 @@ min.sunionstore = function(dest, ...keys) {
     .then(length => {
       promise.resolve([length, members])
       callback(null, length, members)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -349,17 +360,16 @@ min.sunionstore = function(dest, ...keys) {
 }
 
 min.sinter = function(...keys) {
-  var promise = new Promise(noop)
-  var callback = noop
-  var loop = null
+  const promise = new Promise(noop)
+  let callback = noop
 
   if ((keys[keys.length - 1] instanceof Function)) {
     callback = keys.pop()
   }
 
-  var memberRows = []
+  const memberRows = []
 
-  ;(loop = index => {
+  const loop = index => {
     var curr = keys[index]
 
     if (curr) {
@@ -386,14 +396,15 @@ min.sinter = function(...keys) {
       promise.resolve(members)
       callback(null, members)
     }
-  })(0)
+  }
+  loop(0)
 
   return promise
 }
 
 min.sinterstore = function(dest, ...keys) {
-  var promise = new Promise(noop)
-  var callback = noop
+  const promise = new Promise(noop)
+  let callback = noop
 
   if ((keys[keys.length - 1] instanceof Function)) {
     callback = keys.pop()
@@ -401,7 +412,7 @@ min.sinterstore = function(dest, ...keys) {
 
   promise.then(([length, members]) => this.emit('sinterstore', dest, keys, length, members))
 
-  var members = null
+  let members = null
 
   this.sinter(...keys)
     .then(_members => {
@@ -413,7 +424,8 @@ min.sinterstore = function(dest, ...keys) {
     .then(length => {
       promise.resolve([members.length, members])
       callback(null, members.length, members)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -422,17 +434,16 @@ min.sinterstore = function(dest, ...keys) {
 }
 
 min.sdiff = function(...keys) {
-  var promise = new Promise(noop)
-  var callback = noop
-  var loop = null
+  const promise = new Promise(noop)
+  let callback = noop
 
   if ((keys[keys.length - 1] instanceof Function)) {
     callback = keys.pop()
   }
 
-  var memberRows = []
+  const memberRows = []
 
-  ;(loop = index => {
+  const loop = index => {
     var curr = keys[index]
 
     if (curr) {
@@ -450,24 +461,26 @@ min.sdiff = function(...keys) {
           }
 
           loop(++index)
-        }, err => {
+        })
+        .catch(err => {
           promise.reject(err)
           return callback(err)
         })
     } else {
-      var members = utils.arrayDiff.apply(utils, memberRows)
+      const members = utils.arrayDiff.apply(utils, memberRows)
 
       promise.resolve(members)
       callback(null, members)
     }
-  })(0)
+  }
+  loop(0)
 
   return promise
 }
 
 min.sdiffstore = function(dest, ...keys) {
-  var promise = new Promise(noop)
-  var callback = noop
+  const promise = new Promise(noop)
+  let callback = noop
 
   if ((keys[keys.length - 1] instanceof Function)) {
     callback = keys.pop()
@@ -475,7 +488,7 @@ min.sdiffstore = function(dest, ...keys) {
 
   promise.then(([length, members]) => this.emit('sdiffstore', dest, keys, length, members))
 
-  var members = null
+  let members = null
 
   this.sdiff(...keys)
     .then(_members => {
@@ -487,7 +500,8 @@ min.sdiffstore = function(dest, ...keys) {
     .then(length => {
       promise.resolve([length, members])
       callback(null, length, members)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })

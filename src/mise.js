@@ -1,9 +1,9 @@
 import utils from './utils.js'
 import { Promise } from './events.js'
 
-var noop = utils.noop
+const noop = utils.noop
 
-var min = {}
+const min = {}
 export default min
 
 /******************************
@@ -16,10 +16,10 @@ class Multi {
     this.state = 0
     this.min = _min
 
-    var keys = Object.getOwnPropertyNames(_min)
+    const keys = Object.getOwnPropertyNames(_min)
 
-    for (var i = 0; i < keys.length; i++) {
-      var prop = keys[i]
+    for (let i = 0; i < keys.length; i++) {
+      const prop = keys[i]
 
       if ('function' === typeof _min[prop]) {
         (method => {
@@ -37,17 +37,21 @@ class Multi {
   }
 
   exec(callback = noop) {
-    var self = this
-    var promise = new Promise()
-    var results = [];
+    const promise = new Promise()
+    const results = [];
 
-    (function loop(task) {
+    const loop = task => {
       if (task) {
-        self.min[task.method].apply(self.min, task.args)
+        this.min[task.method].apply(this.min, task.args)
           .then((...args) => {
-            results.push(args)
-            loop(self.queue.shift())
-          }, err => {
+            if (args.length > 1) {
+              results.push(args)
+            } else {
+              results.push(args[0])
+            }
+            loop(this.queue.shift())
+          })
+          .catch(err => {
             promise.reject(err)
             callback(err, results)
           })
@@ -55,7 +59,9 @@ class Multi {
         promise.resolve(results)
         callback(null, results)
       }
-    })(this.queue.shift())
+    }
+
+    loop(this.queue.shift())
 
     return promise
   }
@@ -67,8 +73,6 @@ min.multi = function() {
 
 class Sorter {
   constructor(key, _min, callback = noop) {
-    var loop = null
-
     this.min = _min
     this.callback = callback
     this.result = []
@@ -82,7 +86,7 @@ class Sorter {
       }
     }
 
-    var run = _ => {
+    const run = _ => {
       this.min.exists(key)
         .then(exists => {
           if (exists) {
@@ -92,7 +96,7 @@ class Sorter {
           }
         })
         .then(value => {
-          var p = new Promise(noop)
+          const p = new Promise(noop)
 
           switch (true) {
             case Array.isArray(value):
@@ -117,14 +121,15 @@ class Sorter {
 
           this.promise.resolve(this.result)
           this.callback(null, this.result)
-        }, err => {
+        })
+        .catch(err => {
           this.promise.reject(err)
           this.callback(err)
         })
     }
 
     // Promise Shim
-    (loop = methods => {
+    const loop = methods => {
       var curr = methods.shift()
 
       if (curr) {
@@ -136,30 +141,32 @@ class Sorter {
       } else {
         run()
       }
-    })(['then', 'done'])
+    }
+
+    loop(['then', 'done'])
   }
 
   by(pattern, callback = noop) {
-    var src2ref = {}
-    var aviKeys = []
+    const src2ref = {}
+    let aviKeys = []
 
     // TODO: Sort by hash field
-    var field = null
+    let field = null
 
     if (pattern.indexOf('->') > 0) {
-      var i = pattern.indexOf('->')
+      const i = pattern.indexOf('->')
       field = pattern.substr(i + 2)
       pattern = pattern.substr(0, pattern.length - i)
     }
 
     this.min.keys(pattern)
       .then(keys => {
-        var filter = new RegExp(pattern
+        const filter = new RegExp(pattern
           .replace('?', '(.)')
           .replace('*', '(.*)'))
 
-        for (var i = 0; i < keys.length; i++) {
-          var symbol = filter.exec(keys[i])[1]
+        for (let i = 0; i < keys.length; i++) {
+          const symbol = filter.exec(keys[i])[1]
 
           if (this.result.indexOf(symbol) >= 0) {
             src2ref[keys[i]] = symbol
@@ -171,28 +178,24 @@ class Sorter {
         return this.min.mget(aviKeys.slice())
       })
       .then(values => {
-        var reverse = {}
+        const reverse = {}
 
-        for (var i = 0; i < values.length; i++) {
+        for (let i = 0; i < values.length; i++) {
           reverse[JSON.stringify(values[i])] = aviKeys[i]
         }
 
         values.sort(this.sortFn)
 
-        var newResult = values
-          .map(value => {
-            return reverse[JSON.stringify(value)]
-          })
-          .map(key => {
-            return src2ref[key]
-          })
+        const newResult = values
+          .map(value => reverse[JSON.stringify(value)])
+          .map(key => src2ref[key])
 
         this.result = newResult
 
         this.promise.resolve(newResult)
         callback(null, newResult)
-      },
-      err => {
+      })
+      .catch(err => {
         this.promise.reject(err)
         callback(err)
         this.callback(err)
@@ -210,7 +213,7 @@ class Sorter {
       }
     }
 
-    var handle = result => {
+    const handle = result => {
       this.result = result.sort(this.sortFn)
 
       this.promise.resolve(this.result)
@@ -235,7 +238,7 @@ class Sorter {
       }
     }
 
-    var handle = result => {
+    const handle = result => {
       this.result = result.sort(this.sortFn)
 
       this.promise.resolve(this.result)
@@ -252,16 +255,15 @@ class Sorter {
   }
 
   get(pattern, callback = noop) {
-    var handle = (_result) => {
-      var result = []
-      var loop = null
+    const handle = (_result) => {
+      const result = []
 
-      (loop = res => {
-        var curr = res.shift()
+      const loop = res => {
+        const curr = res.shift()
 
         if (!utils.isUndefined(curr)) {
           if (Array.isArray(curr)) {
-            var key = this.keys[curr[0]]
+            const key = this.keys[curr[0]]
 
             this.min.get(pattern.replace('*', key))
               .then(value => {
@@ -275,7 +277,7 @@ class Sorter {
               })
 
           } else if (curr.substr || utils.isNumber(curr)) {
-            var key = this.keys[curr]
+            const key = this.keys[curr]
 
             this.min.get(pattern.replace('*', key))
               .then(value => {
@@ -298,7 +300,9 @@ class Sorter {
           this.promise.resolve(result)
           callback(null, result)
         }
-      })(_result.slice())
+      }
+
+      loop(_result.slice())
     }
 
     if (this.promise.ended) {
@@ -311,16 +315,15 @@ class Sorter {
   }
 
   hget(pattern, field, callback = noop) {
-    var handle = _result => {
-      var result = []
-      var loop = null
+    const handle = _result => {
+      const result = []
 
-      (loop = res => {
-        var curr = res.shift()
+      const loop = res => {
+        const curr = res.shift()
 
         if (!utils.isUndefined(curr)) {
           if (Array.isArray(curr)) {
-            var key = this.keys[curr[0]]
+            const key = this.keys[curr[0]]
 
             this.min.hget(pattern.replace('*', key), field)
               .then(value => {
@@ -334,7 +337,7 @@ class Sorter {
               })
 
           } else if (curr.substr || utils.isNumber(curr)) {
-            var key = this.keys[curr]
+            const key = this.keys[curr]
 
             this.min.hget(pattern.replace('*', key))
               .then(value => {
@@ -357,7 +360,9 @@ class Sorter {
           this.promise.resolve(result)
           callback(null, result)
         }
-      })(_result.slice())
+      }
+
+      loop(_result.slice())
     }
 
     if (this.promise.ended) {
@@ -370,7 +375,7 @@ class Sorter {
   }
 
   limit(offset, count, callback = noop) {
-    var handle = result => {
+    const handle = result => {
       this.result = result.splice(offset, count)
 
       this.promise.resolve(this.result)
@@ -388,10 +393,10 @@ class Sorter {
 
   flatten(callback = noop) {
     if (this.promise.ended) {
-      var rtn = []
+      const rtn = []
 
-      for (var i = 0; i < this.result.length; i++) {
-        for (var j = 0; j < this.result[i].length; j++) {
+      for (let i = 0; i < this.result.length; i++) {
+        for (let j = 0; j < this.result[i].length; j++) {
           rtn.push(this.result[i][j])
         }
       }
@@ -402,10 +407,10 @@ class Sorter {
       callback(null, rtn)
     } else {
       this.promise.once('resolve', result => {
-        var rtn = []
+        const rtn = []
 
-        for (var i = 0; i < result.length; i++) {
-          for (var j = 0; j < result[i].length; j++) {
+        for (let i = 0; i < result.length; i++) {
+          for (let j = 0; j < result[i].length; j++) {
             rtn.push(result[i][j])
           }
         }
@@ -462,16 +467,15 @@ class Scanner {
   }
 
   scan(callback = noop) {
-    var rtn = []
+    const rtn = []
 
     this.parent.get('min_keys')
       .then(data => {
         data = JSON.parse(data)
-        var scan = null
 
-        var keys = Object.keys(data)
+        const keys = Object.keys(data)
 
-        (scan = ii => {
+        const scan = ii => {
           var key = keys[ii]
 
           if (key && this.pattern.test(key) && key !== 'min_keys') {
@@ -486,7 +490,9 @@ class Scanner {
           }
 
           return scan(++ii)
-        })(this.cursor)
+        }
+
+        scan(this.cursor)
       }, err => {
         callback(err)
       })
@@ -510,7 +516,7 @@ class Scanner {
 }
 
 min.scan = (cursor, callback = noop) => {
-  var scanner = new Scanner(cursor, null, -1, this)
+  const scanner = new Scanner(cursor, null, -1, this)
 
   scanner.scan(callback)
 

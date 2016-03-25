@@ -10,9 +10,9 @@ import zset from './zset.js'
 import mise from './mise.js'
 import { memStore, localStore } from './stores.js'
 
-var noop = utils.noop
+const noop = utils.noop
 
-var min = {}
+const min = {}
 export default min
 
 utils.extend(min, EventEmitter.prototype)
@@ -24,9 +24,9 @@ min.localStore = localStore
 
 min.store = new localStore()
 
-var _keys = min._keys = {}
-var _keysTimer = null
-var _types = {
+let _keys = min._keys = {}
+let _keysTimer = null
+const _types = {
   0 : 'mix',
   1 : 'hash',
   2 : 'list',
@@ -39,12 +39,12 @@ var _types = {
  * @return {Object} new min object
  */
 min.fork = function() {
-  var rtn = {}
+  const rtn = {}
 
-  var keys = Object.getOwnPropertyNames(this)
+  const keys = Object.getOwnPropertyNames(this)
 
-  for (var i = 0; i < keys.length; i++) {
-    var prop = keys[i]
+  for (let i = 0; i < keys.length; i++) {
+    const prop = keys[i]
     if (this.hasOwnProperty(prop)) {
       rtn[prop] = this[prop]
     }
@@ -66,7 +66,7 @@ min.fork = function() {
  */
 min.del = function(key, callback = noop) {
   // Promise Object
-  var promise = new Promise(noop)
+  const promise = new Promise(noop)
 
   promise.then(() => {
     this.emit('del', key)
@@ -78,15 +78,15 @@ min.del = function(key, callback = noop) {
   })
 
   // Store
-  var store = this.store
+  const store = this.store
 
   // Key prefix
-  var $key = 'min-' + key
+  const $key = 'min-' + key
 
   if (store.async) {
     // Async Store Operating
 
-    var load = () => {
+    const load = () => {
       // Value processing
       store.remove($key, err => {
         if (err) {
@@ -135,11 +135,11 @@ min.del = function(key, callback = noop) {
  */
 min.exists = function(key, callback = noop) {
   // Promise Object
-  var promise = new Promise()
+  const promise = new Promise()
 
   key = `min-${key}`
 
-  var handle = function(err, value) {
+  const handle = function(err, value) {
     if (err || !value) {
       promise.resolve(false)
       return callback(null, false)
@@ -152,7 +152,7 @@ min.exists = function(key, callback = noop) {
   if (this.store.async) {
     this.store.get(key, handle)
   } else {
-    var val = this.store.get(key)
+    const val = this.store.get(key)
     handle(null, val)
   }
 
@@ -168,7 +168,7 @@ min.exists = function(key, callback = noop) {
  */
 min.renamenx = function(key, newKey, callback = noop) {
   // Promise object
-  var promise = new Promise(noop)
+  const promise = new Promise(noop)
 
   promise.then(_ => {
     this.emit('rename', key, newKey)
@@ -181,18 +181,18 @@ min.renamenx = function(key, newKey, callback = noop) {
 
   try {
     // Error handle
-    var reject = err => {
+    const reject = err => {
       promise.reject(err)
       callback(err)
     }
 
-    var type = null
-    var value = null
+    let type = null
+    let value = null
 
     this.exists(key)
       .then(exists => {
         if (!exists) {
-          var err = new Error('no such key')
+          const err = new Error('no such key')
 
           reject(err)
         } else {
@@ -234,7 +234,7 @@ min.renamenx = function(key, newKey, callback = noop) {
  */
 min.rename = function(key, newKey, callback = noop) {
   // Promise object
-  var promise = new Promise(noop)
+  const promise = new Promise(noop)
 
   promise.then(_ => {
     this.emit('rename', key, newKey)
@@ -246,7 +246,7 @@ min.rename = function(key, newKey, callback = noop) {
   })
 
   // Error handle
-  var reject = err => {
+  const reject = err => {
     promise.reject(err)
     callback(err)
   }
@@ -273,20 +273,19 @@ min.rename = function(key, newKey, callback = noop) {
 min.keys = function(pattern, callback = noop) {
 
   // Promise object
-  var promise = new Promise()
+  const promise = new Promise()
 
   // Stored keys
-  var keys = Object.keys(this._keys)
+  const keys = Object.keys(this._keys)
 
   // Filter
-  var filter = pattern
+  const filter = new RegExp(pattern
     .replace('?', '(.)')
-    .replace('*', '(.*)')
-  filter = new RegExp(filter)
+    .replace('*', '(.*)'))
 
-  var ret = []
+  const ret = []
 
-  for (var i = 0; i < keys.length; i++) {
+  for (let i = 0; i < keys.length; i++) {
     if (keys[i].match(filter)) {
       ret.push(keys[i])
     }
@@ -307,16 +306,16 @@ min.keys = function(pattern, callback = noop) {
 min.randomkey = function(callback = noop) {
 
   // Promise Object
-  var promise = new Promise(noop)
+  const promise = new Promise(noop)
 
   // Stored keys
-  var keys = Object.keys(this._keys)
+  const keys = Object.keys(this._keys)
 
   // Random Key
-  var index = Math.round(Math.random() * (keys.length - 1))
+  const index = Math.round(Math.random() * (keys.length - 1))
 
   // Done
-  var $key = keys[index]
+  const $key = keys[index]
   promise.resolve($key)
   callback(null, $key)
 
@@ -332,7 +331,7 @@ min.randomkey = function(callback = noop) {
 min.type = function(key, callback = noop) {
 
   // Promise Object
-  var promise = new Promise(noop)
+  const promise = new Promise(noop)
 
   if (this._keys.hasOwnProperty(key)) {
     promise.resolve(_types[this._keys[key]])
@@ -351,10 +350,9 @@ min.type = function(key, callback = noop) {
  * @return {Object}            min
  */
 min.empty = function(callback = noop) {
-  var promise = new Promise()
-  var self = this
-  var keys = Object.keys(this._keys)
-  var removeds = 0
+  const promise = new Promise()
+  const keys = Object.keys(this._keys)
+  let removeds = 0
 
   promise.then(len => {
     this.emit('empty', len)
@@ -365,9 +363,9 @@ min.empty = function(callback = noop) {
     _keysTimer = setTimeout(this.save.bind(this), 5 * 1000)
   })
 
-  function loop(key) {
+  const loop = key => {
     if (key) {
-      self.del(key, err => {
+      this.del(key, err => {
         if (!err) {
           removeds++
         }
@@ -391,15 +389,15 @@ min.empty = function(callback = noop) {
  * @return {Promise}           promise
  */
 min.save = function(callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
-  promise.then(([dump, strResult]) => {
+  promise.then(([ dump, strResult ]) => {
     this.emit('save', dump, strResult)
   })
 
   this.set('min_keys', JSON.stringify(this._keys))
     .then(_ => this.dump())
-    .then(([dump, strResult]) => {
+    .then(([ dump, strResult ]) => {
       promise.resolve([dump, strResult])
       callback(dump, strResult)
     }, err => {
@@ -416,10 +414,10 @@ min.save = function(callback = noop) {
  * @return {Promise}           promise
  */
 min.dump = function(callback = noop) {
-  var loop = null
-  var promise = new Promise()
+  let loop = null
+  const promise = new Promise()
 
-  var rtn = {}
+  const rtn = {}
 
   this.keys('*', (err, keys) => {
     if (err) {
@@ -438,8 +436,8 @@ min.dump = function(callback = noop) {
             callback(err)
           })
       } else {
-        var strResult = JSON.stringify(rtn)
-        promise.resolve([rtn, strResult])
+        const strResult = JSON.stringify(rtn)
+        promise.resolve([ rtn, strResult ])
         callback(null, rtn, strResult)
       }
     })(keys.shift())
@@ -455,8 +453,7 @@ min.dump = function(callback = noop) {
  * @return {Promise}           promise
  */
 min.restore = function(dump, callback = noop) {
-  var promise = new Promise()
-  var self = this
+  const promise = new Promise()
 
   promise.then(_ => {
     this.save(_ => {
@@ -464,9 +461,9 @@ min.restore = function(dump, callback = noop) {
     })
   })
 
-  var keys = Object.keys(dump)
+  const keys = Object.keys(dump)
 
-  var done = _ => {
+  const done = _ => {
     this
       .exists('min_keys')
       .then(exists => {
@@ -483,15 +480,15 @@ min.restore = function(dump, callback = noop) {
         promise.resolve()
         callback()
       })
-      .catch(function(err) {
+      .catch(err => {
         promise.rejeect(err)
         callback(err)
       })
   }
 
-  function loop(key) {
+  const loop = key => {
     if (key) {
-      self.set(key, dump[key])
+      this.set(key, dump[key])
         .then(_ => {
           loop(keys.shift())
         }, err => {
@@ -508,7 +505,7 @@ min.restore = function(dump, callback = noop) {
   return promise
 }
 
-var watchers = {}
+const watchers = {}
 
 /**
  * Watch the command actions of the key
@@ -523,7 +520,7 @@ min.watch = function(key, command, callback) {
     command = 'set'
   }
 
-  var watcherId = Math.random().toString(32).substr(2)
+  const watcherId = Math.random().toString(32).substr(2)
 
   if (!watchers[key]) watchers[key] = {}
 
@@ -559,10 +556,10 @@ min.unwatch = function(key, command, watcherId) {
  * @param  {String} key key to unwatch
  */
 min.unwatchForKey = function(key) {
-  var watchersList = watchers[key]
+  const watchersList = watchers[key]
 
-  for (var id in watchersList) {
-    var watcher = watchersList[id]
+  for (let id in watchersList) {
+    const watcher = watchersList[id]
     this.removeListener(watcher.command, watcher)
   }
 }
@@ -577,7 +574,7 @@ utils.extend(min, mise)
 utils.extend(min, mix)
 
 // Apply
-var handle = function(err, value) {
+const handle = function(err, value) {
   if (err || !value) {
     min._keys = {}
     return
@@ -593,7 +590,7 @@ if (min.store.async) {
   min.store.get('min-min_keys', handle)
 } else {
   try {
-    var val = min.store.get('min-min_keys')
+    const val = min.store.get('min-min_keys')
     handle(null, val)
   } catch(err) {
     handle(err)

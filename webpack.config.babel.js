@@ -1,7 +1,7 @@
-var webpack = require('webpack')
-var banner = require('./build/banner').banner
+import webpack from 'webpack'
+import { banner } from './build/banner'
 
-module.exports = {
+export default {
   content: __dirname,
   entry: './src/entry.js',
   output: {
@@ -12,12 +12,12 @@ module.exports = {
     umdNamedDefine: true
   },
   plugins: [
-    new webpack.BannerPlugin(banner)//,
-    // new webpack.optimize.UglifyJsPlugin({
-    //   compress: {
-    //     warnings: false
-    //   }
-    // })
+    new webpack.BannerPlugin(banner),
+    new webpack.optimize.UglifyJsPlugin({
+      compress: {
+        warnings: false
+      }
+    })
   ],
   module: {
     loaders: [

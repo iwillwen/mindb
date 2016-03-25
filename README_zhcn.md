@@ -13,17 +13,9 @@ MinDB 提供一个标准的存储接口(`Store Interface`)和 **Redis** 风格�
 
     $ npm install min
 
-如果你正在使用 [SeaJS](http://seajs.org)，你可以通过 [spm](https://github.com/spmjs/spm2) 进行安装:
-
-    $ spm install iwillwen/min
-
 如果你喜欢 [component](http://component.io)，你也可以使用它进行安装:
 
     $ component install iwillwen/mindb
-
-或者 [bower](http://bower.io/)？:
-
-    $ bower install mindb
     
 # 基本使用方法
 

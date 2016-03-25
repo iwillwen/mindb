@@ -1,12 +1,12 @@
 import utils from './utils.js'
 import { Promise } from './events.js'
 
-var noop = utils.noop
+const noop = utils.noop
 
-var min = {}
+const min = {}
 export default min
 
-var _keysTimer = null
+let _keysTimer = null
 
 /******************************
 ** Mix(String/Number/Object) **
@@ -21,7 +21,7 @@ var _keysTimer = null
  */
 min.set = function(key, value, callback) {
   // Promise Object
-  var promise = new Promise()
+  const promise = new Promise()
 
   promise.then(_ => {
     this.emit('set', key, value)
@@ -34,19 +34,19 @@ min.set = function(key, value, callback) {
   })
 
   // Store
-  var store = this.store
+  const store = this.store
 
   // Callback and Promise's shim
   callback = callback || utils.noop
 
   // Key prefix
-  var $key = `min-${key}`
+  const $key = `min-${key}`
 
   if (store.async) {
     // Async Store Operating
-    var load = _ => {
+    const load = _ => {
       // Value processing
-      var $value = JSON.stringify(value)
+      const $value = JSON.stringify(value)
       store.set($key, $value, err => {
         if (err) {
           // Error!
@@ -68,7 +68,7 @@ min.set = function(key, value, callback) {
     }
   } else {
     // Value processing
-    var $value = JSON.stringify(value)
+    const $value = JSON.stringify(value)
     store.set($key, $value)
     this._keys[key] = 0
 
@@ -89,7 +89,7 @@ min.set = function(key, value, callback) {
  */
 min.setnx = function(key, value, callback = noop) {
   // Promise Object
-  var promise = new Promise()
+  const promise = new Promise()
 
   this.exists(key, (err, exists) => {
     if (err) {
@@ -127,10 +127,10 @@ min.setnx = function(key, value, callback = noop) {
 min.setex = function(key, seconds, value, callback = noop) {
 
   // Promise Object
-  var promise = new Promise()
+  const promise = new Promise()
 
   // TTL
-  var timeout = _ => {
+  const timeout = _ => {
     this.del(key, noop)
   }
 
@@ -145,7 +145,8 @@ min.setex = function(key, seconds, value, callback = noop) {
       setTimeout(timeout, seconds * 1000)
       promise.resolve(key)
       callback(null, key)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -164,10 +165,10 @@ min.setex = function(key, seconds, value, callback = noop) {
 min.psetex = function(key, milliseconds, value, callback = noop) {
 
   // Promise Object
-  var promise = new Promise()
+  const promise = new Promise()
 
   // TTL
-  var timeout = _ => {
+  const timeout = _ => {
     this.del(key, utils.noop)
   }
 
@@ -182,7 +183,8 @@ min.psetex = function(key, milliseconds, value, callback = noop) {
       setTimeout(timeout, milliseconds)
       promise.resolve(key)
       callback(null, key)
-    }, promise.reject.bind(promise))
+    })
+    .catch(promise.reject.bind(promise))
 
   return promise
 }
@@ -194,19 +196,19 @@ min.psetex = function(key, milliseconds, value, callback = noop) {
  * @return {Promise}           promise object
  */
 min.mset = function(plainObject, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   // keys
-  var keys = Object.keys(plainObject)
+  const keys = Object.keys(plainObject)
   // counter
-  var i = 0
+  let i = 0
 
   // the results and errors to return
-  var results = []
-  var errors = []
+  let results = []
+  let errors = []
 
   // Loop
-  var next = (key, index) => {
+  const next = (key, index) => {
     // remove the current element of the plainObject
     delete keys[index]
 
@@ -254,14 +256,14 @@ min.mset = function(plainObject, callback = noop) {
  * @return {Promise}           promise object
  */
 min.msetnx = function(plainObject, callback = noop) {
-  var promise = new Promise()
-  var keys = Object.keys(plainObject)
-  var i = 0
+  const promise = new Promise()
+  const keys = Object.keys(plainObject)
+  let i = 0
 
-  var results = []
-  var errors = []
+  let results = []
+  let errors = []
 
-  var next = (key, index) => {
+  const next = (key, index) => {
     delete keys[index]
 
     this.setnx(key, plainObject[key])
@@ -303,14 +305,14 @@ min.msetnx = function(plainObject, callback = noop) {
  * @return {Promise}           promise
  */
 min.append = function(key, value, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   this.exists(key)
     .then(exists => {
       if (exists) {
         return this.get(key)
       } else {
-        var p = new Promise()
+        const p = new Promise()
 
         p.resolve('')
 
@@ -343,23 +345,23 @@ min.append = function(key, value, callback = noop) {
  */
 min.get = function(key, callback = noop) {
   // Promise Object
-  var promise = new Promise()
+  const promise = new Promise()
 
   promise.then(value => this.emit('get', key, value))
 
   // Store
-  var store = this.store
+  const store = this.store
 
   // Key prefix
-  var $key = `min-${key}`
+  const $key = `min-${key}`
 
   if (store.async) {
     // Async Store Operating
-    var load = _ => {
+    const load = _ => {
       // Value processing
       store.get($key, (err, value) => {
         if (err) {
-          var _err = new Error('no such key')
+          const _err = new Error('no such key')
           // Error!
           promise.reject(_err)
           return callback(_err)
@@ -368,7 +370,7 @@ min.get = function(key, callback = noop) {
         if (value) {
           // Done
           try {
-            var ret = JSON.parse(value)
+            const ret = JSON.parse(value)
             promise.resolve(ret)
             callback(null, ret)
           } catch(err) {
@@ -376,7 +378,7 @@ min.get = function(key, callback = noop) {
             callback(err)
           }
         } else {
-          var err = new Error('no such key')
+          const err = new Error('no such key')
 
           promise.reject(err)
           callback(err)
@@ -392,11 +394,11 @@ min.get = function(key, callback = noop) {
   } else {
     try {
       // Value processing
-      var _value = this.store.get($key)
+      const _value = this.store.get($key)
 
       if (_value) {
         try {
-          var value = JSON.parse(_value)
+          const value = JSON.parse(_value)
           // Done
           promise.resolve(value)
           callback(null, value)
@@ -405,7 +407,7 @@ min.get = function(key, callback = noop) {
           callback(err)
         }
       } else {
-        var err = new Error('no such key')
+        const err = new Error('no such key')
 
         promise.reject(err)
         callback(err)
@@ -421,15 +423,15 @@ min.get = function(key, callback = noop) {
 }
 
 min.getrange = function(key, start, end, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   promise.then(value => this.emit('getrange', key, start, end, value))
 
-  var len = end - start + 1
+  const len = end - start + 1
 
   this.get(key)
     .then(value => {
-      var val = value.substr(start, len)
+      const val = value.substr(start, len)
 
       promise.resolve(val)
       callback(null, val)
@@ -450,15 +452,14 @@ min.getrange = function(key, start, end, callback = noop) {
 min.mget = function(keys, callback = noop) {
 
   // Promise Object
-  var promise = new Promise()
+  const promise = new Promise()
 
-  var i = 0
-  var results = []
-  var errors = []
+  let results = []
+  let errors = []
 
-  var multi = this.multi()
+  const multi = this.multi()
 
-  for (var i = 0; i < keys.length; i++) {
+  for (let i = 0; i < keys.length; i++) {
     multi.get(keys[i])
   }
 
@@ -484,11 +485,11 @@ min.mget = function(keys, callback = noop) {
  * @return {Promise}           promise object
  */
 min.getset = function(key, value, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   promise.then(old => this.emit('getset', key, value, old))
 
-  var _value = null
+  let _value = null
 
   this.get(key)
     .then($value => {
@@ -514,17 +515,17 @@ min.getset = function(key, value, callback = noop) {
  * @return {Promise}           promise
  */
 min.strlen = function(key, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   this.get(key)
     .then(value => {
       if ('string' === typeof value) {
-        var len = value.length
+        const len = value.length
 
         promise.resolve(len)
         callback(null, len)
       } else {
-        var err = new TypeError()
+        const err = new TypeError()
 
         promise.reject(err)
         callback(err)
@@ -545,7 +546,7 @@ min.strlen = function(key, callback = noop) {
  * @return {Promise}           promise
  */
 min.incr = function(key, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   promise.then(value => this.emit('incr', key, value))
 
@@ -554,7 +555,7 @@ min.incr = function(key, callback = noop) {
       if (exists) {
         return this.get(key)
       } else {
-        var p = new Promise()
+        const p = new Promise()
 
         p.resolve(0)
 
@@ -594,7 +595,7 @@ min.incr = function(key, callback = noop) {
  * @return {Promise}           promise
  */
 min.incrby = function(key, increment, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   promise.then(value => this.emit('incrby', key, increment, value))
 
@@ -603,7 +604,7 @@ min.incrby = function(key, increment, callback = noop) {
       if (exists) {
         return this.get(key)
       } else {
-        var p = new Promise()
+        const p = new Promise()
 
         p.resolve(0)
 
@@ -623,7 +624,8 @@ min.incrby = function(key, increment, callback = noop) {
     .then((key, value) => {
       promise.resolve(value)
       callback(null, value)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -634,7 +636,7 @@ min.incrby = function(key, increment, callback = noop) {
 min.incrbyfloat = min.incrby
 
 min.decr = function(key, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
 
   promise.then(curr => this.emit('decr', key, curr))
 
@@ -643,7 +645,7 @@ min.decr = function(key, callback = noop) {
       if (exists) {
         return this.get(key)
       } else {
-        var p = new Promise()
+        const p = new Promise()
 
         p.resolve(0)
 
@@ -666,7 +668,8 @@ min.decr = function(key, callback = noop) {
     .then(value => {
       promise.resolve(value)
       callback(null, value, key)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
@@ -675,7 +678,7 @@ min.decr = function(key, callback = noop) {
 }
 
 min.decrby = function(key, decrement, callback = noop) {
-  var promise = new Promise()
+  const promise = new Promise()
   promise.then(curr => this.emit('decrby', key, decrement, curr))
 
   this.exists(key)
@@ -683,7 +686,7 @@ min.decrby = function(key, decrement, callback = noop) {
       if (exists) {
         return this.get(key)
       } else {
-        var p = new Promise()
+        const p = new Promise()
 
         p.resolve(0)
 
@@ -703,10 +706,11 @@ min.decrby = function(key, decrement, callback = noop) {
     .then((key, value) => {
       promise.resolve(value)
       callback(null, value)
-    }, err => {
+    })
+    .catch(err => {
       promise.reject(err)
       callback(err)
     })
 
   return promise
-};
+}

@@ -15,17 +15,9 @@ With [node](http://nodejs.org) previously installed:
 
     $ npm install min
 
-If you  using [SeaJS](http://seajs.org), you can install with [spm](https://github.com/spmjs/spm2):
-
-    $ spm install iwillwen/min
-
 If you are using [component](http://component.io), you can install it with:
 
     $ component install iwillwen/mindb
-
-Or [bower](http://bower.io/)?:
-
-    $ bower install mindb
     
 # Basic Usage
 
