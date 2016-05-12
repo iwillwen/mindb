@@ -1,8 +1,8 @@
-// import min from '../libs/min'
-import min from 'min'
+const min = require('../libs/min')
 
 class MemStore {
   constructor() {
+
     this.data = {}
     this.ready = true
   }

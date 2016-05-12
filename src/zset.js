@@ -292,7 +292,7 @@ min.zrange = function(key, min, max, callback = noop) {
 
           const rtn = replies.map((reply, ii) => ({
             member: members[ii],
-            score: reply[0]
+            score: reply
           }))
 
           p.resolve(rtn)
@@ -355,7 +355,7 @@ min.zrevrange = function(key, min, max, callback = noop) {
 
           const rtn = replies.map((reply, ii) => ({
             member: members[ii],
-            score: reply[0]
+            score: reply
           }))
 
           p.resolve(rtn)

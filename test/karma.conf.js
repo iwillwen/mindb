@@ -4,11 +4,11 @@ module.exports = function(config) {
     frameworks: [ 'mocha', 'requirejs' ],
 
     files: [
-      './dist/index.js',
-      { pattern: './dist/min.js', included: false, served: true },
-      { pattern: './dist/min.*.js', included: false, served: true },
-      { pattern: './libs/chai.js', included: true, served: true },
-      { pattern: './libs/min.js', included: false, served: true }
+      './src/index.js',
+      { pattern: './dist/min.js', included: false },
+      { pattern: './dist/min.*.js', included: false },
+      { pattern: './libs/chai.js', included: false },
+      { pattern: './libs/min.js', included: false }
     ],
 
     reporters: [ 'progress', 'coverage' ],
@@ -31,6 +31,6 @@ module.exports = function(config) {
 
     singleRun: true,
 
-    browsers : [ 'Chrome', 'Safari' ]
+    browsers : [ 'Chrome' ]
   })
 }

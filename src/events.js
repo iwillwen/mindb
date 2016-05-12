@@ -181,8 +181,6 @@ export class EventEmitter {
   }
 
   removeAllListeners(type) {
-    let key, listeners
-
     if (!this._events)
       return this
 
@@ -209,7 +207,7 @@ export class EventEmitter {
       return this
     }
 
-    listeners = this._events[type]
+    const listeners = this._events[type]
 
     if (typeof listeners === 'function') {
       this.removeListener(type, listeners)

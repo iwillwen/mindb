@@ -1,7 +1,7 @@
 {
   "name": "min",
   "family": "iwillwen",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "Database on JavaScript",
   "main": "dist/min.js",
   "directories": {
@@ -11,7 +11,9 @@
   },
   "scripts": {
     "test": "sh test/test.sh",
-    "build": "sh build/build.sh"
+    "test-node": "sh test/test.node.sh",
+    "test-browser": "sh test/test.browser.sh",
+    "build": "node_modules/.bin/webpack -p"
   },
   "bin": {
     "mindb-concat": "./bin/concat.js"
@@ -52,9 +54,7 @@
     "mocha": "^2.2.5",
     "requirejs": "^2.1.22",
     "uglify-js": "^2.4.15",
-    "webpack": "^1.12.9"
-  },
-  "dependencies": {
+    "webpack": "^1.12.9",
     "babel-preset-es2015": "^6.3.13",
     "es6-symbol": "^3.0.1"
   }

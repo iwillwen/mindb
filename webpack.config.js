@@ -1,7 +1,7 @@
-import webpack from 'webpack'
-import { banner } from './build/banner'
+var webpack = require('webpack')
+var b = require('./build/banner')
 
-export default {
+module.exports = {
   content: __dirname,
   entry: './src/entry.js',
   output: {
@@ -12,18 +12,13 @@ export default {
     umdNamedDefine: true
   },
   plugins: [
-    new webpack.BannerPlugin(banner),
-    new webpack.optimize.UglifyJsPlugin({
-      compress: {
-        warnings: false
-      }
-    })
+    new webpack.BannerPlugin(b.banner)
   ],
   module: {
     loaders: [
       {
         test: /\.js?$/,
-        exclude: /(node_modules|bower_components)/,
+        exclude: /(node_modules)/,
         loader: 'babel',
         query: {
           presets: ['es2015'],

@@ -130,9 +130,9 @@ describe('MinDB - Hash', () => {
         'bar': 2
       })
         .then(() => min.hmget('hashKey', [ 'foo', 'bar' ]))
-        .then(results => {
-          results[0].should.equal(1)
-          results[1].should.equal(2)
+        .then(([ result1, result2 ]) => {
+          result1.should.equal(1)
+          result2.should.equal(2)
 
           return min.del('hashKey')
         })

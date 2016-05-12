@@ -212,8 +212,6 @@ min.hget = function(key, field, callback = noop) {
 min.hmget = function(key, fields, callback = noop) {
   const promise = new Promise()
 
-  let values = []
-
   const multi = this.multi()
 
   fields.forEach(field => {
@@ -226,12 +224,8 @@ min.hmget = function(key, fields, callback = noop) {
       return promise.reject(err)
     }
 
-    values = replies.map(row => {
-      return row[0]
-    })
-
-    promise.resolve(values)
-    callback(null, values)
+    promise.resolve(replies)
+    callback(null, replies)
   })
 
   return promise
@@ -464,7 +458,7 @@ min.hincr = function(key, field, callback = noop) {
 
       return this.hset(key, field, ++curr)
     })
-    .then(([ key, field, value ]) => {
+    .then(([ , , value ]) => {
       promise.resolve(value)
       callback(null, value)
     }, err => {
@@ -505,7 +499,7 @@ min.hincrby = function(key, field, increment, callback = noop) {
 
       return this.hset(key, field, curr + increment)
     })
-    .then(([ key, field, value ]) => {
+    .then(([ , , value ]) => {
       promise.resolve(value)
       callback(null, value)
     }, err => {
@@ -548,7 +542,7 @@ min.hdecr = function(key, field, callback = noop) {
 
       return this.hset(key, field, --curr)
     })
-    .then(([ key, field, value ]) => {
+    .then(([ , , value ]) => {
       promise.resolve(value)
       callback(null, value)
     }, err => {
@@ -587,7 +581,7 @@ min.hdecrby = function(key, field, decrement, callback = noop) {
 
       return this.hset(key, field, curr - decrement)
     })
-    .then(([ key, field, value ]) => {
+    .then(([ , , value ]) => {
       promise.resolve(value)
       callback(null, value)
     }, err => {

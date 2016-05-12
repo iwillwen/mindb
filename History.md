@@ -1,4 +1,25 @@
 
+n.n.n / 2016-05-12
+==================
+
+  * Update: Full ES2015
+  * recover Store Interface docs
+  * Added test cases and fixed bugs
+  * Update: Fixed `Symbol is not defined`
+  * Update: Fixed `Symbol is not defined`
+  * Fixed: sadd fault caused by Promise
+  * Fixed: replace arguments to ...args
+  * Fixed: mget
+  * Hotfix: updated mindb
+  * Hotfix: min.multi dose not work
+  * Delete some mise
+  * Use webpack to pack up the library
+  * Fixed output library
+  * Fixed output library
+  * Hotfix: min.exists logical mistake
+  * Hotfix: gulpfile bug
+  * Hotfix: gulpfile bug
+
 n.n.n / 2014-11-08
 ==================
 

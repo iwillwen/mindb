@@ -454,9 +454,6 @@ min.mget = function(keys, callback = noop) {
   // Promise Object
   const promise = new Promise()
 
-  let results = []
-  let errors = []
-
   const multi = this.multi()
 
   for (let i = 0; i < keys.length; i++) {
@@ -469,9 +466,8 @@ min.mget = function(keys, callback = noop) {
       return promise.reject(err)
     }
 
-    var rtn = results.map(row => row[0])
     callback(err)
-    promise.resolve(rtn)
+    promise.resolve(results)
   })
 
   return promise

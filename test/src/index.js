@@ -1,4 +1,4 @@
-var TEST_REGEXP = /min\.(\w+)\.js$/i;
+var TEST_REGEXP = /dist\/min\.(\w+)\.js$/i;
 var allTestFiles = []
 
 // Get a list of all the test files to include
