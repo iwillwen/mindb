@@ -3,16 +3,24 @@ var b = require('./build/banner')
 
 module.exports = {
   content: __dirname,
-  entry: './src/entry.js',
+  entry: {
+    min: './src/entry.js',
+    'min.debug': './src/entry.js'
+  },
   output: {
     path: __dirname + '/dist',
-    filename: 'min.js',
+    filename: '[name].js',
     library: 'min',
     libraryTarget: 'umd',
-    umdNamedDefine: true
+    umdNamedDefine: true,
+    sourceMapFilename: '[file].map'
   },
   plugins: [
-    new webpack.BannerPlugin(b.banner)
+    new webpack.BannerPlugin(b.banner),
+    new webpack.optimize.UglifyJsPlugin({
+      include: /min\.js$/,
+      minimize: true
+    })
   ],
   module: {
     loaders: [
@@ -26,5 +34,6 @@ module.exports = {
         }
       }
     ]
-  }
+  },
+  devtool: 'source-map'
 }
