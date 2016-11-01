@@ -137,24 +137,15 @@ min.exists = function(key, callback = noop) {
   // Promise Object
   const promise = new Promise()
 
-  key = `min-${key}`
-
-  const handle = function(err, value) {
-    if (err || !value) {
+  this.get(key)
+    .then(value => {
+      promise.resolve(true)
+      callback(null, true)
+    })
+    .catch(err => {
       promise.resolve(false)
       return callback(null, false)
-    }
-
-    promise.resolve(true)
-    callback(null, true)
-  }
-
-  if (this.store.async) {
-    this.store.get(key, handle)
-  } else {
-    const val = this.store.get(key)
-    handle(null, val)
-  }
+    })
 
   return promise
 }

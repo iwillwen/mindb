@@ -1,7 +1,7 @@
 {
   "name": "min",
   "family": "iwillwen",
-  "version": "0.1.15",
+  "version": "0.1.16",
   "description": "Database on JavaScript",
   "main": "dist/min.js",
   "directories": {
