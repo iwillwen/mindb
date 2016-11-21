@@ -1,5 +1,4 @@
 import utils from './utils.js'
-import { Promise } from './events.js'
 
 const noop = utils.noop
 
@@ -21,17 +20,7 @@ let _keysTimer = null
  */
 min.set = function(key, value, callback) {
   // Promise Object
-  const promise = new Promise()
-
-  promise.then(_ => {
-    this.emit('set', key, value)
-
-    if (_keysTimer) {
-      clearTimeout(_keysTimer)
-    }
-
-    _keysTimer = setTimeout(this.save.bind(this), 1000)
-  })
+  const promise = new Promise((resolve, reject) => {
 
   // Store
   const store = this.store
@@ -50,14 +39,14 @@ min.set = function(key, value, callback) {
       store.set($key, $value, err => {
         if (err) {
           // Error!
-          promise.reject(err)
+          reject(err)
           return callback(err)
         }
 
         this._keys[key] = 0
 
         // Done
-        promise.resolve(key)
+        resolve(key)
         callback(null, key, value)
       })
     }
@@ -73,9 +62,20 @@ min.set = function(key, value, callback) {
     this._keys[key] = 0
 
     // Done
-    promise.resolve(key)
+    resolve(key)
     callback(null, key, value)
   }
+  })
+
+  promise.then(_ => {
+    this.emit('set', key, value)
+
+    if (_keysTimer) {
+      clearTimeout(_keysTimer)
+    }
+
+    _keysTimer = setTimeout(this.save.bind(this), 1000)
+  })
 
   return promise
 }
@@ -89,31 +89,30 @@ min.set = function(key, value, callback) {
  */
 min.setnx = function(key, value, callback = noop) {
   // Promise Object
-  const promise = new Promise()
+  return new Promise((resolve, reject) => {
 
   this.exists(key, (err, exists) => {
     if (err) {
       callback(err)
-      promise.reject(err)
+      reject(err)
     }
 
     if (exists) {
       // The key is exists
-      return promise.reject(new Error('The key is exists.'))
+      return reject(new Error('The key is exists.'))
     } else {
       this.set(key, value, callback)
         .then(key => {
           // Done
           callback(null, key)
-          promise.resolve(key)
+          resolve(key)
         }, err => {
           callback(err)
-          promise.reject(err)
+          reject(err)
         });
     }
   })
-
-  return promise
+  })
 }
 
 /**
@@ -127,31 +126,31 @@ min.setnx = function(key, value, callback = noop) {
 min.setex = function(key, seconds, value, callback = noop) {
 
   // Promise Object
-  const promise = new Promise()
+  return new Promise((resolve, reject) => {
 
-  // TTL
-  const timeout = _ => {
-    this.del(key, noop)
-  }
+    // TTL
+    const timeout = _ => {
+      this.del(key, noop)
+    }
 
-  // Set
-  this.set(key, value, (err, result) => {
-    // Done
-    setTimeout(timeout, seconds * 1000)
-    callback(err, result)
-  })
-    .then(key => {
+    // Set
+    this.set(key, value, (err, result) => {
       // Done
       setTimeout(timeout, seconds * 1000)
-      promise.resolve(key)
-      callback(null, key)
+      callback(err, result)
     })
-    .catch(err => {
-      promise.reject(err)
-      callback(err)
-    })
+      .then(key => {
+        // Done
+        setTimeout(timeout, seconds * 1000)
+        resolve(key)
+        callback(null, key)
+      })
+      .catch(err => {
+        reject(err)
+        callback(err)
+      })
 
-  return promise
+  })
 }
 
 /**
@@ -165,7 +164,7 @@ min.setex = function(key, seconds, value, callback = noop) {
 min.psetex = function(key, milliseconds, value, callback = noop) {
 
   // Promise Object
-  const promise = new Promise()
+  return new Promise((resolve, reject) => {
 
   // TTL
   const timeout = _ => {
@@ -181,12 +180,12 @@ min.psetex = function(key, milliseconds, value, callback = noop) {
     .then(key => {
       // Done
       setTimeout(timeout, milliseconds)
-      promise.resolve(key)
+      resolve(key)
       callback(null, key)
     })
-    .catch(promise.reject.bind(promise))
+    .catch(reject.bind(promise))
+  })
 
-  return promise
 }
 
 /**
@@ -196,7 +195,7 @@ min.psetex = function(key, milliseconds, value, callback = noop) {
  * @return {Promise}           promise object
  */
 min.mset = function(plainObject, callback = noop) {
-  const promise = new Promise()
+  return new Promise((resolve, reject) => {
 
   // keys
   const keys = Object.keys(plainObject)
@@ -237,16 +236,15 @@ min.mset = function(plainObject, callback = noop) {
   function out() {
     if (errors.length > 0) {
       callback(errors)
-      promise.reject(errors)
+      reject(errors)
     } else {
       callback(null, results)
-      promise.resolve(results)
+      resolve(results)
     }
   }
 
   next(keys[i], i)
-
-  return promise
+  })
 }
 
 /**
@@ -256,45 +254,46 @@ min.mset = function(plainObject, callback = noop) {
  * @return {Promise}           promise object
  */
 min.msetnx = function(plainObject, callback = noop) {
-  const promise = new Promise()
-  const keys = Object.keys(plainObject)
-  let i = 0
+  return new Promise((resolve, reject) => {
 
-  let results = []
-  let errors = []
+    const keys = Object.keys(plainObject)
+    let i = 0
 
-  const next = (key, index) => {
-    delete keys[index]
+    let results = []
+    let errors = []
 
-    this.setnx(key, plainObject[key])
-      .then(key => {
-        results.push(key)
+    const next = (key, index) => {
+      delete keys[index]
 
-        i++
-        if (keys[i]) {
-          next(keys[i], i)
-        } else {
+      this.setnx(key, plainObject[key])
+        .then(key => {
+          results.push(key)
+
+          i++
+          if (keys[i]) {
+            next(keys[i], i)
+          } else {
+            out()
+          }
+        }, err => {
+          errors.push(err)
           out()
-        }
-      }, err => {
-        errors.push(err)
-        out()
-      })
-  }
-
-  function out() {
-    if (errors.length) {
-      callback(errors)
-      return promise.reject(errors)
-    } else {
-      callback(null, results)
-      promise.resolve(results)
+        })
     }
-  }
 
-  next(keys[i], i)
+    function out() {
+      if (errors.length) {
+        callback(errors)
+        return reject(errors)
+      } else {
+        callback(null, results)
+        resolve(results)
+      }
+    }
 
-  return promise
+    next(keys[i], i)
+
+  })
 }
 
 /**
@@ -305,7 +304,7 @@ min.msetnx = function(plainObject, callback = noop) {
  * @return {Promise}           promise
  */
 min.append = function(key, value, callback = noop) {
-  const promise = new Promise()
+  return new Promise((resolve, reject) => {
 
   this.exists(key)
     .then(exists => {
@@ -326,15 +325,14 @@ min.append = function(key, value, callback = noop) {
       return this.strlen(key)
     })
     .then(len => {
-      promise.resolve(len)
+      resolve(len)
       callback(null, len)
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
-
-  return promise
+  })
 }
 
 /**
@@ -345,9 +343,7 @@ min.append = function(key, value, callback = noop) {
  */
 min.get = function(key, callback = noop) {
   // Promise Object
-  const promise = new Promise()
-
-  promise.then(value => this.emit('get', key, value))
+  const promise = new Promise((resolve, reject) => {
 
   // Store
   const store = this.store
@@ -361,9 +357,9 @@ min.get = function(key, callback = noop) {
       // Value processing
       store.get($key, (err, value) => {
         if (err) {
-          const _err = new Error('no such key')
+          const _err = new Error(`no such key "${key}"`)
           // Error!
-          promise.reject(_err)
+          reject(_err)
           return callback(_err)
         }
 
@@ -371,16 +367,16 @@ min.get = function(key, callback = noop) {
           // Done
           try {
             const ret = JSON.parse(value)
-            promise.resolve(ret)
+            resolve(ret)
             callback(null, ret)
           } catch(err) {
-            promise.reject(err)
+            reject(err)
             callback(err)
           }
         } else {
-          const err = new Error('no such key')
+          const err = new Error(`no such key "${key}"`)
 
-          promise.reject(err)
+          reject(err)
           callback(err)
         }
 
@@ -400,32 +396,33 @@ min.get = function(key, callback = noop) {
         try {
           const value = JSON.parse(_value)
           // Done
-          promise.resolve(value)
+          resolve(value)
           callback(null, value)
         } catch(err) {
-          promise.reject(err)
+          reject(err)
           callback(err)
         }
       } else {
-        const err = new Error('no such key')
+        const err = new Error(`no such key "${key}"`)
 
-        promise.reject(err)
+        reject(err)
         callback(err)
       }
     } catch(err) {
       // Error!
-      promise.reject(err)
+      reject(err)
       callback(err)
     }
   }
+  })
+
+  promise.then(value => this.emit('get', key, value))
 
   return promise
 }
 
 min.getrange = function(key, start, end, callback = noop) {
-  const promise = new Promise()
-
-  promise.then(value => this.emit('getrange', key, start, end, value))
+  const promise = new Promise((resolve, reject) => {
 
   const len = end - start + 1
 
@@ -433,12 +430,16 @@ min.getrange = function(key, start, end, callback = noop) {
     .then(value => {
       const val = value.substr(start, len)
 
-      promise.resolve(val)
+      resolve(val)
       callback(null, val)
     }, err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
+  })
+
+  promise.then(value => this.emit('getrange', key, start, end, value))
+
 
   return promise
 }
@@ -452,25 +453,25 @@ min.getrange = function(key, start, end, callback = noop) {
 min.mget = function(keys, callback = noop) {
 
   // Promise Object
-  const promise = new Promise()
+  return new Promise((resolve, reject) => {
 
-  const multi = this.multi()
+    const multi = this.multi()
 
-  for (let i = 0; i < keys.length; i++) {
-    multi.get(keys[i])
-  }
-
-  multi.exec((err, results) => {
-    if (err) {
-      callback(err)
-      return promise.reject(err)
+    for (let i = 0; i < keys.length; i++) {
+      multi.get(keys[i])
     }
 
-    callback(err)
-    promise.resolve(results)
-  })
+    multi.exec((err, results) => {
+      if (err) {
+        callback(err)
+        return reject(err)
+      }
 
-  return promise
+      callback(err)
+      resolve(results)
+    })
+
+  })
 }
 
 /**
@@ -481,9 +482,7 @@ min.mget = function(keys, callback = noop) {
  * @return {Promise}           promise object
  */
 min.getset = function(key, value, callback = noop) {
-  const promise = new Promise()
-
-  promise.then(old => this.emit('getset', key, value, old))
+  const promise = new Promise((resolve, reject) => {
 
   let _value = null
 
@@ -494,12 +493,16 @@ min.getset = function(key, value, callback = noop) {
       return this.set(key, value)
     })
     .then(_ => {
-      promise.resolve(_value)
+      resolve(_value)
       callback(null, _value)
     }, err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
+
+  })
+
+  promise.then(old => this.emit('getset', key, value, old))
 
   return promise
 }
@@ -511,28 +514,28 @@ min.getset = function(key, value, callback = noop) {
  * @return {Promise}           promise
  */
 min.strlen = function(key, callback = noop) {
-  const promise = new Promise()
+  return new Promise((resolve, reject) => {
+
 
   this.get(key)
     .then(value => {
       if ('string' === typeof value) {
         const len = value.length
 
-        promise.resolve(len)
+        resolve(len)
         callback(null, len)
       } else {
         const err = new TypeError()
 
-        promise.reject(err)
+        reject(err)
         callback(err)
       }
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
-
-  return promise
+  })
 }
 
 /**
@@ -542,9 +545,7 @@ min.strlen = function(key, callback = noop) {
  * @return {Promise}           promise
  */
 min.incr = function(key, callback = noop) {
-  const promise = new Promise()
-
-  promise.then(value => this.emit('incr', key, value))
+  const promise = new Promise((resolve, reject) => {
 
   this.exists(key)
     .then(exists => {
@@ -560,7 +561,7 @@ min.incr = function(key, callback = noop) {
     })
     .then(curr => {
       if (isNaN(parseInt(curr))) {
-        promise.reject('value wrong')
+        reject('value wrong')
         return callback('value wrong')
       }
 
@@ -572,13 +573,17 @@ min.incr = function(key, callback = noop) {
       return this.get(key)
     })
     .then(value => {
-      promise.resolve(value)
+      resolve(value)
       callback(null, value, key)
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
+  })
+
+  promise.then(value => this.emit('incr', key, value))
+
 
   return promise
 }
@@ -591,9 +596,7 @@ min.incr = function(key, callback = noop) {
  * @return {Promise}           promise
  */
 min.incrby = function(key, increment, callback = noop) {
-  const promise = new Promise()
-
-  promise.then(value => this.emit('incrby', key, increment, value))
+  const promise = new Promise((resolve, reject) => {
 
   this.exists(key)
     .then(exists => {
@@ -609,7 +612,7 @@ min.incrby = function(key, increment, callback = noop) {
     })
     .then(curr => {
       if (isNaN(parseFloat(curr))) {
-        promise.reject('value wrong')
+        reject('value wrong')
         return callback('value wrong')
       }
 
@@ -618,13 +621,17 @@ min.incrby = function(key, increment, callback = noop) {
       return this.set(key, curr + increment)
     })
     .then((key, value) => {
-      promise.resolve(value)
+      resolve(value)
       callback(null, value)
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
+
+  })
+
+  promise.then(value => this.emit('incrby', key, increment, value))
 
   return promise
 }
@@ -632,9 +639,7 @@ min.incrby = function(key, increment, callback = noop) {
 min.incrbyfloat = min.incrby
 
 min.decr = function(key, callback = noop) {
-  const promise = new Promise()
-
-  promise.then(curr => this.emit('decr', key, curr))
+  const promise = new Promise((resolve, reject) => {
 
   this.exists(key)
     .then(exists => {
@@ -650,7 +655,7 @@ min.decr = function(key, callback = noop) {
     })
     .then(curr => {
       if (isNaN(parseInt(curr))) {
-        promise.reject('value wrong')
+        reject('value wrong')
         return callback('value wrong')
       }
 
@@ -662,20 +667,23 @@ min.decr = function(key, callback = noop) {
       return this.get(key)
     })
     .then(value => {
-      promise.resolve(value)
+      resolve(value)
       callback(null, value, key)
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
+  })
+
+  promise.then(curr => this.emit('decr', key, curr))
+
 
   return promise
 }
 
 min.decrby = function(key, decrement, callback = noop) {
-  const promise = new Promise()
-  promise.then(curr => this.emit('decrby', key, decrement, curr))
+  const promise = new Promise((resolve, reject) => {
 
   this.exists(key)
     .then(exists => {
@@ -691,7 +699,7 @@ min.decrby = function(key, decrement, callback = noop) {
     })
     .then(curr => {
       if (isNaN(parseInt(curr))) {
-        promise.reject('value wrong')
+        reject('value wrong')
         return callback('value wrong')
       }
 
@@ -700,13 +708,16 @@ min.decrby = function(key, decrement, callback = noop) {
       return this.set(key, curr - decrement)
     })
     .then((key, value) => {
-      promise.resolve(value)
+      resolve(value)
       callback(null, value)
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
+  })
+  promise.then(curr => this.emit('decrby', key, decrement, curr))
+
 
   return promise
 }

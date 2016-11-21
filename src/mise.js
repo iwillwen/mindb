@@ -1,5 +1,4 @@
 import utils from './utils.js'
-import { Promise } from './events.js'
 
 const noop = utils.noop
 
@@ -37,33 +36,31 @@ class Multi {
   }
 
   exec(callback = noop) {
-    const promise = new Promise()
-    const results = [];
-
-    const loop = task => {
-      if (task) {
-        this.min[task.method].apply(this.min, task.args)
-          .then((...args) => {
-            if (args.length > 1) {
-              results.push(args)
-            } else {
-              results.push(args[0])
-            }
-            loop(this.queue.shift())
-          })
-          .catch(err => {
-            promise.reject(err)
-            callback(err, results)
-          })
-      } else {
-        promise.resolve(results)
-        callback(null, results)
+    const results = []
+    return new Promise((resolve, reject) => {
+      const loop = task => {
+        if (task) {
+          this.min[task.method].apply(this.min, task.args)
+            .then((...args) => {
+              if (args.length > 1) {
+                results.push(args)
+              } else {
+                results.push(args[0])
+              }
+              loop(this.queue.shift())
+            })
+            .catch(err => {
+              reject(err)
+              callback(err, results)
+            })
+        } else {
+          resolve(results)
+          callback(null, results)
+        }
       }
-    }
 
-    loop(this.queue.shift())
-
-    return promise
+      loop(this.queue.shift())
+    })
   }
 }
 
@@ -77,7 +74,6 @@ class Sorter {
     this.callback = callback
     this.result = []
     this.keys = {}
-    this.promise = new Promise(noop)
     this.sortFn = (a, b) => {
       if (utils.isNumber(a) && utils.isNumber(b)) {
         return a - b
@@ -86,64 +82,64 @@ class Sorter {
       }
     }
 
-    const run = _ => {
-      this.min.exists(key)
-        .then(exists => {
-          if (exists) {
-            return this.min.get(key)
-          } else {
-            return new Error('no such key')
-          }
-        })
-        .then(value => {
-          const p = new Promise(noop)
-
-          switch (true) {
-            case Array.isArray(value):
-              p.resolve(value)
-              break
-            case (value.ms && Array.isArray(value.ms)):
-              p.resolve(value.ms)
-              break
-            
-            default:
-              return new Error('content type wrong')
-          }
-
-          return p
-        })
-        .then(data => {
-          this.result = data.sort(this.sortFn)
-
-          this.result.forEach(chunk => {
-            this.keys[chunk] = chunk
+    this.promise = new Promise((resolve, reject) => {
+      const run = _ => {
+        this.min.exists(key)
+          .then(exists => {
+            if (exists) {
+              return this.min.get(key)
+            } else {
+              return new Error('no such key')
+            }
           })
+          .then(value => {
+            return new Promise((resolve, reject) => {
+              switch (true) {
+                case Array.isArray(value):
+                  resolve(value)
+                  break
+                case (value.ms && Array.isArray(value.ms)):
+                  resolve(value.ms)
+                  break
+                
+                default:
+                  resolve(new Error('content type wrong'))
+              }
+            })
+          })
+          .then(data => {
+            this.result = data.sort(this.sortFn)
 
-          this.promise.resolve(this.result)
-          this.callback(null, this.result)
-        })
-        .catch(err => {
-          this.promise.reject(err)
-          this.callback(err)
-        })
-    }
+            this.result.forEach(chunk => {
+              this.keys[chunk] = chunk
+            })
 
-    // Promise Shim
-    const loop = methods => {
-      var curr = methods.shift()
-
-      if (curr) {
-        this[curr] = (...args) => {
-          return this.promise[curr].apply(this.promise, args)
-        }
-
-        loop(methods)
-      } else {
-        run()
+            resolve(this.result)
+            this.callback(null, this.result)
+          })
+          .catch(err => {
+            reject(err)
+            this.callback(err)
+          })
       }
-    }
 
-    loop(['then', 'done'])
+      // Promise Shim
+      const loop = methods => {
+        var curr = methods.shift()
+
+        if (curr) {
+          this[curr] = (...args) => {
+            return this.promise[curr].apply(this.promise, args)
+          }
+
+          loop(methods)
+        } else {
+          run()
+        }
+      }
+
+      loop(['then', 'catch'])
+    })
   }
 
   by(pattern, callback = noop) {

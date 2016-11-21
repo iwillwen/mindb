@@ -20,6 +20,9 @@ module.exports = {
     new webpack.optimize.UglifyJsPlugin({
       include: /min\.js$/,
       minimize: true
+    }),
+    new webpack.ProvidePlugin({
+      'Promise': 'bluebird'
     })
   ],
   module: {

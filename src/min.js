@@ -1,7 +1,7 @@
 import 'es6-symbol/implement'
 
 import utils from './utils.js'
-import { EventEmitter, Promise } from './events.js'
+import { EventEmitter } from './events.js'
 import mix from './mix.js'
 import hash from './hash.js'
 import list from './list.js'
@@ -21,6 +21,16 @@ min.Promise = Promise
 
 min.memStore = memStore
 min.localStore = localStore
+
+const logLevels = [ 'info', 'warn', 'error' ]
+
+min.logLevel = 'info'
+
+Promise.onPossiblyUnhandledRejection((err, promise) => {
+  if (logLevels.indexOf(min.logLevel) < 1) {
+    console.error(err)
+  }
+})
 
 min.store = new localStore()
 
@@ -66,16 +76,7 @@ min.fork = function() {
  */
 min.del = function(key, callback = noop) {
   // Promise Object
-  const promise = new Promise(noop)
-
-  promise.then(() => {
-    this.emit('del', key)
-    if (_keysTimer) {
-      clearTimeout(_keysTimer)
-    }
-
-    _keysTimer = setTimeout(this.save.bind(this), 1000)
-  })
+  const promise = new Promise((resolve, reject) => {
 
   // Store
   const store = this.store
@@ -91,14 +92,14 @@ min.del = function(key, callback = noop) {
       store.remove($key, err => {
         if (err) {
           // Error!
-          promise.reject(err)
+          reject(err)
           return callback(err)
         }
 
         delete this._keys[key]
 
         // Done
-        promise.resolve(key)
+        resolve(key)
         callback(null, key)
       })
     }
@@ -115,14 +116,25 @@ min.del = function(key, callback = noop) {
       delete this._keys[key]
 
       // Done
-      promise.resolve(key)
+      resolve(key)
       callback(null, key)
     } catch(err) {
       // Error!
-      promise.reject(err)
+      reject(err)
       callback(err)
     }
   }
+  })
+
+  promise.then(() => {
+    this.emit('del', key)
+    if (_keysTimer) {
+      clearTimeout(_keysTimer)
+    }
+
+    _keysTimer = setTimeout(this.save.bind(this), 1000)
+  })
+
 
   return promise
 }
@@ -135,19 +147,17 @@ min.del = function(key, callback = noop) {
  */
 min.exists = function(key, callback = noop) {
   // Promise Object
-  const promise = new Promise()
-
-  this.get(key)
-    .then(value => {
-      promise.resolve(true)
-      callback(null, true)
-    })
-    .catch(err => {
-      promise.resolve(false)
-      return callback(null, false)
-    })
-
-  return promise
+  return new Promise(resolve => {
+    this.get(key)
+      .then(value => {
+        resolve(true)
+        callback(null, true)
+      })
+      .catch(err => {
+        resolve(false)
+        return callback(null, false)
+      })
+  })
 }
 
 /**
@@ -159,21 +169,12 @@ min.exists = function(key, callback = noop) {
  */
 min.renamenx = function(key, newKey, callback = noop) {
   // Promise object
-  const promise = new Promise(noop)
-
-  promise.then(_ => {
-    this.emit('rename', key, newKey)
-    if (_keysTimer) {
-      clearTimeout(_keysTimer)
-    }
-
-    _keysTimer = setTimeout(this.save.bind(this), 5 * 1000)
-  })
+  const promise = new Promise((resolve, reject) => {
 
   try {
     // Error handle
     const reject = err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     }
 
@@ -202,7 +203,7 @@ min.renamenx = function(key, newKey, callback = noop) {
       .then(
         _ => {
           this._keys[newKey] = type
-          promise.resolve('OK')
+          resolve('OK')
           callback(null, 'OK')
         },
         reject
@@ -211,6 +212,17 @@ min.renamenx = function(key, newKey, callback = noop) {
   } catch(err) {
     reject(err)
   }
+  })
+
+  promise.then(_ => {
+    this.emit('rename', key, newKey)
+    if (_keysTimer) {
+      clearTimeout(_keysTimer)
+    }
+
+    _keysTimer = setTimeout(this.save.bind(this), 5 * 1000)
+  })
+
 
   return promise
 }
@@ -225,7 +237,23 @@ min.renamenx = function(key, newKey, callback = noop) {
  */
 min.rename = function(key, newKey, callback = noop) {
   // Promise object
-  const promise = new Promise(noop)
+  const promise = new Promise((resolve, reject) => {
+
+    // Error handle
+    const _reject = err => {
+      reject(err)
+      callback(err)
+    }
+
+    if (key == newKey) {
+      // The origin key is equal to the new key
+      reject(new Error('The key is equal to the new key.'))
+    } else {
+      this.renamenx.apply(this, arguments)
+        .then(resolve)
+        .catch(_reject)
+    }
+  })
 
   promise.then(_ => {
     this.emit('rename', key, newKey)
@@ -236,22 +264,6 @@ min.rename = function(key, newKey, callback = noop) {
     _keysTimer = setTimeout(this.save.bind(this), 5 * 1000)
   })
 
-  // Error handle
-  const reject = err => {
-    promise.reject(err)
-    callback(err)
-  }
-
-  if (key == newKey) {
-    // The origin key is equal to the new key
-    reject(new Error('The key is equal to the new key.'))
-  } else {
-    this.renamenx.apply(this, arguments)
-      .then(
-        promise.resolve.bind(promise),
-        promise.reject.bind(promise)
-      )
-  }
   return promise
 }
 
@@ -264,29 +276,29 @@ min.rename = function(key, newKey, callback = noop) {
 min.keys = function(pattern, callback = noop) {
 
   // Promise object
-  const promise = new Promise()
+  return new Promise(resolve => {
 
-  // Stored keys
-  const keys = Object.keys(this._keys)
+    // Stored keys
+    const keys = Object.keys(this._keys)
 
-  // Filter
-  const filter = new RegExp(pattern
-    .replace('?', '(.)')
-    .replace('*', '(.*)'))
+    // Filter
+    const filter = new RegExp(pattern
+      .replace('?', '(.)')
+      .replace('*', '(.*)'))
 
-  const ret = []
+    const ret = []
 
-  for (let i = 0; i < keys.length; i++) {
-    if (keys[i].match(filter)) {
-      ret.push(keys[i])
+    for (let i = 0; i < keys.length; i++) {
+      if (keys[i].match(filter)) {
+        ret.push(keys[i])
+      }
     }
-  }
 
-  // Done
-  promise.resolve(ret)
-  callback(null, ret)
+    // Done
+    resolve(ret)
+    callback(null, ret)
 
-  return promise
+  })
 }
 
 /**
@@ -297,20 +309,19 @@ min.keys = function(pattern, callback = noop) {
 min.randomkey = function(callback = noop) {
 
   // Promise Object
-  const promise = new Promise(noop)
+  return new Promise(resolve => {
 
-  // Stored keys
-  const keys = Object.keys(this._keys)
+    // Stored keys
+    const keys = Object.keys(this._keys)
 
-  // Random Key
-  const index = Math.round(Math.random() * (keys.length - 1))
+    // Random Key
+    const index = Math.round(Math.random() * (keys.length - 1))
 
-  // Done
-  const $key = keys[index]
-  promise.resolve($key)
-  callback(null, $key)
-
-  return promise
+    // Done
+    const $key = keys[index]
+    resolve($key)
+    callback(null, $key)
+  })
 }
 
 /**
@@ -322,17 +333,16 @@ min.randomkey = function(callback = noop) {
 min.type = function(key, callback = noop) {
 
   // Promise Object
-  const promise = new Promise(noop)
+  return new Promise(resolve => {
 
-  if (this._keys.hasOwnProperty(key)) {
-    promise.resolve(_types[this._keys[key]])
-    callback(null, callback)
-  } else {
-    promise.resolve(null)
-    callback(null, null)
-  }
-
-  return promise
+    if (this._keys.hasOwnProperty(key)) {
+      resolve(_types[this._keys[key]])
+      callback(null, callback)
+    } else {
+      resolve(null)
+      callback(null, null)
+    }
+  })
 }
 
 /**
@@ -341,10 +351,28 @@ min.type = function(key, callback = noop) {
  * @return {Object}            min
  */
 min.empty = function(callback = noop) {
-  const promise = new Promise()
   const keys = Object.keys(this._keys)
   let removeds = 0
 
+  const promise = new Promise(resolve => {
+
+    const loop = key => {
+      if (key) {
+        this.del(key, err => {
+          if (!err) {
+            removeds++
+          }
+
+          loop(keys.shift())
+        })
+      } else {
+        resolve(removeds)
+        callback(null, removeds)
+      }
+    }
+
+    loop(keys.shift())
+  })
   promise.then(len => {
     this.emit('empty', len)
     if (_keysTimer) {
@@ -353,23 +381,6 @@ min.empty = function(callback = noop) {
 
     _keysTimer = setTimeout(this.save.bind(this), 5 * 1000)
   })
-
-  const loop = key => {
-    if (key) {
-      this.del(key, err => {
-        if (!err) {
-          removeds++
-        }
-
-        loop(keys.shift())
-      })
-    } else {
-      promise.resolve(removeds)
-      callback(null, removeds)
-    }
-  }
-
-  loop(keys.shift())
 
   return promise
 }
@@ -380,21 +391,22 @@ min.empty = function(callback = noop) {
  * @return {Promise}           promise
  */
 min.save = function(callback = noop) {
-  const promise = new Promise()
+  const promise = new Promise((resolve, reject) => {
+
+    this.set('min_keys', JSON.stringify(this._keys))
+      .then(_ => this.dump())
+      .then(([ dump, strResult ]) => {
+        resolve([dump, strResult])
+        callback(dump, strResult)
+      }, err => {
+        reject(err)
+        callback(err)
+      })
+  })
 
   promise.then(([ dump, strResult ]) => {
     this.emit('save', dump, strResult)
   })
-
-  this.set('min_keys', JSON.stringify(this._keys))
-    .then(_ => this.dump())
-    .then(([ dump, strResult ]) => {
-      promise.resolve([dump, strResult])
-      callback(dump, strResult)
-    }, err => {
-      promise.reject(err)
-      callback(err)
-    })
 
   return promise
 }
@@ -406,35 +418,33 @@ min.save = function(callback = noop) {
  */
 min.dump = function(callback = noop) {
   let loop = null
-  const promise = new Promise()
+  return new Promise((resolve, reject) => {
+    const rtn = {}
 
-  const rtn = {}
-
-  this.keys('*', (err, keys) => {
-    if (err) {
-      promise.reject(err)
-      return callback(err)
-    }
-
-    (loop = key => {
-      if (key) {
-        this.get(key)
-          .then(value => {
-            rtn[key] = value
-            loop(keys.shift())
-          }, err => {
-            promise.reject(err)
-            callback(err)
-          })
-      } else {
-        const strResult = JSON.stringify(rtn)
-        promise.resolve([ rtn, strResult ])
-        callback(null, rtn, strResult)
+    this.keys('*', (err, keys) => {
+      if (err) {
+        reject(err)
+        return callback(err)
       }
-    })(keys.shift())
-  })
 
-  return promise
+      (loop = key => {
+        if (key) {
+          this.get(key)
+            .then(value => {
+              rtn[key] = value
+              loop(keys.shift())
+            }, err => {
+              reject(err)
+              callback(err)
+            })
+        } else {
+          const strResult = JSON.stringify(rtn)
+          resolve([ rtn, strResult ])
+          callback(null, rtn, strResult)
+        }
+      })(keys.shift())
+    })
+  })
 }
 
 /**
@@ -444,13 +454,7 @@ min.dump = function(callback = noop) {
  * @return {Promise}           promise
  */
 min.restore = function(dump, callback = noop) {
-  const promise = new Promise()
-
-  promise.then(_ => {
-    this.save(_ => {
-      this.emit('restore')
-    })
-  })
+  const promise = new Promise((resolve, reject) => {
 
   const keys = Object.keys(dump)
 
@@ -461,14 +465,14 @@ min.restore = function(dump, callback = noop) {
         if (exists) {
           return this.get('min_keys')
         } else {
-          promise.resolve()
+          resolve()
           callback()
         }
       })
       .then(keys => {
         _keys = JSON.parse(keys)
 
-        promise.resolve()
+        resolve()
         callback()
       })
       .catch(err => {
@@ -483,7 +487,7 @@ min.restore = function(dump, callback = noop) {
         .then(_ => {
           loop(keys.shift())
         }, err => {
-          promise.reject(err)
+          reject(err)
           callback(err)
         })
     } else {
@@ -492,8 +496,14 @@ min.restore = function(dump, callback = noop) {
   }
 
   loop(keys.shift())
+  })
 
-  return promise
+  promise.then(_ => {
+    this.save(_ => {
+      this.emit('restore')
+    })
+  })
+
 }
 
 const watchers = {}

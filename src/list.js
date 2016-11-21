@@ -1,5 +1,4 @@
 import utils from './utils.js'
-import { Promise } from './events.js'
 
 const noop = utils.noop
 const min = {}
@@ -17,58 +16,59 @@ export default min
  * @return {Promise}           promise
  */
 min.lpush = function(key, ...values) {
-  const promise = new Promise()
   let callback = noop
 
   if (values[values.length - 1].apply) {
     callback = values.splice(values.length - 1)[0]
   }
 
-  promise.then(len => this.emit('lpush', key, values, len))
+  const promise = new Promise((resolve, reject) => {
+    this.exists(key, (err, exists) => {
+      if (err) {
+        reject(err)
+        return callback(err)
+      }
 
-  this.exists(key, (err, exists) => {
-    if (err) {
-      promise.reject(err)
-      return callback(err)
-    }
-
-    if (exists) {
-      this.get(key, (err, data) => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
-
-        data.unshift(...values)
-
-        this.set(key, data, err => {
+      if (exists) {
+        this.get(key, (err, data) => {
           if (err) {
-            promise.reject(err)
+            reject(err)
             return callback(err)
           }
 
-          var length = data.length
+          data.unshift(...values)
 
-          promise.resolve(length)
-          callback(null, length)
+          this.set(key, data, err => {
+            if (err) {
+              reject(err)
+              return callback(err)
+            }
+
+            var length = data.length
+
+            resolve(length)
+            callback(null, length)
+          })
         })
-      })
-    } else {
-      const data = values.slice()
+      } else {
+        const data = values.slice()
 
-      this.set(key, data, err => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
+        this.set(key, data, err => {
+          if (err) {
+            reject(err)
+            return callback(err)
+          }
 
-        this._keys[key] = 2
+          this._keys[key] = 2
 
-        promise.resolve(1)
-        callback(null, 1)
-      })
-    }
+          resolve(1)
+          callback(null, 1)
+        })
+      }
+    })
   })
+
+  promise.then(len => this.emit('lpush', key, values, len))
 
   return promise
 }
@@ -81,56 +81,56 @@ min.lpush = function(key, ...values) {
  * @return {Promise}           promise
  */
 min.lpushx = function(key, ...values) {
-  const promise = new Promise()
   let callback = noop
 
   if (values[values.length - 1].apply) {
     callback = values.splice(values.length - 1)[0]
   }
 
-  promise.then(len => this.emit('lpush', key, values, len))
+  const promise = new Promise((resolve, reject) => {
+    this.exists(key, (err, exists) => {
+      if (err) {
+        reject(err)
+        return callback(err)
+      }
 
-  this.exists(key, (err, exists) => {
-    if (err) {
-      promise.reject(err)
-      return callback(err)
-    }
-
-    if (exists) {
-      this.get(key, (err, data) => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
-
-        if (!data.length) {
-          var err = new Error('The list is empty.')
-
-          callback(err)
-          return promise.reject(err)
-        }
-
-        data.unshift(...values)
-
-        this.set(key, data, err => {
+      if (exists) {
+        this.get(key, (err, data) => {
           if (err) {
-            promise.reject(err)
+            reject(err)
             return callback(err)
           }
 
-          const length = data.length
+          if (!data.length) {
+            var err = new Error('The list is empty.')
 
-          promise.resolve(length)
-          callback(null, length)
+            callback(err)
+            return reject(err)
+          }
+
+          data.unshift(...values)
+
+          this.set(key, data, err => {
+            if (err) {
+              reject(err)
+              return callback(err)
+            }
+
+            const length = data.length
+
+            resolve(length)
+            callback(null, length)
+          })
         })
-      })
-    } else {
-      const err = new Error('no such key')
+      } else {
+        const err = new Error('no such key')
 
-      callback(err)
-      return promise.reject(err)
-    }
+        callback(err)
+        return reject(err)
+      }
+    })
   })
+  promise.then(len => this.emit('lpush', key, values, len))
 
   return promise
 }
@@ -143,56 +143,56 @@ min.lpushx = function(key, ...values) {
  * @return {Promise}           promise
  */
 min.rpush = function(key, ...values) {
-  const promise = new Promise()
   let callback = noop
 
   if (values[values.length - 1].apply) {
     callback = values.splice(values.length - 1)[0]
   }
 
-  promise.then(len => this.emit('rpush', key, values, len))
+  const promise = new Promise((resolve, reject) => {
+    this.exists(key, (err, exists) => {
+      if (err) {
+        reject(err)
+        return callback(err)
+      }
 
-  this.exists(key, (err, exists) => {
-    if (err) {
-      promise.reject(err)
-      return callback(err)
-    }
-
-    if (exists) {
-      this.get(key, (err, data) => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
-
-        data.push(...values)
-
-        this.set(key, data, err => {
+      if (exists) {
+        this.get(key, (err, data) => {
           if (err) {
-            promise.reject(err)
+            reject(err)
             return callback(err)
           }
 
-          const length = data.length
+          data.push(...values)
 
-          promise.resolve(length)
-          callback(null, length)
+          this.set(key, data, err => {
+            if (err) {
+              reject(err)
+              return callback(err)
+            }
+
+            const length = data.length
+
+            resolve(length)
+            callback(null, length)
+          })
         })
-      })
-    } else {
-      const data = values.slice()
+      } else {
+        const data = values.slice()
 
-      this.set(key, data, err => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
+        this.set(key, data, err => {
+          if (err) {
+            reject(err)
+            return callback(err)
+          }
 
-        promise.resolve(1)
-        callback(null, 1)
-      })
-    }
+          resolve(1)
+          callback(null, 1)
+        })
+      }
+    })
   })
+  promise.then(len => this.emit('rpush', key, values, len))
 
   return promise
 }
@@ -205,56 +205,56 @@ min.rpush = function(key, ...values) {
  * @return {Promise}           promise
  */
 min.rpushx = function(key, ...values) {
-  const promise = new Promise()
   let callback = noop
 
   if (values[values.length - 1].apply) {
     callback = values.splice(values.length - 1)[0]
   }
 
-  promise.then(len => this.emit('rpush', key, values, len))
+  const promise = new Promise((resolve, reject) => {
+    this.exists(key, (err, exists) => {
+      if (err) {
+        reject(err)
+        return callback(err)
+      }
 
-  this.exists(key, (err, exists) => {
-    if (err) {
-      promise.reject(err)
-      return callback(err)
-    }
-
-    if (exists) {
-      this.get(key, (err, data) => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
-
-        if (!data.length) {
-          const err = new Error('The list is empty.')
-
-          callback(err)
-          return promise.reject(err)
-        }
-
-        data.push(...values)
-
-        this.set(key, data, err => {
+      if (exists) {
+        this.get(key, (err, data) => {
           if (err) {
-            promise.reject(err)
+            reject(err)
             return callback(err)
           }
 
-          const length = data.length
+          if (!data.length) {
+            const err = new Error('The list is empty.')
 
-          promise.resolve(length)
-          callback(null, length)
+            callback(err)
+            return reject(err)
+          }
+
+          data.push(...values)
+
+          this.set(key, data, err => {
+            if (err) {
+              reject(err)
+              return callback(err)
+            }
+
+            const length = data.length
+
+            resolve(length)
+            callback(null, length)
+          })
         })
-      })
-    } else {
-      const err = new Error('no such key')
+      } else {
+        const err = new Error('no such key')
 
-      callback(err)
-      return promise.reject(err)
-    }
+        callback(err)
+        return reject(err)
+      }
+    })
   })
+  promise.then(len => this.emit('rpush', key, values, len))
 
   return promise
 }
@@ -266,32 +266,34 @@ min.rpushx = function(key, ...values) {
  * @return {Promise}           promise
  */
 min.lpop = function(key, callback = noop) {
-  const promise = new Promise()
   let val = null
+  const promise = new Promise((resolve, reject) => {
+
+    this.exists(key)
+      .then(exists => {
+        if (exists) {
+          return this.get(key)
+        } else {
+          resolve(null)
+          callback(null, null)
+        }
+      })
+      .then(data => {
+        val = data.shift()
+
+        return this.set(key,data)
+      })
+      .then(_ => {
+        resolve(val)
+        callback(null, val)
+      }, err => {
+        reject(err)
+        callback(err)
+      })
+  })
 
   promise.then(value => this.emit('lpop', key, value))
 
-  this.exists(key)
-    .then(exists => {
-      if (exists) {
-        return this.get(key)
-      } else {
-        promise.resolve(null)
-        callback(null, null)
-      }
-    })
-    .then(data => {
-      val = data.shift()
-
-      return this.set(key,data)
-    })
-    .then(_ => {
-      promise.resolve(val)
-      callback(null, val)
-    }, err => {
-      promise.reject(err)
-      callback(err)
-    })
 
   return promise
 }
@@ -303,33 +305,34 @@ min.lpop = function(key, callback = noop) {
  * @return {Promise}           promise
  */
 min.rpop = function(key, callback = noop) {
-  const promise = new Promise()
-
-  promise.then(value => this.emit('rpop', key, value))
-
   let value = null
 
-  this.exists(key)
-    .then(exists => {
-      if (exists) {
-        return this.get(key)
-      } else {
-        promise.resolve(null)
-        callback(null, null)
-      }
-    })
-    .then(data => {
-      value = data.pop()
+  const promise = new Promise((resolve, reject) => {
 
-      return this.set(key, data)
-    })
-    .then(_ => {
-      promise.resolve(value)
-      callback(null, value)
-    }, err => {
-      promise.reject(err)
-      callback(err)
-    })
+    this.exists(key)
+      .then(exists => {
+        if (exists) {
+          return this.get(key)
+        } else {
+          resolve(null)
+          callback(null, null)
+        }
+      })
+      .then(data => {
+        value = data.pop()
+
+        return this.set(key, data)
+      })
+      .then(_ => {
+        resolve(value)
+        callback(null, value)
+      }, err => {
+        reject(err)
+        callback(err)
+      })
+  })
+
+  promise.then(value => this.emit('rpop', key, value))
 
   return promise
 }
@@ -341,33 +344,32 @@ min.rpop = function(key, callback = noop) {
  * @return {Promise}           promise
  */
 min.llen = function(key, callback = noop) {
-  const promise = new Promise()
+  return new Promise((resolve, reject) => {
 
-  this.exists(key, (err, exists) => {
-    if (err) {
-      promise.reject(err)
-      return callback(err)
-    }
+    this.exists(key, (err, exists) => {
+      if (err) {
+        reject(err)
+        return callback(err)
+      }
 
-    if (exists) {
-      this.get(key, (err, data) => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
+      if (exists) {
+        this.get(key, (err, data) => {
+          if (err) {
+            reject(err)
+            return callback(err)
+          }
 
-        var length = data.length
+          var length = data.length
 
-        promise.resolve(length)
-        callback(null, length)
-      })
-    } else {
-      promise.resolve(0)
-      callback(null, 0)
-    }
+          resolve(length)
+          callback(null, length)
+        })
+      } else {
+        resolve(0)
+        callback(null, 0)
+      }
+    })
   })
-
-  return promise
 }
 
 /**
@@ -379,37 +381,36 @@ min.llen = function(key, callback = noop) {
  * @return {Promise}           promise
  */
 min.lrange = function(key, start, stop, callback = noop) {
-  const promise = new Promise()
+  return new Promise((resolve, reject) => {
 
-  this.exists(key, (err, exists) => {
-    if (err) {
-      promise.reject(err)
-      return callback(err)
-    }
+    this.exists(key, (err, exists) => {
+      if (err) {
+        reject(err)
+        return callback(err)
+      }
 
-    if (exists) {
-      this.get(key, (err, data) => {
-        if (err) {
-          promise.reject(err)
-          return callback(err)
-        }
+      if (exists) {
+        this.get(key, (err, data) => {
+          if (err) {
+            reject(err)
+            return callback(err)
+          }
 
-        if (stop < 0) {
-          stop = data.length + stop
-        }
+          if (stop < 0) {
+            stop = data.length + stop
+          }
 
-        var values = data.slice(start, stop + 1)
+          var values = data.slice(start, stop + 1)
 
-        promise.resolve(values)
-        callback(null, values)
-      })
-    } else {
-      promise.resolve([])
-      callback(null, [])
-    }
+          resolve(values)
+          callback(null, values)
+        })
+      } else {
+        resolve([])
+        callback(null, [])
+      }
+    })
   })
-
-  return promise
 }
 
 /**
@@ -421,62 +422,65 @@ min.lrange = function(key, start, stop, callback = noop) {
  * @return {Promise}           promise
  */
 min.lrem = function(key, count, value, callback = noop) {
-  const promise = new Promise()
-
-  promise.then(removeds => this.emit('lrem', key, count, value, removeds))
 
   let removeds = 0
 
-  this.exists(key)
-    .then(exists => {
-      if (exists) {
-        return this.get(key)
-      } else {
-        promise.resolve(0)
-        callback(null, 0)
-      }
-    })
-    .then(data => {
-      switch (true) {
-        case count > 0:
-          for (let i = 0; i < data.length && removeds < count; i++) {
-            if (data[i] === value) {
-              data.splice(i, 1)[0]
+  const promise = new Promise((resolve, reject) => {
 
-              removeds++
+    this.exists(key)
+      .then(exists => {
+        if (exists) {
+          return this.get(key)
+        } else {
+          resolve(0)
+          callback(null, 0)
+        }
+      })
+      .then(data => {
+        switch (true) {
+          case count > 0:
+            for (let i = 0; i < data.length && removeds < count; i++) {
+              if (data[i] === value) {
+                data.splice(i, 1)[0]
+
+                removeds++
+              }
             }
-          }
-          break
-        case count < 0:
-          for (let i = data.length - 1; i >= 0 && removeds < -count; i--) {
-            if (data[i] === value) {
-              data.splice(i, 1)[0]
+            break
+          case count < 0:
+            for (let i = data.length - 1; i >= 0 && removeds < -count; i--) {
+              if (data[i] === value) {
+                data.splice(i, 1)[0]
 
-              removeds++
+                removeds++
+              }
             }
-          }
-          break
-        case count == 0:
-          for (let i = data.length - 1; i >= 0; i--) {
-            if (data[i] === value) {
-              data.splice(i, 1)[0]
+            break
+          case count == 0:
+            for (let i = data.length - 1; i >= 0; i--) {
+              if (data[i] === value) {
+                data.splice(i, 1)[0]
 
-              removeds++
+                removeds++
+              }
             }
-          }
-          break
-      }
+            break
+        }
 
-      return this.set(key, data)
-    })
-    .then(() => {
-      promise.resolve(removeds)
-      callback(null, removeds)
-    })
-    .catch(err => {
-      promise.reject(err)
-      callback(err)
-    })
+        return this.set(key, data)
+      })
+      .then(() => {
+        resolve(removeds)
+        callback(null, removeds)
+      })
+      .catch(err => {
+        reject(err)
+        callback(err)
+      })
+
+  })
+
+  promise.then(removeds => this.emit('lrem', key, count, value, removeds))
 
   return promise
 }
@@ -490,43 +494,45 @@ min.lrem = function(key, count, value, callback = noop) {
  * @return {Promise}           promise
  */
 min.lset = function(key, index, value, callback = noop) {
-  const promise = new Promise()
+  const promise = new Promise((resolve, reject) => {
+
+    this.exists(key)
+      .then(exists => {
+        if (exists) {
+          return this.get(key)
+        } else {
+          throw new Error('no such key')
+        }
+      })
+      .then(data => {
+        if (index < 0 && data.length > 0) {
+          index = data.length + index
+        }
+
+        if (!data[index] || !data.length) {
+          throw new Error('Illegal index')
+        }
+
+        if (data.length == index) {
+          data.push(value)
+        } else {
+          data[index] = value
+        }
+
+        return this.set(key, data)
+      })
+      .then(() => {
+        resolve()
+        callback(null)
+      })
+      .catch(err => {
+        reject(err)
+        callback(err)
+      })
+
+  })
 
   promise.then(len => this.emit('lset', key, index, value, len))
-
-  this.exists(key)
-    .then(exists => {
-      if (exists) {
-        return this.get(key)
-      } else {
-        throw new Error('no such key')
-      }
-    })
-    .then(data => {
-      if (index < 0 && data.length > 0) {
-        index = data.length + index
-      }
-
-      if (!data[index] || !data.length) {
-        throw new Error('Illegal index')
-      }
-
-      if (data.length == index) {
-        data.push(value)
-      } else {
-        data[index] = value
-      }
-
-      return this.set(key, data)
-    })
-    .then(() => {
-      promise.resolve()
-      callback(null)
-    })
-    .catch(err => {
-      promise.reject(err)
-      callback(err)
-    })
 
   return promise
 }
@@ -540,40 +546,40 @@ min.lset = function(key, index, value, callback = noop) {
  * @return {Promise}           promise
  */
 min.ltrim = function(key, start, stop, callback = noop) {
-  const promise = new Promise()
+  return new Promise((resolve, reject) => {
 
-  this.exists(key)
-    .then(exists => {
-      if (!exists) {
-        throw new Error('no such key')
-      }
+    this.exists(key)
+      .then(exists => {
+        if (!exists) {
+          throw new Error('no such key')
+        }
 
-      return this.get(key)
-    })
-    .then(data => {
-      if (start < 0) {
-        start = data.length + start
-      }
+        return this.get(key)
+      })
+      .then(data => {
+        if (start < 0) {
+          start = data.length + start
+        }
 
-      if (stop < 0) {
-        stop = data.length + stop
-      }
+        if (stop < 0) {
+          stop = data.length + stop
+        }
 
-      var values = data.slice(start, stop + 1)
+        var values = data.slice(start, stop + 1)
 
-      return this.set(key, values)
-    })
-    .then(() => this.get(key))
-    .then(values => {
-      promise.resolve(values)
-      callback(null, values, key)
-    })
-    .catch(err => {
-      promise.reject(err)
-      callback(err)
-    })
+        return this.set(key, values)
+      })
+      .then(() => this.get(key))
+      .then(values => {
+        resolve(values)
+        callback(null, values, key)
+      })
+      .catch(err => {
+        reject(err)
+        callback(err)
+      })
 
-  return promise
+  })
 }
 
 /**
@@ -584,35 +590,34 @@ min.ltrim = function(key, start, stop, callback = noop) {
  * @return {Promise}           promise
  */
 min.lindex = function(key, index, callback = noop) {
-  const promise = new Promise()
+  return new Promise((resolve, reject) => {
 
-  this.exists(key)
-    .then(exists => {
-      if (!exists) {
-        const err = new Error('no such key')
+    this.exists(key)
+      .then(exists => {
+        if (!exists) {
+          const err = new Error('no such key')
 
-        promise.reject(err)
-        return callback(err)
-      }
+          reject(err)
+          return callback(err)
+        }
 
-      return this.get(key)
-    })
-    .then(data => {
-      if (index > (data.length - 1)) {
-        throw new Error('Illegal index')
-      }
+        return this.get(key)
+      })
+      .then(data => {
+        if (index > (data.length - 1)) {
+          throw new Error('Illegal index')
+        }
 
-      const value = data[index]
+        const value = data[index]
 
-      promise.resolve(value)
-      callback(null, value)
-    })
-    .catch(err => {
-      promise.reject(err)
-      callback(err)
-    })
-
-  return promise
+        resolve(value)
+        callback(null, value)
+      })
+      .catch(err => {
+        reject(err)
+        callback(err)
+      })
+  })
 }
 
 /**
@@ -624,9 +629,7 @@ min.lindex = function(key, index, callback = noop) {
  * @return {Promise}           promise
  */
 min.linsertBefore = function(key, pivot, value, callback = noop) {
-  const promise = new Promise()
-
-  promise.then(len => this.emit('linsertBefore', key, pivot, value, len))
+  const promise = new Promise((resolve, reject) => {
 
   this.exists(key)
     .then(exists => {
@@ -640,7 +643,7 @@ min.linsertBefore = function(key, pivot, value, callback = noop) {
       const index = data.indexOf(pivot)
 
       if (index < 0) {
-        promise.resolve(-1)
+        resolve(-1)
         callback(null, -1)
         return
       }
@@ -659,13 +662,17 @@ min.linsertBefore = function(key, pivot, value, callback = noop) {
       }
     })
     .then(data => {
-      promise.resolve(data.length)
+      resolve(data.length)
       callback(null, data.length)
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
+
+  })
+
+  promise.then(len => this.emit('linsertBefore', key, pivot, value, len))
 
   return promise
 }
@@ -679,9 +686,7 @@ min.linsertBefore = function(key, pivot, value, callback = noop) {
  * @return {Promise}           promise
  */
 min.linsertAfter = function(key, pivot, value, callback = noop) {
-  const promise = new Promise()
-
-  promise.then(len => this.emit('linsertAfter', key, pivot, value, len))
+  const promise = new Promise((resolve, reject) => {
 
   this.exists(key)
     .then(exists => {
@@ -695,7 +700,7 @@ min.linsertAfter = function(key, pivot, value, callback = noop) {
       const index = data.indexOf(pivot) + 1
 
       if (index < 0) {
-        promise.resolve(-1)
+        resolve(-1)
         callback(null, -1)
         return
       }
@@ -714,13 +719,17 @@ min.linsertAfter = function(key, pivot, value, callback = noop) {
       }
     })
     .then(data => {
-      promise.resolve(data.length)
+      resolve(data.length)
       callback(null, data.length)
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
+  })
+
+  promise.then(len => this.emit('linsertAfter', key, pivot, value, len))
+
 
   return promise
 }
@@ -733,20 +742,23 @@ min.linsertAfter = function(key, pivot, value, callback = noop) {
  * @return {Promise}           promise
  */
 min.rpoplpush = function(src, dest, callback = noop) {
-  const promise = new Promise()
   let value = null
 
-  promise.then(([value, len]) => this.emit('rpoplpush', src, dest, value, len))
-
+  const promise = new Promise((resolve, reject) => {
+    
   this.rpop(src)
     .then(_ => this.lpush(dest, (value = _)))
     .then(length => {
-      promise.resolve([value, length])
+      resolve([value, length])
       callback(null, value, length)
     }, err => {
       callback(err)
-      promise.reject(err)
+      reject(err)
     })
+  })
+
+  promise.then(([value, len]) => this.emit('rpoplpush', src, dest, value, len))
+
 
   return promise
 }
@@ -759,20 +771,22 @@ min.rpoplpush = function(src, dest, callback = noop) {
  * @return {Promise}           promise
  */
 min.lpoprpush = function(src, dest, callback = noop) {
-  const promise = new Promise()
   let value = null
 
-  promise.then((value, len) => this.emit('lpoprpush', src, dest, value, len))
-
+  const promise = new Promise((resolve, reject) => {
   this.lpop(src)
     .then(_ => this.rpush(dest, (value = _)))
     .then(length => {
-      promise.resolve(value, length)
+      resolve(value, length)
       callback(null, value, length)
     }, err => {
       callback(err)
-      promise.reject(err)
+      reject(err)
     })
+  })
+
+  promise.then((value, len) => this.emit('lpoprpush', src, dest, value, len))
+
 
   return promise
 }

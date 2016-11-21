@@ -1,5 +1,4 @@
 import utils from './utils.js'
-import { Promise } from './events.js'
 
 const noop = utils.noop
 
@@ -10,9 +9,7 @@ export default min
 **         Sorted Set        **
 ******************************/
 min.zadd = function(key, score, member, callback = noop) {
-  const promise = new Promise(noop)
-
-  promise.then(len => this.emit('zadd', key, score, member, len))
+  const promise = new Promise((resolve, reject) => {
 
   this.exists(key)
     .then(exists => {
@@ -36,7 +33,7 @@ min.zadd = function(key, score, member, callback = noop) {
       if ('string' === typeof _key) {
         this._keys[key] = 4
 
-        promise.resolve(1, 1)
+        resolve(1, 1)
         callback(null, 1, 1)
       } else if ('object' === typeof _key) {
         const data = _key
@@ -44,7 +41,7 @@ min.zadd = function(key, score, member, callback = noop) {
         if (data.ms.indexOf(member) >= 0) {
           const len = data.ms.length
 
-          promise.resolve(0, len)
+          resolve(0, len)
           return callback(null, 0, len)
         }
 
@@ -72,19 +69,23 @@ min.zadd = function(key, score, member, callback = noop) {
 
       var len = data.ms.length
 
-      promise.resolve(1, len)
+      resolve(1, len)
       callback(null, 1, len)
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
+  })
+
+  promise.then(len => this.emit('zadd', key, score, member, len))
+
 
   return promise
 }
 
 min.zcard = function(key, callback = noop) {
-  const promise = new Promise(noop)
+  return new Promise((resolve, reject) => {
 
   this.exists(key)
     .then(exists => {
@@ -93,28 +94,25 @@ min.zcard = function(key, callback = noop) {
       } else {
         const err = new Error('no such key')
 
-        promise.reject(err)
+        reject(err)
         callback(err)
       }
     })
     .then(data => {
       const len = data.ms.filter(Boolean).length
 
-      promise.resolve(len)
+      resolve(len)
       callback(null, len)
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
-
-  return promise
+  })
 }
 
 min.zcount = function(key, min, max, callback = noop) {
-  const promise = new Promise(noop)
-
-  promise.then(len => this.emit('zcount', key, min, max, value, len))
+  const promise = new Promise((resolve, reject) => {
 
   this.exists(key)
     .then(exists => {
@@ -123,7 +121,7 @@ min.zcount = function(key, min, max, callback = noop) {
       } else {
         const err = new Error('no such key')
 
-        promise.reject(err)
+        reject(err)
         callback(err)
       }
     })
@@ -137,26 +135,28 @@ min.zcount = function(key, min, max, callback = noop) {
         .map(hash => hash.length)
         .reduce((a, b) => a + b)
 
-      promise.resolve(len)
+      resolve(len)
       callback(null, len)
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
+  })
+
+  promise.then(len => this.emit('zcount', key, min, max, value, len))
+
 
   return promise
 }
 
 min.zrem = function(key, ...members) {
-  const promise = new Promise(noop)
   let callback = noop
 
   if (members[members.length - 1] instanceof Function) {
     callback = members.pop()
   }
-
-  promise.then(removeds => this.emit('zrem', key, members, removeds))
+  const promise = new Promise((resolve, reject) => {
 
   let removeds = 0
 
@@ -167,7 +167,7 @@ min.zrem = function(key, ...members) {
       } else {
         var err = new Error('no such key')
 
-        promise.reject(err)
+        reject(err)
         callback(err)
       }
     })
@@ -198,19 +198,22 @@ min.zrem = function(key, ...members) {
     })
     .then(data => this.set(key, data))
     .then(_ => {
-      promise.resolve(removeds)
+      resolve(removeds)
       callback(null, removeds)
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(null, err)
     })
+  })
+
+  promise.then(removeds => this.emit('zrem', key, members, removeds))
 
   return promise
 }
 
 min.zscore = function(key, member, callback = noop) {
-  const promise = new Promise(noop)
+  return new Promise((resolve, reject) => {
 
   this.exists(key)
     .then(exists => {
@@ -219,7 +222,7 @@ min.zscore = function(key, member, callback = noop) {
       } else {
         const err = new Error('no such key')
 
-        promise.reject(err)
+        reject(err)
         callback(err)
       }
     })
@@ -229,85 +232,82 @@ min.zscore = function(key, member, callback = noop) {
       if (hash >= 0) {
         const score = data.hsm[hash]
 
-        promise.resolve(score)
+        resolve(score)
         callback(null, score)
       } else {
         const err = new Error('This member does not be in the set')
 
-        promise.reject(err)
+        reject(err)
         callback(err)
       }
     })
-
-  return promise
+  })
 }
 
 min.zrange = function(key, min, max, callback = noop) {
-  const promise = new Promise(noop)
+  const promise = new Promise((resolve, reject) => {
+    this.exists(key)
+      .then(exists => {
+        if (exists) {
+          return this.get(key)
+        } else {
+          const err = new Error('no such key')
 
-  this.exists(key)
-    .then(exists => {
-      if (exists) {
-        return this.get(key)
-      } else {
-        const err = new Error('no such key')
+          reject(err)
+          callback(err)
+        }
+      })
+      .then(data => {
+        const hashs = Object.keys(data.shm)
+          .map(s => parseFloat(s))
+          .sort()
+          .filter(score => (min <= score && score <= max))
+          .map(score => data.shm[score])
 
-        promise.reject(err)
+        const members = hashs
+          .map(hash => hash.map(row => data.ms[row]))
+          .reduce((a, b) => a.concat(b))
+
+        resolve(members)
+        callback(null, members)
+      })
+      .catch(err => {
+        reject(err)
         callback(err)
-      }
-    })
-    .then(data => {
-      const hashs = Object.keys(data.shm)
-        .map(s => parseFloat(s))
-        .sort()
-        .filter(score => (min <= score && score <= max))
-        .map(score => data.shm[score])
-
-      const members = hashs
-        .map(hash => hash.map(row => data.ms[row]))
-        .reduce((a, b) => a.concat(b))
-
-      promise.resolve(members)
-      callback(null, members)
-    })
-    .catch(err => {
-      promise.reject(err)
-      callback(err)
-    })
-
-  promise.withScore = (callback = noop) => {
-    const p = new Promise(noop)
-
-    promise
-      .then(members => {
-        const multi = this.multi()
-
-        members.forEach(member => multi.zscore(key, member))
-
-        multi.exec((err, replies) => {
-          if (err) {
-            callback(err)
-            return p.reject(err)
-          }
-
-          const rtn = replies.map((reply, ii) => ({
-            member: members[ii],
-            score: reply
-          }))
-
-          p.resolve(rtn)
-          callback(null, rtn)
-        })
       })
 
-    return p
-  }
+    promise.withScore = (callback = noop) => {
+      return new Promise((resolve, reject) => {
+        promise
+          .then(members => {
+            const multi = this.multi()
+
+            members.forEach(member => multi.zscore(key, member))
+
+            multi.exec((err, replies) => {
+              if (err) {
+                callback(err)
+                return p.reject(err)
+              }
+
+              const rtn = replies.map((reply, ii) => ({
+                member: members[ii],
+                score: reply
+              }))
+
+              resolve(rtn)
+              callback(null, rtn)
+            })
+          })
+      })
+    }
+  })
 
   return promise
 }
 
 min.zrevrange = function(key, min, max, callback = noop) {
-  const promise = new Promise(noop)
+  const promise = new Promise((resolve, reject) => {
 
   this.exists(key)
     .then(exists => {
@@ -316,7 +316,7 @@ min.zrevrange = function(key, min, max, callback = noop) {
       } else {
         const err = new Error('no such key')
 
-        promise.reject(err)
+        reject(err)
         callback(err)
       }
     })
@@ -331,96 +331,94 @@ min.zrevrange = function(key, min, max, callback = noop) {
         .map(hash => hash.map(row => data.ms[row]))
         .reduce((a, b) => a.concat(b))
 
-      promise.resolve(members)
+      resolve(members)
       callback(null, members)
     }, err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
 
   promise.withScore = (callback = noop) => {
-    const p = new Promise(noop)
+    return new Promise((resolve, reject) => {
+      promise
+        .then(members => {
+          const multi = this.multi()
 
-    promise
-      .then(members => {
-        const multi = this.multi()
+          members.forEach(member => multi.zscore(key, member))
 
-        members.forEach(member => multi.zscore(key, member))
+          multi.exec((err, replies) => {
+            if (err) {
+              callback(err)
+              return p.reject(err)
+            }
 
-        multi.exec((err, replies) => {
-          if (err) {
-            callback(err)
-            return p.reject(err)
-          }
+            const rtn = replies.map((reply, ii) => ({
+              member: members[ii],
+              score: reply
+            }))
 
-          const rtn = replies.map((reply, ii) => ({
-            member: members[ii],
-            score: reply
-          }))
-
-          p.resolve(rtn)
-          callback(null, rtn)
+            resolve(rtn)
+            callback(null, rtn)
+          })
         })
-      })
-
-    return p
+    })
   }
+  })
 
   return promise
 }
 
 min.zincrby = function(key, increment, member, callback = noop) {
-  const promise = new Promise(noop)
+  const promise = new Promise((resolve, reject) => {
+
+    let newScore = null
+
+    this.exists(key)
+      .then(exists => {
+        if (exists) {
+          return this.zscore(key, member)
+        } else {
+          this.zadd(key, 0, member, callback)
+            .then(resolve.bind(promise),
+              reject.bind(promise))
+        }
+      })
+      .then(_ => this.get(key))
+      .then(data => {
+        const hash = data.ms.indexOf(member)
+        const score = data.hsm[hash]
+
+        newScore = score + increment
+
+        const ii = data.shm[score].indexOf(hash)
+        data.shm[score].splice(ii, 1)
+
+        data.hsm[hash] = newScore
+        if (data.shm[newScore]) {
+          data.shm[newScore].push(hash)
+        } else {
+          data.shm[newScore] = [ hash ]
+        }
+
+        return this.set(key, data)
+      })
+      .then(_ => {
+        resolve(newScore)
+        callback(null, newScore)
+      })
+      .catch(err => {
+        reject(err)
+        callback(err)
+      })
+  })
 
   promise.then(score => this.emit('zincrby', key, increment, member, score))
-
-  let newScore = null
-
-  this.exists(key)
-    .then(exists => {
-      if (exists) {
-        return this.zscore(key, member)
-      } else {
-        this.zadd(key, 0, member, callback)
-          .then(promise.resolve.bind(promise),
-            promise.reject.bind(promise))
-      }
-    })
-    .then(_ => this.get(key))
-    .then(data => {
-      const hash = data.ms.indexOf(member)
-      const score = data.hsm[hash]
-
-      newScore = score + increment
-
-      const ii = data.shm[score].indexOf(hash)
-      data.shm[score].splice(ii, 1)
-
-      data.hsm[hash] = newScore
-      if (data.shm[newScore]) {
-        data.shm[newScore].push(hash)
-      } else {
-        data.shm[newScore] = [ hash ]
-      }
-
-      return this.set(key, data)
-    })
-    .then(_ => {
-      promise.resolve(newScore)
-      callback(null, newScore)
-    })
-    .catch(err => {
-      promise.reject(err)
-      callback(err)
-    })
 
   return promise
 }
 
 min.zdecrby = function(key, decrement, member, callback = noop) {
-  const promise = new Promise(noop)
-
-  promise.then(score => this.emit('zdecrby', keys, decrement, member, score))
+  const promise = new Promise((resolve, reject) => {
 
   let newScore = null
 
@@ -431,7 +429,7 @@ min.zdecrby = function(key, decrement, member, callback = noop) {
       } else {
         const err = new Error('no such key')
 
-        promise.reject(err)
+        reject(err)
         callback(err)
       }
     })
@@ -455,68 +453,69 @@ min.zdecrby = function(key, decrement, member, callback = noop) {
       return this.set(key, data)
     })
     .then(_ => {
-      promise.resolve(newScore)
+      resolve(newScore)
       callback(null, newScore)
     })
     .catch(err => {
-      promise.reject(err)
+      reject(err)
       callback(err)
     })
+  })
+
+  promise.then(score => this.emit('zdecrby', keys, decrement, member, score))
+
 
   return promise
 }
 
 min.zrank = function(key, member, callback = noop) {
-  const promise = new Promise(noop)
+  return new Promise((resolve, reject) => {
 
-  this.exists(key)
-    .then(exists => {
-      if (exists) {
-        return this.get(key)
-      } else {
-        throw new Error('no such key')
-      }
-    })
-    .then(data => {
-      const scores = Object.keys(data.shm).map(s => parseFloat(s)).sort()
-      const score = parseFloat(data.hsm[data.ms.indexOf(member)])
+    this.exists(key)
+      .then(exists => {
+        if (exists) {
+          return this.get(key)
+        } else {
+          throw new Error('no such key')
+        }
+      })
+      .then(data => {
+        const scores = Object.keys(data.shm).map(s => parseFloat(s)).sort()
+        const score = parseFloat(data.hsm[data.ms.indexOf(member)])
 
-      const rank = scores.indexOf(score) + 1
+        const rank = scores.indexOf(score) + 1
 
-      promise.resolve(rank)
-      callback(null, rank)
-    })
-    .catch(err => {
-      promise.reject(err)
-      callback(err)
-    })
-
-  return promise
+        resolve(rank)
+        callback(null, rank)
+      })
+      .catch(err => {
+        reject(err)
+        callback(err)
+      })
+  })
 }
 
 min.zrevrank = function(key, member, callback = noop) {
-  const promise = new Promise(noop)
+  return new Promise((resolve, reject) => {
+    this.exists(key)
+      .then(exists => {
+        if (exists) {
+          return this.get(key)
+        } else {
+          throw new Error('no such key')
+        }
+      })
+      .then(data => {
+        const scores = Object.keys(data.shm).map(s => parseFloat(s)).sort()
+        const score = parseFloat(data.hsm[data.ms.indexOf(member)])
 
-  this.exists(key)
-    .then(exists => {
-      if (exists) {
-        return this.get(key)
-      } else {
-        throw new Error('no such key')
-      }
-    })
-    .then(data => {
-      const scores = Object.keys(data.shm).map(s => parseFloat(s)).sort()
-      const score = parseFloat(data.hsm[data.ms.indexOf(member)])
+        const rank = scores.reverse().indexOf(score) + 1
 
-      const rank = scores.reverse().indexOf(score) + 1
-
-      promise.resolve(rank)
-      callback(null, rank)
-    }, err => {
-      promise.reject(err)
-      callback(err)
-    })
-
-  return promise
+        resolve(rank)
+        callback(null, rank)
+      }, err => {
+        reject(err)
+        callback(err)
+      })
+  })
 }
