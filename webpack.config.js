@@ -1,42 +1,46 @@
-var webpack = require('webpack')
-var b = require('./build/banner')
+
+const webpack = require('webpack')
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin')
+const b = require('./assets/banner')
+const path = require('path')
+const os = require('os')
 
 module.exports = {
-  content: __dirname,
-  entry: {
-    min: './src/entry.js',
-    'min.debug': './src/entry.js'
-  },
-  output: {
-    path: __dirname + '/dist',
-    filename: '[name].js',
-    library: 'min',
-    libraryTarget: 'umd',
-    umdNamedDefine: true,
-    sourceMapFilename: '[file].map'
-  },
-  plugins: [
-    new webpack.BannerPlugin(b.banner),
-    new webpack.optimize.UglifyJsPlugin({
-      include: /min\.js$/,
-      minimize: true
-    }),
-    new webpack.ProvidePlugin({
-      'Promise': 'bluebird'
-    })
-  ],
+  entry: './src/index.ts',
   module: {
-    loaders: [
+    rules: [
       {
-        test: /\.js?$/,
-        exclude: /(node_modules)/,
-        loader: 'babel',
-        query: {
-          presets: ['es2015'],
-          plugins: ["transform-es2015-modules-commonjs"]
-        }
+        test: /\.ts/,
+        use: 'ts-loader',
+        exclude: /node_modules/
       }
     ]
   },
-  devtool: 'source-map'
+  devtool: 'source-map',
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'min.js',
+    library: 'min',
+    libraryTarget: 'umd',
+    umdNamedDefine: true,
+    sourceMapFilename: 'min.map'
+  },
+  resolve: {
+    extensions: [ '.ts' ]
+  },
+  mode: 'production',
+  optimization: {
+    usedExports: true,
+    minimizer: [
+      new UglifyJsPlugin({
+        parallel: os.cpus().length,
+        sourceMap: true
+      })
+    ]
+  },
+  plugins: [
+    new webpack.BannerPlugin({
+      banner: b.banner
+    })
+  ]
 }
