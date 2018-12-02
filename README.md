@@ -1,4 +1,4 @@
-![MinDB](http://iwillwen.u.qiniudn.com/min/mindb_logo.png?123)**Database on JavaScript**
+![MinDB](https://raw.githubusercontent.com/iwillwen/mindb/master/assets/mindb.png)**Database on JavaScript**
 
 Storing and structuring your application data on JavaScript.  
 Providing a standard *Store Interface* and **Redis**-like API that you can use in wherever.

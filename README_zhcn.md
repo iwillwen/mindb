@@ -1,4 +1,4 @@
-![MinDB](http://iwillwen.u.qiniudn.com/min/mindb_logo.png?123)**JavaScript 数据库**
+![MinDB](https://raw.githubusercontent.com/iwillwen/mindb/master/assets/mindb.png)**JavaScript 数据库**
 
 在 JavaScript 中对你的应用数据进行存储和操作。  
 MinDB 提供一个标准的存储接口(`Store Interface`)和 **Redis** 风格的 API，你可以在任何 JavaScript 环境中使用。
