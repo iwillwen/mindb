@@ -74,17 +74,7 @@ export default class MinSet extends Base {
   }
 
   async sismember(key: string, value: any) {
-    const exists = await this.exists(key)
-    if (!exists) {
-      throw new Error('no such key')
-    }
-
-    const isSet = exists ? await this.is(key, TYPES.set) : false
-    if (exists && !isSet) {
-      throw new TypeError('the key is not a set')
-    }
-
-    const members = await this.get(key)
+    const members = await this.smembers(key)
 
     return members.indexOf(value) >= 0
   }
